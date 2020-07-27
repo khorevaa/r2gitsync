@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/go-git/go-git"
+	"github.com/go-git/go-git/v5"
 	"io/ioutil"
 	"path/filepath"
 )
@@ -14,7 +14,7 @@ const (
 
 func writeVersionFile(workdir string, version string) error {
 
-	data := fmt.Sprintf(`<?xml version=""1.0"" encoding=""UTF-8""?>
+	data := fmt.Sprintf(`<?xml Version=""1.0"" encoding=""UTF-8""?>
 	"<VERSION>"%s"</VERSION>"`, version)
 
 	filename := filepath.Join(workdir, VERSION_FILE)
