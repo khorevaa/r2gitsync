@@ -12,11 +12,11 @@ import (
 )
 
 // Sample use: vault list OR vault config list
-func cmdSetVersion(cmd *cli.Cmd) {
+func (app *Application) cmdSetVersion(cmd *cli.Cmd) {
 
 	var (
-		doCommit   = opts.BoolOpt("c commit", false, "закоммитить изменения в git").Opt(cmd)
-		setVersion = args.StringArg("VERSION", "", "Номер версии для записи в файл.").Arg(cmd)
+		doCommit   = opts.BoolOpt(cmd, "c commit", false, "закоммитить изменения в git").Opt()
+		setVersion = args.StringArg(cmd, "VERSION", "", "Номер версии для записи в файл.").Arg()
 		workdir    = WorkdirArg(cmd)
 	)
 
@@ -33,11 +33,13 @@ func cmdSetVersion(cmd *cli.Cmd) {
 			failOnErr(err)
 		}
 
+		readVersion(*workdir)
+
 	}
 }
 
 type versionReader struct {
-	currentVersion int64 `xml:"VERSION"`
+	CurrentVersion int64 `xml:"VERSION"`
 }
 
 func readVersion(workdir string) {
@@ -58,10 +60,15 @@ func readVersion(workdir string) {
 
 	// read our opened xmlFile as a byte array.
 	byteValue, _ := ioutil.ReadAll(xmlFile)
+	fmt.Println(string(byteValue))
 
 	// xmlFiles content into 'users' which we defined above
-	xml.Unmarshal(byteValue, r)
+	err = xml.Unmarshal(byteValue, &r.CurrentVersion)
 
-	fmt.Println(r.currentVersion)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Println(fmt.Sprintf("Write version: <%d>", r.CurrentVersion))
 
 }

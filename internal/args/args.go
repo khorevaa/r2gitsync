@@ -6,12 +6,15 @@ import (
 )
 
 type stringArg struct {
+	cmd command
 	cli.StringArg
 }
 
-type cmd interface {
+type command interface {
 	String(p cli.StringParam) *string
+	StringPtr(into *string, p cli.StringParam)
 	Bool(p cli.BoolParam) *bool
+	BoolPtr(into *bool, p cli.BoolParam)
 	Int(p cli.IntParam) *int
 	Float64(p cli.Float64Param) *float64
 	Strings(p cli.StringsParam) *[]string
@@ -49,14 +52,21 @@ func (o stringArg) Desc(desc string) stringArg {
 
 }
 
-func (o stringArg) Arg(cmd cmd) *string {
+func (o stringArg) Arg() *string {
 
-	return cmd.String(o)
+	return o.cmd.String(o.StringArg)
 
 }
 
-func StringArg(name, value, desc string) stringArg {
+func (o stringArg) Ptr(into *string) {
+
+	o.cmd.StringPtr(into, o.StringArg)
+
+}
+
+func StringArg(cmd command, name, value, desc string) stringArg {
 	return stringArg{
+		cmd: cmd,
 		StringArg: cli.StringArg{
 			Name:  name,
 			Value: value,

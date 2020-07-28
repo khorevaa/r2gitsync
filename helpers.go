@@ -16,10 +16,17 @@ import (
 )
 
 func WorkdirArg(cmd *cli.Cmd) *string {
-	return args.StringArg(
-		"WORKDIR",
-		pwd,
-		"Каталог исходников внутри локальной копии git-репозитория.").HideValue(true).Env(env.WorkDir).Arg(cmd)
+	return args.StringArg(cmd, "WORKDIR", pwd, "Каталог исходников внутри локальной копии git-репозитория.").
+		HideValue(true).
+		Env(env.WorkDir).
+		Arg()
+}
+
+func WorkdirArgPtr(into *string, cmd *cli.Cmd) {
+	args.StringArg(cmd, "WORKDIR", pwd, "Каталог исходников внутри локальной копии git-репозитория.").
+		HideValue(true).
+		Env(env.WorkDir).
+		Ptr(into)
 }
 
 func failOnErr(err error) {

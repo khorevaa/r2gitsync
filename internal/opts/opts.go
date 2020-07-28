@@ -5,16 +5,32 @@ import (
 	"strings"
 )
 
-type cmd interface {
+type command interface {
 	String(p cli.StringParam) *string
+	StringPtr(into *string, p cli.StringParam)
 	Bool(p cli.BoolParam) *bool
+	BoolPtr(into *bool, p cli.BoolParam)
 	Int(p cli.IntParam) *int
+	IntPtr(into *int, p cli.IntParam)
 	Float64(p cli.Float64Param) *float64
 	Strings(p cli.StringsParam) *[]string
 }
 
 type stringOpt struct {
+	cmd command
 	cli.StringOpt
+}
+
+//type stringOpt cli.StringOpt //{
+////	cli.StringOpt
+////}
+
+func (o stringOpt) Cmd(cmd command) stringOpt {
+
+	newO := o
+	newO.cmd = cmd
+	return newO
+
 }
 
 func (o stringOpt) Env(envs ...string) stringOpt {
@@ -28,7 +44,7 @@ func (o stringOpt) Env(envs ...string) stringOpt {
 func (o stringOpt) Default(value string) stringOpt {
 
 	newO := o
-	newO.Value = value
+	newO.StringOpt.Value = value
 	return newO
 
 }
@@ -49,13 +65,31 @@ func (o stringOpt) Desc(desc string) stringOpt {
 
 }
 
-func (o stringOpt) Opt(cmd cmd) *string {
+func (o stringOpt) Opt() *string {
 
-	return cmd.String(o)
+	return o.cmd.String(o.StringOpt)
 
 }
 
+func (o stringOpt) Ptr(into *string) {
+
+	o.cmd.StringPtr(into, o.StringOpt)
+
+}
+
+func StringOpt(cmd command, name, value, desc string) stringOpt {
+	return stringOpt{
+		cmd: cmd,
+		StringOpt: cli.StringOpt{
+			Name:  name,
+			Value: value,
+			Desc:  desc,
+		},
+	}
+}
+
 type boolOpt struct {
+	cmd command
 	cli.BoolOpt
 }
 
@@ -91,15 +125,22 @@ func (o boolOpt) Desc(desc string) boolOpt {
 
 }
 
-func (o boolOpt) Opt(cmd cmd) *bool {
+func (o boolOpt) Opt() *bool {
 
-	return cmd.Bool(o)
+	return o.cmd.Bool(o.BoolOpt)
 
 }
 
-func StringOpt(name, value, desc string) stringOpt {
-	return stringOpt{
-		StringOpt: cli.StringOpt{
+func (o boolOpt) Ptr(into *bool) {
+
+	o.cmd.BoolPtr(into, o.BoolOpt)
+
+}
+
+func BoolOpt(cmd command, name string, value bool, desc string) boolOpt {
+	return boolOpt{
+		cmd: cmd,
+		BoolOpt: cli.BoolOpt{
 			Name:  name,
 			Value: value,
 			Desc:  desc,
@@ -107,9 +148,59 @@ func StringOpt(name, value, desc string) stringOpt {
 	}
 }
 
-func BoolOpt(name string, value bool, desc string) boolOpt {
-	return boolOpt{
-		BoolOpt: cli.BoolOpt{
+type intOpt struct {
+	cmd command
+	cli.IntOpt
+}
+
+func (o intOpt) Env(envs ...string) intOpt {
+
+	newO := o
+	newO.EnvVar = strings.Join(envs, " ")
+	return newO
+
+}
+
+func (o intOpt) Default(value int) intOpt {
+
+	newO := o
+	newO.Value = value
+	return newO
+
+}
+
+func (o intOpt) HideValue(hide bool) intOpt {
+
+	newO := o
+	newO.IntOpt.HideValue = hide
+	return newO
+
+}
+
+func (o intOpt) Desc(desc string) intOpt {
+
+	newO := o
+	newO.IntOpt.Desc = desc
+	return newO
+
+}
+
+func (o intOpt) Opt() *int {
+
+	return o.cmd.Int(o.IntOpt)
+
+}
+
+func (o intOpt) Ptr(into *int) {
+
+	o.cmd.IntPtr(into, o.IntOpt)
+
+}
+
+func IntOpt(cmd command, name string, value int, desc string) intOpt {
+	return intOpt{
+		cmd: cmd,
+		IntOpt: cli.IntOpt{
 			Name:  name,
 			Value: value,
 			Desc:  desc,

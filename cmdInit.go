@@ -3,7 +3,7 @@ package main
 import cli "github.com/jawher/mow.cli"
 
 // Sample use: vault creds reddit.com
-func cmdInit(cmd *cli.Cmd) {
+func (app *Application) CmdInit2(cmd *cli.Cmd) {
 
 	cmd.LongDesc = `Данный режим работает по HTTP (REST API) с базой данных.
 		Возможности:

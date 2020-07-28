@@ -14,8 +14,8 @@ const (
 
 func writeVersionFile(workdir string, version string) error {
 
-	data := fmt.Sprintf(`<?xml Version=""1.0"" encoding=""UTF-8""?>
-	"<VERSION>"%s"</VERSION>"`, version)
+	data := fmt.Sprintf(`<?xml Version="1.0" encoding="UTF-8"?>
+<VERSION>%s</VERSION>`, version)
 
 	filename := filepath.Join(workdir, VERSION_FILE)
 	err := ioutil.WriteFile(filename, []byte(data), 0644)
