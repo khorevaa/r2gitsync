@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"github.com/v8platform/designer/repository"
 	v8 "github.com/v8platform/v8"
 	"sync"
@@ -17,6 +18,24 @@ type Subscription struct {
 	sid   int
 	topic string
 	fn    interface{}
+}
+
+type BeforeUpdateCfgSubscription struct {
+	subs []BeforeUpdateCfgFunc
+}
+
+func (sub *BeforeUpdateCfgSubscription) Event(workdir string, infobase v8.Infobase, repository repository.Repository,
+	version int64, extention string) error {
+
+	for _, sub := range sub.subs {
+
+		err := sub(workdir, infobase, repository, version, extention)
+
+		if err != nil {
+			return err
+		}
+	}
+
 }
 
 func (sm *SubscribeManager) Subscribe(topic string, fn interface{}) error {

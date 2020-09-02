@@ -53,11 +53,14 @@ type SyncRepository struct {
 	repository.Repository
 	Name               string
 	WorkDir            string
-	CurrentVersion     int64 `xml:"VERSION"`
-	MaxVersion         int64
 	RepositoryVersions []repositoryVersion
 	Authors            *AuthorsList
 	Extention          string
+
+	CurrentVersion   int `xml:"VERSION"`
+	MinVersion       int
+	MaxVersion       int
+	LimitSyncVersion int
 }
 
 func NewSyncRepository(path string) *SyncRepository {

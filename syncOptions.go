@@ -12,7 +12,13 @@ type SyncOptions struct {
 	domainEmail     string
 	infobase        v8.Infobase
 	infobaseCreated bool
-	plugins         *PluginsManager // TODO добавить менеджер плагинов
+	increment       bool
+	limit           struct {
+		MinVersion int
+		MaxVersion int
+		Count      int
+	}
+	plugins *PluginsManager // TODO добавить менеджер плагинов
 }
 
 type ib struct {
@@ -107,6 +113,16 @@ func WithLicTryCount(count int) SyncOption {
 		}
 
 		o.licTryCount = count
+
+	}
+
+}
+
+func WithIncrementSync(increment bool) SyncOption {
+
+	return func(o *SyncOptions) {
+
+		o.increment = increment
 
 	}
 

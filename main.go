@@ -83,6 +83,12 @@ func main() {
 
 	}
 
+	app.After = func() {
+
+		fmt.Println("after error")
+
+	}
+
 	if len(config.pluginsDir) == 0 {
 		appDataDir := getAppDataDir("r2gitsync")
 		config.pluginsDir = path.Join(appDataDir, "plugins")

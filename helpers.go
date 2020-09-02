@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	cli "github.com/jawher/mow.cli"
+	"github.com/khorevaa/go-v8platform/errors"
 	"github.com/khorevaa/r2gitsync/internal/args"
 	"github.com/khorevaa/r2gitsync/internal/env"
 	"github.com/v8platform/runner"
@@ -43,6 +44,13 @@ func Run(where runner.Infobase, what runner.Command, opts *SyncOptions) error {
 		//	v8.WithTempDir(opts.tempDir), // TODO Сделать для запуска временный катиалог
 	)
 
+	errorContext := errors.GetErrorContext(err)
+
+	out, ok := errorContext["message"]
+	if ok {
+		err = errors.Internal.Wrap(err, out)
+	}
+
 	//TODO Сделать несколько попыток при отсутсвии лицензиии
 
 	return err
@@ -78,8 +86,8 @@ func parseRepositoryReport(file string) (versions []repositoryVersion, err error
 		for id, s := range array {
 			switch s {
 			case "Версия:":
-				if version, err := strconv.Atoi(array[id+1]); err == nil {
-					versionInfo.Number = int64(version)
+				if ver, err := strconv.Atoi(array[id+1]); err == nil {
+					versionInfo.Number = int64(ver)
 				}
 			case "Версия конфигурации:":
 				versionInfo.Version = array[id+1]

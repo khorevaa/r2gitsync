@@ -2,6 +2,7 @@ package main
 
 import (
 	cli "github.com/jawher/mow.cli"
+	"github.com/khorevaa/r2gitsync/plugins/limit"
 )
 
 type command interface {
@@ -33,7 +34,7 @@ func (t *pluginsModule) Init() error {
 }
 
 func (t *pluginsModule) limitPlugin() PluginsInterface {
-	return &limitPlugin{}
+	return &limit.limitPlugin{}
 }
 func (t *pluginsModule) incrementPlugin() PluginsInterface {
 	return &IncrementPlugin{}
