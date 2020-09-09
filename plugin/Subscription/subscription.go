@@ -5,22 +5,32 @@ import (
 )
 
 type SubscribeManager struct {
-	mu        sync.Mutex
-	UpdateCfg *UpdateCfgHandlers
+	mu                    sync.Mutex
+	UpdateCfg             UpdateCfgHandler
+	DumpConfigToFiles     DumpConfigToFilesHandler
+	GetRepositoryHistoryH GetRepositoryHistoryHandler
+	count                 int
 }
 
-func (sm *SubscribeManager) Handle(endpoint interface{}, handler interface{}) {
+func (sm *SubscribeManager) Handle(endpoint interface{}, event eventType, handler interface{}) {
 
 	sm.mu.Lock()
-	defer sm.mu.Unlock()
+	defer func() {
 
-	switch end := endpoint.(type) {
+		sm.count++
+		sm.mu.Unlock()
 
-	case UpdateCfgEndpoint:
+	}()
 
-		event := getEvent(end.String())
+	switch endpoint {
+
+	case UpdateCfg:
 
 		sm.UpdateCfg.Handle(event, handler)
+
+	case DumpConfigToFiles:
+
+		sm.DumpConfigToFiles.Handle(event, handler)
 
 	default:
 		panic("plugins: unsupported endpoint")

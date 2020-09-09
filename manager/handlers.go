@@ -1,4 +1,4 @@
-package main
+package manager
 
 import (
 	"github.com/v8platform/designer/repository"

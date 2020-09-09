@@ -1,6 +1,21 @@
 package Subscription
 
-func (b *UpdateCfgHandlers) Handle(event eventType, handler interface{}) {
+var _ UpdateCfgHandler = (*updateCfgHandler)(nil)
+
+type UpdateCfgHandler interface {
+	SubscribeHandler
+	Before(v8end V8Endpoint, workdir string, number int64) error
+	On(v8end V8Endpoint, workdir string, number int64, standartHandler *bool) error
+	After(v8end V8Endpoint, workdir string, number int64) error
+}
+
+type updateCfgHandler struct {
+	before []BeforeUpdateCfgFn
+	on     []OnUpdateCfgFn
+	after  []AfterUpdateCfgFn
+}
+
+func (b *updateCfgHandler) Handle(event eventType, handler interface{}) {
 
 	switch event {
 	case BeforeEvent:
@@ -24,13 +39,7 @@ func (b *UpdateCfgHandlers) Handle(event eventType, handler interface{}) {
 
 }
 
-type UpdateCfgHandlers struct {
-	before []BeforeUpdateCfgFn
-	on     []OnUpdateCfgFn
-	after  []AfterUpdateCfgFn
-}
-
-func (h *UpdateCfgHandlers) Before(v8end V8Endpoint, workdir string, version int64) error {
+func (h *updateCfgHandler) Before(v8end V8Endpoint, workdir string, version int64) error {
 
 	for _, fn := range h.before {
 
@@ -44,7 +53,7 @@ func (h *UpdateCfgHandlers) Before(v8end V8Endpoint, workdir string, version int
 	return nil
 }
 
-func (h *UpdateCfgHandlers) On(v8end V8Endpoint, workdir string, version int64, standartHandler *bool) error {
+func (h *updateCfgHandler) On(v8end V8Endpoint, workdir string, version int64, standartHandler *bool) error {
 
 	for _, fn := range h.on {
 
@@ -58,7 +67,7 @@ func (h *UpdateCfgHandlers) On(v8end V8Endpoint, workdir string, version int64, 
 	return nil
 }
 
-func (h *UpdateCfgHandlers) After(v8end V8Endpoint, workdir string, version int64) error {
+func (h *updateCfgHandler) After(v8end V8Endpoint, workdir string, version int64) error {
 
 	for _, fn := range h.after {
 

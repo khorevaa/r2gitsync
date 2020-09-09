@@ -3,13 +3,24 @@ package flow
 import (
 	"github.com/khorevaa/r2gitsync/plugin/Subscription"
 	"github.com/v8platform/designer/repository"
+	"io/ioutil"
+	"os"
+	"sort"
 	"time"
 )
+
+var _ Flow = (*tasker)(nil)
 
 type tasker struct {
 }
 
-func (t tasker) StartSyncVersions(v8end V8Endpoint, list []RepositoryVersion, currentVersion int64, nextVersion *int64, maxVersion *int64) {
+func (t tasker) ConfigureRepositoryVersions(v8end V8Endpoint, versions []RepositoryVersion, NBegin, NNext, NMax *int64) (err error) {
+
+	if len(versions) > 0 {
+		maxVersion := versions[len(versions)-1].Number()
+		*NMax = maxVersion
+	}
+
 	return
 }
 
@@ -21,11 +32,44 @@ func (t tasker) StartSyncProcess(v8end V8Endpoint, dir string) {
 	return
 }
 
-func (t tasker) GetRepositoryVersions(v8end V8Endpoint, dir string) ([]RepositoryVersion, error) {
+func (t tasker) GetRepositoryVersions(v8end V8Endpoint, dir string, nBegin int64) (versions []RepositoryVersion, err error) {
 
-	// TODO
+	reportFile, err := ioutil.TempFile(os.TempDir(), "v8_rep_history")
+	if err != nil {
+		return
+	}
+	reportFile.Close()
+	report := reportFile.Name()
 
-	return nil, nil
+	defer os.Remove(report)
+
+	RepositoryReportOptions := repository.RepositoryReportOptions{
+		File:      report,
+		Extension: v8end.Extention(),
+		NBegin:    nBegin,
+	}.GroupByComment().WithRepository(*v8end.Repository())
+
+	err = run(*v8end.Infobase(), RepositoryReportOptions, v8end.Options())
+
+	if err != nil {
+		return
+	}
+
+	versions, err = parseRepositoryReport(report)
+
+	if err != nil {
+		return
+	}
+
+	sort.Slice(versions, func(i, j int) bool {
+		return versions[i].Number() < versions[j].Number()
+	})
+
+	//if len(r.Versions) > 0 {
+	//	r.MaxVersion = r.Versions[len(r.Versions)-1].Number()
+	//}
+
+	return
 }
 
 func (t tasker) GetRepositoryAuthors(v8end V8Endpoint, dir string) ([]RepositoryAuthor, error) {

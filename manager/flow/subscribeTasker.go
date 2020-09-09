@@ -2,6 +2,8 @@ package flow
 
 import "github.com/khorevaa/r2gitsync/plugin/Subscription"
 
+var _ Flow = (*subscribeTasker)(nil)
+
 type subscribeTasker struct {
 	tasker
 	pm *Subscription.SubscribeManager
