@@ -13,7 +13,7 @@ func (app *Application) cmdSync(cmd *cli.Cmd) {
 
 	repo := SyncRepository{}
 
-	opts.StringOpt(cmd, "storage-Author u", "Администратор", "пользователь хранилища 1C конфигурации").
+	opts.StringOpt(cmd, "storage-author u", "Администратор", "пользователь хранилища 1C конфигурации").
 		Env("R2GITSYNC_STORAGE_USER GITSYNC_STORAGE_USER").
 		Ptr(&repo.Repository.User)
 

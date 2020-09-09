@@ -1,6 +1,9 @@
 package main
 
-import v8 "github.com/v8platform/v8"
+import (
+	"github.com/v8platform/runner"
+	v8 "github.com/v8platform/v8"
+)
 
 type SyncOption func(*SyncOptions)
 
@@ -25,6 +28,15 @@ type ib struct {
 	User             string
 	Password         string
 	ConnectionString string
+}
+
+func (o *SyncOptions) Options() []runner.Option {
+
+	return []runner.Option{
+		v8.WithPath(o.v8Path),
+		v8.WithVersion(o.v8version),
+	}
+
 }
 
 func WithInfobaseConfig(infobase ib) SyncOption {

@@ -51,7 +51,7 @@ func main() {
 
 	app.Cli = cli.App("r2gitsync", "Синхронизация 1С Хранилища с git")
 
-	app.Version("Version v", buildVersion(version, commit, date, builtBy))
+	app.Version("version v", buildVersion(version, commit, date, builtBy))
 
 	opts.StringOpt(app, "v8version", "8.3", "маска версии платформы 1С (8.3, 8.3.5, 8.3.6.2299 и т.п.)").
 		Env(env.V8Version).
@@ -59,7 +59,7 @@ func main() {
 	opts.StringOpt(app, "v8-path v8path", "", "путь к исполняемому файлу платформы 1С (Например, /opt/1C/v8.3/x86_64/1cv8)").
 		Env(env.V8Path).
 		Ptr(&config.v8path)
-	opts.StringOpt(app, "U ib-Author ib-usr db-Author", "", "пользователь информационной базы").
+	opts.StringOpt(app, "U ib-author ib-usr db-author", "", "пользователь информационной базы").
 		Env("GITSYNC_IB_USR GITSYNC_IB_USER GITSYNC_DB_USER").
 		Ptr(&config.Infobase.User)
 	opts.StringOpt(app, "P ib-pwd db-pwd", "", "пароль пользователя информационной базы").
@@ -109,7 +109,7 @@ func main() {
 	// Define our command structure for usage like this:
 	app.Command("init i", "Инициализация структуры нового хранилища git", app.cmdInit)
 	app.Command("sync s", "Выполняет синхронизацию хранилища 1С с git-репозиторием", app.cmdSync)
-	app.Command("set-Version sv", "Устанавливает необходимую версию в файл VERSION", app.cmdSetVersion)
+	app.Command("set-version sv", "Устанавливает необходимую версию в файл VERSION", app.cmdSetVersion)
 	app.Command("plugins p", "Управление плагинами", func(pluginsCmd *cli.Cmd) {
 		pluginsCmd.Command("list ls", "Вывод списка плагинов", app.cmdPlugins)
 		pluginsCmd.Command("enable e", "Активизация установленных плагинов", app.cmdPlugins)

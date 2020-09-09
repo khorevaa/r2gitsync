@@ -37,11 +37,10 @@ func failOnErr(err error) {
 	}
 }
 
-func Run(where runner.Infobase, what runner.Command, opts *SyncOptions) error {
+func Run(where runner.Infobase, what runner.Command, opts ...interface{}) error {
 
-	err := v8.Run(where, what, v8.WithPath(opts.v8Path),
-		v8.WithVersion(opts.v8version),
-		//	v8.WithTempDir(opts.tempDir), // TODO Сделать для запуска временный катиалог
+	err := v8.Run(where, what, opts...,
+	//	v8.WithTempDir(opts.tempDir), // TODO Сделать для запуска временный катиалог
 	)
 
 	errorContext := errors.GetErrorContext(err)
@@ -87,7 +86,7 @@ func parseRepositoryReport(file string) (versions []repositoryVersion, err error
 			switch s {
 			case "Версия:":
 				if ver, err := strconv.Atoi(array[id+1]); err == nil {
-					versionInfo.Number = int64(ver)
+					versionInfo.number = int64(ver)
 				}
 			case "Версия конфигурации:":
 				versionInfo.Version = array[id+1]

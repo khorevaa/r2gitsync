@@ -57,12 +57,12 @@ func (t *IncrementPlugin) Name() string {
 }
 
 func (p *IncrementPlugin) BeforeUpdateCfgHandler(r repository.Repository, dir string) {
-	fmt.Println("BeforeStartSyncProcess func run")
+	fmt.Println("StartSyncProcess func run")
 
 }
 
 func (p *IncrementPlugin) BeforeStartSyncProcess(r repository.Repository, dir string) {
-	fmt.Println("BeforeStartSyncProcess func run")
+	fmt.Println("StartSyncProcess func run")
 
 }
 

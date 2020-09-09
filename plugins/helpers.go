@@ -47,4 +47,4 @@ func (t *pluginsModule) Registry() map[string]newPluginFunc {
 	}
 }
 
-var Plugins pluginsModule
+var Plugins

@@ -7,6 +7,7 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/hashicorp/go-multierror"
+	"github.com/khorevaa/r2gitsync/flow"
 	"github.com/v8platform/designer"
 	"github.com/v8platform/designer/repository"
 	"github.com/v8platform/v8"
@@ -30,37 +31,87 @@ func syncInfobase(connString, user, password string) v8.Infobase {
 }
 
 type repositoryVersion struct {
-	Version string
-	Author  string
-	Date    time.Time
-	Comment string
-	Number  int64
+	version string
+	author  string
+	date    time.Time
+	comment string
+	number  int64
 }
 
-type author struct {
-	Name  string
-	Email string
+func (r repositoryVersion) Version() string {
+	return r.version
 }
 
-type AuthorsList map[string]author
+func (r repositoryVersion) Author() string {
+	return r.author
+}
 
-func (a author) Desc() string {
+func (r repositoryVersion) Date() time.Time {
+	return r.date
+}
 
-	return fmt.Sprintf("%s <%s> ", a.Name, a.Email)
+func (r repositoryVersion) Comment() string {
+	return r.comment
+}
+
+func (r repositoryVersion) Number() int64 {
+	return r.number
+}
+
+type repositoryAuthor struct {
+	name  string
+	email string
+}
+
+type RepositoryAuthor interface {
+	Name() string
+	Email() string
+	Desc() string
+}
+
+type RepositoryVersion interface {
+	Version() string
+	Author() string
+	Date() time.Time
+	Comment() string
+	Number() int64
+}
+
+func (a repositoryAuthor) Name() string {
+	return a.name
+}
+
+func (a repositoryAuthor) Email() string {
+	return a.email
+}
+
+func (a repositoryAuthor) Desc() string {
+
+	return fmt.Sprintf("%s <%s> ", a.name, a.email)
 }
 
 type SyncRepository struct {
 	repository.Repository
-	Name               string
-	WorkDir            string
-	RepositoryVersions []repositoryVersion
-	Authors            *AuthorsList
-	Extention          string
+	Name     string
+	WorkDir  string
+	Versions []repositoryVersion
+	Authors  map[string]repositoryAuthor
 
-	CurrentVersion   int `xml:"VERSION"`
-	MinVersion       int
-	MaxVersion       int
-	LimitSyncVersion int
+	Extention string
+
+	CurrentVersion   int64 `xml:"VERSION"`
+	MinVersion       int64
+	MaxVersion       int64
+	LimitSyncVersion int64
+	endpoint         V8Endpoint
+	flow             flow.Flow
+}
+
+type V8Endpoint interface {
+	Infobase() *v8.Infobase
+	Repository() *repository.Repository
+	Extention() string
+	Options() []interface{}
 }
 
 func NewSyncRepository(path string) *SyncRepository {
@@ -109,9 +160,27 @@ func (r *SyncRepository) readCurrentVersion() error {
 
 func (r *SyncRepository) sync(opts *SyncOptions) error {
 
-	plugins := opts.plugins
+	v8Endpoint := &v8Endpoint{
+		infobase:   &opts.infobase,
+		repository: &r.Repository,
+		options:    opts.Options(),
+		extention:  r.Extention,
+	}
 
-	plugins.BeforeStartSyncProcess(r.Repository, r.WorkDir)
+	r.endpoint = v8Endpoint
+
+	r.flow = flow.Tasker()
+
+	if opts.plugins.SubscribeManager != nil {
+
+		r.flow = flow.WithSubscribes(opts.plugins.SubscribeManager)
+
+	}
+
+	taskFlow := r.flow
+
+	taskFlow.StartSyncProcess(r.endpoint, r.WorkDir)
+	defer taskFlow.FinishSyncProcess(r.endpoint, r.WorkDir)
 
 	err := r.prepare(opts)
 
@@ -119,42 +188,23 @@ func (r *SyncRepository) sync(opts *SyncOptions) error {
 		return err
 	}
 
-	if len(r.RepositoryVersions) == 0 {
+	if len(r.Versions) == 0 {
 		fmt.Printf("No versions to sync")
 		return nil
 	}
 
-	nextVersion := r.RepositoryVersions[0].Number
+	nextVersion := r.Versions[0].number
 	maxVersion := r.MaxVersion
 
-	plugins.BeforeStartSyncVersions(&r.RepositoryVersions, r.CurrentVersion, nextVersion, &maxVersion)
+	taskFlow.StartSyncVersions(r.endpoint, r.Versions, r.CurrentVersion, &nextVersion, &maxVersion)
 
-	for _, rVersion := range r.RepositoryVersions {
+	for _, rVersion := range r.Versions {
 
-		if r.MaxVersion != 0 && rVersion.Number > r.MaxVersion {
-			break
-		}
-
-		cancelSync := false
-
-		err := plugins.BeforeSyncVersion(rVersion.Number, rVersion.Author, rVersion.Comment, &cancelSync, opts)
-
-		if err != nil {
-			return err
-		}
-
-		if cancelSync {
+		if r.MaxVersion != 0 && rVersion.number > r.MaxVersion {
 			break
 		}
 
 		err = r.syncVersionFiles(rVersion, opts)
-
-		if err != nil {
-			return err
-		}
-
-		r.CurrentVersion = rVersion.Number
-		err = plugins.AfterSyncVersion(rVersion.Number, rVersion.Author, rVersion.Comment, opts)
 
 		if err != nil {
 			return err
@@ -167,7 +217,7 @@ func (r *SyncRepository) sync(opts *SyncOptions) error {
 
 func (r *SyncRepository) WriteVersionFile(CurrentVersion int64) error {
 
-	data := fmt.Sprintf(`<?xml Version="1.0" encoding="UTF-8"?>
+	data := fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
 <VERSION>%d</VERSION>`, CurrentVersion)
 
 	filename := filepath.Join(r.WorkDir, VERSION_FILE)
@@ -304,17 +354,17 @@ func Sync(r SyncRepository, opts ...SyncOption) error {
 
 }
 
-func (r *SyncRepository) syncVersionFiles(rVersion repositoryVersion, opts *SyncOptions) (err error) {
+func (r *SyncRepository) syncVersionFiles(rVersion RepositoryVersion, opts *SyncOptions) (err error) {
 
-	plugins := opts.plugins
-
-	tempDir, err := ioutil.TempDir(opts.tempDir, fmt.Sprintf("v%d", rVersion.Number))
+	tempDir, err := ioutil.TempDir(opts.tempDir, fmt.Sprintf("v%d", rVersion.Number()))
 
 	if err != nil {
 		return err
 	}
 
-	err = plugins.BeforeStartSyncVersionHandler(r.WorkDir, tempDir, r.Repository, rVersion.Number, r.Extention)
+	flow := r.flow
+
+	err = flow.StartSyncVersion(r.endpoint, r.WorkDir, tempDir, rVersion.Number())
 
 	if err != nil {
 		return err
@@ -322,119 +372,60 @@ func (r *SyncRepository) syncVersionFiles(rVersion repositoryVersion, opts *Sync
 
 	defer func() {
 
-		plugins.FinishSyncVersionHandler(r.WorkDir, tempDir, r.Repository, rVersion.Number, r.Extention, err)
+		flow.FinishSyncVersion(r.endpoint, r.WorkDir, tempDir, rVersion.Number(), &err)
 
 		_ = os.RemoveAll(tempDir)
 
 	}()
 
-	err = plugins.BeforeUpdateCfgHandler(r.WorkDir, opts.infobase, r.Repository, rVersion.Number, r.Extention)
+	err = flow.UpdateCfg(r.endpoint, r.WorkDir, rVersion.Number())
 
 	if err != nil {
 		return err
 	}
 
-	err = r.RepositoryUpdateCfg(rVersion.Number, opts)
+	err = flow.DumpConfigToFiles(r.endpoint, r.WorkDir, tempDir, rVersion.Number())
 
 	if err != nil {
 		return err
 	}
 
-	err = plugins.BeforeDumpConfigToFiles(r.WorkDir, tempDir, opts.infobase, r.Repository, rVersion.Number, r.Extention)
+	err = flow.ClearWorkDir(r.endpoint, r.WorkDir, tempDir)
 
 	if err != nil {
 		return err
 	}
 
-	err = r.DumpConfigToFiles(tempDir, opts)
+	err = flow.MoveToWorkDir(r.endpoint, r.WorkDir, tempDir)
 
 	if err != nil {
 		return err
 	}
 
-	err = plugins.BeforeClearWorkDir(r.WorkDir, rVersion.Number)
+	err = flow.WriteVersionFile(r.endpoint, r.WorkDir, rVersion.Number())
 
 	if err != nil {
 		return err
 	}
 
-	err = r.ClearWorkDir(opts)
-
-	if err != nil {
-		return err
-	}
-
-	err = plugins.BeforeMoveToWorkDir(r.WorkDir, tempDir, rVersion.Number)
-
-	if err != nil {
-		return err
-	}
-
-	err = r.MoveToWorkDir(tempDir, opts)
-
-	if err != nil {
-		return err
-	}
-
-	err = r.WriteVersionFile(rVersion.Number)
-
-	if err != nil {
-		return err
-	}
-
-	err = r.commitFiles(rVersion.Author, rVersion.Date, rVersion.Comment)
+	err = flow.CommitFiles(r.endpoint, r.WorkDir, rVersion.Author(), rVersion.Date(), rVersion.Comment())
 
 	if err != nil {
 
-		errV := r.WriteVersionFile(r.CurrentVersion)
+		errV := flow.WriteVersionFile(r.endpoint, r.WorkDir, rVersion.Number())
 		if errV != nil {
 			return multierror.Append(err, errV)
 		}
 		return err
 	}
 
-	r.CurrentVersion = rVersion.Number
+	r.CurrentVersion = rVersion.Number()
 
 	return
 
 }
 
-func (r *SyncRepository) RepositoryUpdateCfg(version int64, options *SyncOptions) (err error) {
-
-	standartHandler := true
-
-	err = options.plugins.WithUpdateCfgHandler(options.infobase, r.Repository, version, r.Extention, &standartHandler)
-
-	if err != nil {
-		return
-	}
-
-	if standartHandler {
-		err = r.repositoryUpdateCfgHandler(version, options)
-	}
-
-	err = options.plugins.AfterUpdateCfgHandler(options.infobase, r.Repository, version, r.Extention)
-
-	return
-
-}
-
-func (r *SyncRepository) repositoryUpdateCfgHandler(version int64, opts *SyncOptions) error {
-
-	RepositoryUpdateCfgOptions := repository.RepositoryUpdateCfgOptions{
-		Version:   version,
-		Force:     true,
-		Extension: r.Extention,
-	}.
-		WithRepository(r.Repository)
-
-	err := Run(opts.infobase, RepositoryUpdateCfgOptions, opts)
-
-	if err != nil {
-		return err
-	}
-	return nil
-}
+type UpdateCfgHandlerType func(v8end V8Endpoint, workdir string, version int64) error
 
 func (r *SyncRepository) DumpConfigToFiles(dumpDir string, opts *SyncOptions) (err error) {
 
@@ -536,7 +527,7 @@ func (r *SyncRepository) GetRepositoryHistory(opts *SyncOptions) (err error) {
 
 	standartHandler := true
 
-	err = opts.plugins.WithGetRepositoryHistoryHandler(r.WorkDir, r.Repository, &r.RepositoryVersions, opts, &standartHandler)
+	err = opts.plugins.WithGetRepositoryHistoryHandler(r.WorkDir, r.Repository, &r.Versions, opts, &standartHandler)
 
 	if err != nil {
 		return
@@ -550,7 +541,7 @@ func (r *SyncRepository) GetRepositoryHistory(opts *SyncOptions) (err error) {
 
 	}
 
-	err = opts.plugins.AfterGetRepositoryHistoryHandler(r.WorkDir, r.Repository, &r.RepositoryVersions)
+	err = opts.plugins.AfterGetRepositoryHistoryHandler(r.WorkDir, r.Repository, &r.Versions)
 
 	return
 
@@ -580,18 +571,18 @@ func (r *SyncRepository) getRepositoryHistoryHandler(opts *SyncOptions) error {
 		return err
 	}
 
-	r.RepositoryVersions, err = parseRepositoryReport(report)
+	r.Versions, err = parseRepositoryReport(report)
 
 	if err != nil {
 		return err
 	}
 
-	sort.Slice(r.RepositoryVersions, func(i, j int) bool {
-		return r.RepositoryVersions[i].Number < r.RepositoryVersions[j].Number
+	sort.Slice(r.Versions, func(i, j int) bool {
+		return r.Versions[i].Number() < r.Versions[j].Number()
 	})
 
-	if len(r.RepositoryVersions) > 0 {
-		r.MaxVersion = r.RepositoryVersions[len(r.RepositoryVersions)-1].Number
+	if len(r.Versions) > 0 {
+		r.MaxVersion = r.Versions[len(r.Versions)-1].Number()
 	}
 
 	return nil
