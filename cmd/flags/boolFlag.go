@@ -71,25 +71,23 @@ func getBoolFlag(o BoolFlag) cli.BoolParam {
 
 }
 
-func BoolArg(Name string, Value bool, Desc string, Env string) BoolFlag {
+func BoolArg(Name string, Value bool, Desc string) BoolFlag {
 
 	return BoolFlag{
 		Name:     Name,
 		Desc:     Desc,
 		Value:    Value,
-		EnvVar:   Env,
 		FlagType: ArgType,
 	}
 
 }
 
-func BoolOpt(Name string, Value bool, Desc string, Env string) BoolFlag {
+func BoolOpt(Name string, Value bool, Desc string) BoolFlag {
 
 	return BoolFlag{
 		Name:     Name,
 		Desc:     Desc,
 		Value:    Value,
-		EnvVar:   Env,
 		FlagType: OptType,
 	}
 

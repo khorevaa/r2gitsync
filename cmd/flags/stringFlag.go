@@ -71,25 +71,23 @@ func getStringFlag(o StringFlag) cli.StringParam {
 
 }
 
-func StringArg(Name, Value, Desc, Env string) StringFlag {
+func StringArg(Name, Value, Desc string) StringFlag {
 
 	return StringFlag{
 		Name:     Name,
 		Desc:     Desc,
 		Value:    Value,
-		EnvVar:   Env,
 		FlagType: ArgType,
 	}
 
 }
 
-func StringOpt(Name, Value, Desc, Env string) StringFlag {
+func StringOpt(Name, Value, Desc string) StringFlag {
 
 	return StringFlag{
 		Name:     Name,
 		Desc:     Desc,
 		Value:    Value,
-		EnvVar:   Env,
 		FlagType: OptType,
 	}
 

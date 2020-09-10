@@ -70,25 +70,23 @@ func getIntFlag(o IntFlag) cli.IntParam {
 
 }
 
-func IntArg(Name string, Value int, Desc string, Env string) IntFlag {
+func IntArg(Name string, Value int, Desc string) IntFlag {
 
 	return IntFlag{
 		Name:     Name,
 		Desc:     Desc,
 		Value:    Value,
-		EnvVar:   Env,
 		FlagType: ArgType,
 	}
 
 }
 
-func IntOpt(Name string, Value int, Desc string, Env string) IntFlag {
+func IntOpt(Name string, Value int, Desc string) IntFlag {
 
 	return IntFlag{
 		Name:     Name,
 		Desc:     Desc,
 		Value:    Value,
-		EnvVar:   Env,
 		FlagType: OptType,
 	}
 

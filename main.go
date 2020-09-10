@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"github.com/jawher/mow.cli"
 	"github.com/khorevaa/r2gitsync/cmd"
-	"github.com/khorevaa/r2gitsync/internal/opts"
+	"github.com/khorevaa/r2gitsync/cmd/flags"
+	"github.com/khorevaa/r2gitsync/context"
 	"os"
 	"path"
 )
@@ -21,6 +22,7 @@ var (
 type Application struct {
 	*cli.Cli
 	config *configApp
+	ctx    context.Context
 }
 
 type configApp struct {
@@ -52,30 +54,31 @@ var pwd, _ = os.Getwd()
 func main() {
 
 	app.Cli = cli.App("r2gitsync", "Синхронизация 1С Хранилища с git")
+	app.ctx = context.NewContext()
 
 	app.Version("version v", buildVersion(version, commit, date, builtBy))
 
-	opts.StringOpt(app, "v8version", "8.3", "маска версии платформы 1С (8.3, 8.3.5, 8.3.6.2299 и т.п.)").
+	flags.StringOpt("v8version", "8.3", "маска версии платформы 1С (8.3, 8.3.5, 8.3.6.2299 и т.п.)").
 		Env(cmd.V8Version).
-		Ptr(&config.v8version)
-	opts.StringOpt(app, "v8-path v8path", "", "путь к исполняемому файлу платформы 1С (Например, /opt/1C/v8.3/x86_64/1cv8)").
+		Ptr(&config.v8version).Apply(app, app.ctx)
+	flags.StringOpt("v8-path v8path", "", "путь к исполняемому файлу платформы 1С (Например, /opt/1C/v8.3/x86_64/1cv8)").
 		Env(cmd.V8Path).
-		Ptr(&config.v8path)
-	opts.StringOpt(app, "U ib-author ib-usr db-author", "", "пользователь информационной базы").
+		Ptr(&config.v8path).Apply(app, app.ctx)
+	flags.StringOpt("U ib-author ib-usr db-author", "", "пользователь информационной базы").
 		Env("GITSYNC_IB_USR GITSYNC_IB_USER GITSYNC_DB_USER").
-		Ptr(&config.Infobase.User)
-	opts.StringOpt(app, "P ib-pwd db-pwd", "", "пароль пользователя информационной базы").
+		Ptr(&config.Infobase.User).Apply(app, app.ctx)
+	flags.StringOpt("P ib-pwd db-pwd", "", "пароль пользователя информационной базы").
 		Env("GITSYNC_IB_PASSWORD GITSYNC_IB_PWD GITSYNC_DB_PSW").
-		Ptr(&config.Infobase.Password)
-	opts.StringOpt(app, "C ib-connection ibconnection", "", "путь подключения к информационной базе").
+		Ptr(&config.Infobase.Password).Apply(app, app.ctx)
+	flags.StringOpt("C ib-connection ibconnection", "", "путь подключения к информационной базе").
 		Env("GITSYNC_IB_CONNECTION GITSYNC_IBCONNECTION").
-		Ptr(&config.Infobase.ConnectionString)
-	opts.StringOpt(app, "t tempdir", "", "путь к каталогу временных файлов").
+		Ptr(&config.Infobase.ConnectionString).Apply(app, app.ctx)
+	flags.StringOpt("t tempdir", "", "путь к каталогу временных файлов").
 		Env("GITSYNC_TEMP GITSYNC_TEMPDIR").
-		Ptr(&config.tempDir)
-	opts.BoolOpt(app, "debug", false, "Bывод отладочной информации").
+		Ptr(&config.tempDir).Apply(app, app.ctx)
+	flags.BoolOpt("debug", false, "Bывод отладочной информации").
 		Env(cmd.Versobe).
-		Ptr(&config.debug)
+		Ptr(&config.debug).Apply(app, app.ctx)
 
 	app.Before = func() {
 
