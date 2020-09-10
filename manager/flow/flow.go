@@ -29,10 +29,9 @@ type RepositoryVersion interface {
 	Comment() string
 	Number() int64
 }
+type RepositoryVersions []RepositoryVersion
 
 type Flow interface {
-	StartSyncVersions(v8end V8Endpoint, list []RepositoryVersion, currentVersion int64, nextVersion *int64, maxVersion *int64)
-
 	StartSyncVersion(v8end V8Endpoint, workdir string, tempdir string, number int64) error
 	FinishSyncVersion(v8end V8Endpoint, workdir string, tempdir string, number int64, err *error)
 
@@ -47,7 +46,8 @@ type Flow interface {
 	WriteVersionFile(v8end V8Endpoint, dir string, number int64) error
 	CommitFiles(v8end V8Endpoint, dir string, author string, d time.Time, comment string) error
 
-	GetRepositoryVersions(v8end V8Endpoint, dir string) ([]RepositoryVersion, error)
+	GetRepositoryVersions(v8end V8Endpoint, dir string, NBegin int64) ([]RepositoryVersion, error)
+	ConfigureRepositoryVersions(v8end V8Endpoint, versions []RepositoryVersion, NCurrent, NNext, NMax *int64) (err error)
 	GetRepositoryAuthors(v8end V8Endpoint, dir string) ([]RepositoryAuthor, error)
 }
 

@@ -6,6 +6,7 @@ import (
 	cli "github.com/jawher/mow.cli"
 	"github.com/khorevaa/r2gitsync/internal/args"
 	"github.com/khorevaa/r2gitsync/internal/opts"
+	"github.com/khorevaa/r2gitsync/manager"
 	"io/ioutil"
 	"os"
 	"path"
@@ -24,12 +25,12 @@ func (app *Application) cmdSetVersion(cmd *cli.Cmd) {
 
 	cmd.Action = func() {
 
-		err := writeVersionFile(*workdir, *setVersion)
+		err := manager.writeVersionFile(*workdir, *setVersion)
 
 		failOnErr(err)
 
 		if *doCommit {
-			err = commitVersionFile(*workdir)
+			err = manager.commitVersionFile(*workdir)
 			failOnErr(err)
 		}
 
@@ -44,7 +45,7 @@ type versionReader struct {
 
 func readVersion(workdir string) {
 
-	fileVesrion := path.Join(workdir, VERSION_FILE)
+	fileVesrion := path.Join(workdir, manager.VERSION_FILE)
 
 	// Open our xmlFile
 	xmlFile, err := os.Open(fileVesrion)

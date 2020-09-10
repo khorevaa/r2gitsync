@@ -1,12 +1,9 @@
-package main
+package manager
 
 import (
+	"bytes"
 	"fmt"
-	cli "github.com/jawher/mow.cli"
-	"github.com/khorevaa/go-v8platform/errors"
-	"github.com/khorevaa/r2gitsync/internal/args"
-	"github.com/khorevaa/r2gitsync/internal/env"
-	"github.com/khorevaa/r2gitsync/manager"
+	"github.com/v8platform/designer/repository"
 	"github.com/v8platform/runner"
 	v8 "github.com/v8platform/v8"
 	"golang.org/x/text/encoding"
@@ -16,27 +13,6 @@ import (
 	"strings"
 	"time"
 )
-
-func WorkdirArg(cmd *cli.Cmd) *string {
-	return args.StringArg(cmd, "WORKDIR", pwd, "Каталог исходников внутри локальной копии git-репозитория.").
-		HideValue(true).
-		Env(env.WorkDir).
-		Arg()
-}
-
-func WorkdirArgPtr(into *string, cmd *cli.Cmd) {
-	args.StringArg(cmd, "WORKDIR", pwd, "Каталог исходников внутри локальной копии git-репозитория.").
-		HideValue(true).
-		Env(env.WorkDir).
-		Ptr(into)
-}
-
-func failOnErr(err error) {
-	if err != nil {
-		fmt.Printf("Ошибка выполненния программы: %v \n", err.Error())
-		cli.Exit(1)
-	}
-}
 
 func Run(where runner.Infobase, what runner.Command, opts ...interface{}) error {
 
@@ -57,7 +33,36 @@ func Run(where runner.Infobase, what runner.Command, opts ...interface{}) error 
 
 }
 
-func parseRepositoryReport(file string) (versions []manager.repositoryVersion, err error) {
+func syncInfobase(connString, user, password string) v8.Infobase {
+
+	if len(connString) == 0 {
+		return v8.NewTempIB()
+	}
+	// TODO Сделать получение базы для выполнения синхронизации
+	return v8.NewTempIB()
+
+}
+
+// Decode decodes a byte slice into a signature
+func decodeAuthor(b []byte) (string, string) {
+	open := bytes.LastIndexByte(b, '<')
+	closeSym := bytes.LastIndexByte(b, '>')
+	if open == -1 || closeSym == -1 {
+		return "", ""
+	}
+
+	if closeSym < open {
+		return "", ""
+	}
+
+	Name := string(bytes.Trim(b[:open], " "))
+	Email := string(b[open+1 : closeSym])
+
+	return Name, Email
+
+}
+
+func parseRepositoryReport(file string) (versions []repositoryVersion, err error) {
 
 	err, bytes := ReadFile(file, nil)
 	if err == nil {
@@ -133,5 +138,14 @@ func ReadFile(filePath string, Decoder *encoding.Decoder) (error, *[]byte) {
 		}
 	} else {
 		return fmt.Errorf("Ошибка открытия файла %q:\n %v", filePath, err), nil
+	}
+}
+
+func NewSyncRepository(path string) *SyncRepository {
+
+	return &SyncRepository{
+		Repository: repository.Repository{
+			Path: path,
+		},
 	}
 }

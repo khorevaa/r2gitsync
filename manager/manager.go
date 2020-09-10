@@ -1,13 +1,12 @@
-package main
+package manager
 
 import (
-	"bytes"
 	"encoding/xml"
 	"fmt"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/hashicorp/go-multierror"
-	"github.com/khorevaa/r2gitsync/flow"
+	"github.com/khorevaa/r2gitsync/manager/flow"
 	"github.com/v8platform/designer"
 	"github.com/v8platform/designer/repository"
 	"github.com/v8platform/v8"
@@ -20,82 +19,12 @@ import (
 	"time"
 )
 
-func syncInfobase(connString, user, password string) v8.Infobase {
-
-	if len(connString) == 0 {
-		return v8.NewTempIB()
-	}
-	// TODO Сделать получение базы для выполнения синхронизации
-	return v8.NewTempIB()
-
-}
-
-type repositoryVersion struct {
-	version string
-	author  string
-	date    time.Time
-	comment string
-	number  int64
-}
-
-func (r repositoryVersion) Version() string {
-	return r.version
-}
-
-func (r repositoryVersion) Author() string {
-	return r.author
-}
-
-func (r repositoryVersion) Date() time.Time {
-	return r.date
-}
-
-func (r repositoryVersion) Comment() string {
-	return r.comment
-}
-
-func (r repositoryVersion) Number() int64 {
-	return r.number
-}
-
-type repositoryAuthor struct {
-	name  string
-	email string
-}
-
-type RepositoryAuthor interface {
-	Name() string
-	Email() string
-	Desc() string
-}
-
-type RepositoryVersion interface {
-	Version() string
-	Author() string
-	Date() time.Time
-	Comment() string
-	Number() int64
-}
-
-func (a repositoryAuthor) Name() string {
-	return a.name
-}
-
-func (a repositoryAuthor) Email() string {
-	return a.email
-}
-
-func (a repositoryAuthor) Desc() string {
-
-	return fmt.Sprintf("%s <%s> ", a.name, a.email)
-}
-
 type SyncRepository struct {
 	repository.Repository
 	Name     string
 	WorkDir  string
-	Versions []repositoryVersion
-	Authors  map[string]repositoryAuthor
+	Versions []flow.RepositoryVersion
+	Authors  map[string]flow.RepositoryAuthor
 
 	Extention string
 
@@ -103,24 +32,8 @@ type SyncRepository struct {
 	MinVersion       int64
 	MaxVersion       int64
 	LimitSyncVersion int64
-	endpoint         V8Endpoint
+	endpoint         flow.V8Endpoint
 	flow             flow.Flow
-}
-
-type V8Endpoint interface {
-	Infobase() *v8.Infobase
-	Repository() *repository.Repository
-	Extention() string
-	Options() []interface{}
-}
-
-func NewSyncRepository(path string) *SyncRepository {
-
-	return &SyncRepository{
-		Repository: repository.Repository{
-			Path: path,
-		},
-	}
 }
 
 func (r *SyncRepository) Auth(user, passowrd string) {
@@ -158,16 +71,14 @@ func (r *SyncRepository) readCurrentVersion() error {
 
 }
 
-func (r *SyncRepository) sync(opts *SyncOptions) error {
+func (r *SyncRepository) sync(opts *Options) error {
 
-	v8Endpoint := &v8Endpoint{
+	r.endpoint = &v8Endpoint{
 		infobase:   &opts.infobase,
 		repository: &r.Repository,
 		options:    opts.Options(),
 		extention:  r.Extention,
 	}
-
-	r.endpoint = v8Endpoint
 
 	r.flow = flow.Tasker()
 
@@ -193,14 +104,14 @@ func (r *SyncRepository) sync(opts *SyncOptions) error {
 		return nil
 	}
 
-	nextVersion := r.Versions[0].number
+	nextVersion := r.Versions[0].Number()
 	maxVersion := r.MaxVersion
 
 	taskFlow.StartSyncVersions(r.endpoint, r.Versions, r.CurrentVersion, &nextVersion, &maxVersion)
 
 	for _, rVersion := range r.Versions {
 
-		if r.MaxVersion != 0 && rVersion.number > r.MaxVersion {
+		if r.MaxVersion != 0 && rVersion.Number() > r.MaxVersion {
 			break
 		}
 
@@ -297,7 +208,7 @@ func (r *SyncRepository) commitFiles(author string, when time.Time, comment stri
 
 }
 
-func (r *SyncRepository) prepare(opts *SyncOptions) error {
+func (r *SyncRepository) prepare(opts *Options) error {
 
 	if !opts.infobaseCreated {
 
@@ -336,9 +247,9 @@ func (r *SyncRepository) prepare(opts *SyncOptions) error {
 	return nil
 }
 
-func (r *SyncRepository) Sync(opts ...SyncOption) error {
+func (r *SyncRepository) Sync(opts ...Option) error {
 
-	options := &SyncOptions{}
+	options := &Options{}
 
 	for _, o := range opts {
 		o(options)
@@ -348,13 +259,13 @@ func (r *SyncRepository) Sync(opts ...SyncOption) error {
 
 }
 
-func Sync(r SyncRepository, opts ...SyncOption) error {
+func Sync(r SyncRepository, opts ...Option) error {
 
 	return r.Sync(opts...)
 
 }
 
-func (r *SyncRepository) syncVersionFiles(rVersion RepositoryVersion, opts *SyncOptions) (err error) {
+func (r *SyncRepository) syncVersionFiles(rVersion RepositoryVersion, opts *Options) (err error) {
 
 	tempDir, err := ioutil.TempDir(opts.tempDir, fmt.Sprintf("v%d", rVersion.Number()))
 
@@ -425,9 +336,7 @@ func (r *SyncRepository) syncVersionFiles(rVersion RepositoryVersion, opts *Sync
 
 }
 
-type UpdateCfgHandlerType func(v8end V8Endpoint, workdir string, version int64) error
-
-func (r *SyncRepository) DumpConfigToFiles(dumpDir string, opts *SyncOptions) (err error) {
+func (r *SyncRepository) DumpConfigToFiles(dumpDir string, opts *Options) (err error) {
 
 	standartHandler := true
 
@@ -447,7 +356,7 @@ func (r *SyncRepository) DumpConfigToFiles(dumpDir string, opts *SyncOptions) (e
 
 }
 
-func (r *SyncRepository) dumpConfigToFilesHandler(dumpDir string, opts *SyncOptions) error {
+func (r *SyncRepository) dumpConfigToFilesHandler(dumpDir string, opts *Options) error {
 
 	DumpConfigToFilesOptions := designer.DumpConfigToFilesOptions{
 		Dir:       dumpDir,
@@ -455,7 +364,7 @@ func (r *SyncRepository) dumpConfigToFilesHandler(dumpDir string, opts *SyncOpti
 		Extension: r.Extention,
 	}
 
-	err := Run(opts.infobase, DumpConfigToFilesOptions, opts)
+	err := main.Run(opts.infobase, DumpConfigToFilesOptions, opts)
 
 	if err != nil {
 		return err
@@ -463,7 +372,7 @@ func (r *SyncRepository) dumpConfigToFilesHandler(dumpDir string, opts *SyncOpti
 	return nil
 }
 
-func (r *SyncRepository) ClearWorkDir(opts *SyncOptions) (err error) {
+func (r *SyncRepository) ClearWorkDir(opts *Options) (err error) {
 
 	standartHandler := true
 
@@ -483,7 +392,7 @@ func (r *SyncRepository) ClearWorkDir(opts *SyncOptions) (err error) {
 
 }
 
-func (r *SyncRepository) clearWorkDirHandler(opts *SyncOptions) error {
+func (r *SyncRepository) clearWorkDirHandler(opts *Options) error {
 
 	err := os.RemoveAll(r.WorkDir) // TODO Сделать копирование файлов или избранную очистку
 
@@ -493,7 +402,7 @@ func (r *SyncRepository) clearWorkDirHandler(opts *SyncOptions) error {
 	return nil
 }
 
-func (r *SyncRepository) MoveToWorkDir(dumpDir string, opts *SyncOptions) (err error) {
+func (r *SyncRepository) MoveToWorkDir(dumpDir string, opts *Options) (err error) {
 
 	standartHandler := true
 
@@ -513,7 +422,7 @@ func (r *SyncRepository) MoveToWorkDir(dumpDir string, opts *SyncOptions) (err e
 
 }
 
-func (r *SyncRepository) moveToWorkDirHandler(dumpDir string, opts *SyncOptions) error {
+func (r *SyncRepository) moveToWorkDirHandler(dumpDir string, opts *Options) error {
 
 	err := os.RemoveAll(r.WorkDir) // TODO Сделать копирование файлов или избранную очистку
 
@@ -523,7 +432,7 @@ func (r *SyncRepository) moveToWorkDirHandler(dumpDir string, opts *SyncOptions)
 	return nil
 }
 
-func (r *SyncRepository) GetRepositoryHistory(opts *SyncOptions) (err error) {
+func (r *SyncRepository) GetRepositoryHistory(opts *Options) (err error) {
 
 	standartHandler := true
 
@@ -547,7 +456,7 @@ func (r *SyncRepository) GetRepositoryHistory(opts *SyncOptions) (err error) {
 
 }
 
-func (r *SyncRepository) getRepositoryHistoryHandler(opts *SyncOptions) error {
+func (r *SyncRepository) getRepositoryHistoryHandler(opts *Options) error {
 
 	reportFile, err := ioutil.TempFile(opts.tempDir, "v8_rep_history")
 	if err != nil {
@@ -588,7 +497,7 @@ func (r *SyncRepository) getRepositoryHistoryHandler(opts *SyncOptions) error {
 	return nil
 }
 
-func (r *SyncRepository) GetRepositoryAuthors(opts *SyncOptions) (err error) {
+func (r *SyncRepository) GetRepositoryAuthors(opts *Options) (err error) {
 
 	standartHandler := true
 	authors := new(AuthorsList)
@@ -610,9 +519,9 @@ func (r *SyncRepository) GetRepositoryAuthors(opts *SyncOptions) (err error) {
 
 }
 
-func (r *SyncRepository) getRepositoryAuthorsHandler(authors *AuthorsList, opts *SyncOptions) error {
+func (r *SyncRepository) getRepositoryAuthorsHandler(authors *AuthorsList, opts *Options) error {
 
-	file := path.Join(r.WorkDir, AUTHORS_FILE)
+	file := path.Join(r.WorkDir, main.AUTHORS_FILE)
 	_, err := os.Lstat(file)
 
 	r.Authors = new(AuthorsList)
@@ -643,33 +552,5 @@ func (r *SyncRepository) getRepositoryAuthorsHandler(authors *AuthorsList, opts 
 	r.Authors = &authorsTable
 
 	return nil
-
-}
-
-func NewAuthor(name, email string) author {
-
-	return author{
-		Name:  name,
-		Email: email,
-	}
-
-}
-
-// Decode decodes a byte slice into a signature
-func decodeAuthor(b []byte) (string, string) {
-	open := bytes.LastIndexByte(b, '<')
-	closeSym := bytes.LastIndexByte(b, '>')
-	if open == -1 || closeSym == -1 {
-		return "", ""
-	}
-
-	if closeSym < open {
-		return "", ""
-	}
-
-	Name := string(bytes.Trim(b[:open], " "))
-	Email := string(b[open+1 : closeSym])
-
-	return Name, Email
 
 }

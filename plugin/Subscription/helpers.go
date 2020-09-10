@@ -1,21 +1,17 @@
 package Subscription
 
-import "strings"
+type SubscribeHandler interface {
+	Handle(event eventType, handler interface{})
+	//Empty() bool
+}
 
-func getEvent(end string) eventType {
+func NewSubscribeManager() *SubscribeManager {
 
-	if strings.HasPrefix(end, string(OnEvent)) {
-		return OnEvent
+	return &SubscribeManager{
+
+		UpdateCfg:             &updateCfgHandler{},
+		DumpConfigToFiles:     &dumpConfigToFilesHandler{},
+		GetRepositoryHistoryH: &getRepositoryHistoryHandler{},
 	}
-
-	if strings.HasPrefix(end, string(AfterEvent)) {
-		return AfterEvent
-	}
-
-	if strings.HasPrefix(end, string(BeforeEvent)) {
-		return BeforeEvent
-	}
-
-	return UnknownEvent
 
 }

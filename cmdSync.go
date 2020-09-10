@@ -4,6 +4,7 @@ import (
 	cli "github.com/jawher/mow.cli"
 	"github.com/khorevaa/r2gitsync/internal/args"
 	"github.com/khorevaa/r2gitsync/internal/opts"
+	"github.com/khorevaa/r2gitsync/manager"
 )
 
 // Sample use: vault creds reddit.com
@@ -11,7 +12,7 @@ func (app *Application) cmdSync(cmd *cli.Cmd) {
 
 	cmd.LongDesc = `Выполнение синхронизации Хранилища 1С с git репозиторием`
 
-	repo := SyncRepository{}
+	repo := manager.SyncRepository{}
 
 	opts.StringOpt(cmd, "storage-author u", "Администратор", "пользователь хранилища 1C конфигурации").
 		Env("R2GITSYNC_STORAGE_USER GITSYNC_STORAGE_USER").
@@ -35,13 +36,13 @@ func (app *Application) cmdSync(cmd *cli.Cmd) {
 
 	cmd.Action = func() {
 
-		err := Sync(repo,
-			WithInfobaseConfig(config.Infobase),
-			WithTempDir(config.tempDir),
-			WithV8Path(config.v8path),
-			WithV8version(config.v8version),
-			WithLicTryCount(5),
-			WithPlugins(config.pluginsManager),
+		err := manager.Sync(repo,
+			manager.WithInfobaseConfig(config.Infobase),
+			manager.WithTempDir(config.tempDir),
+			manager.WithV8Path(config.v8path),
+			manager.WithV8version(config.v8version),
+			manager.WithLicTryCount(5),
+			manager.WithPlugins(config.pluginsManager),
 			//WithDomainEmail(config.),
 		)
 
