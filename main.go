@@ -35,6 +35,8 @@ type configApp struct {
 	v8path  string
 	tempDir string
 
+	disableIncrement bool
+
 	pluginsLoader  *PluginsLoader
 	pluginsManager *PluginsManager
 	pluginsDir     string

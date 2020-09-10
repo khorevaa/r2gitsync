@@ -25,12 +25,12 @@ func (app *Application) cmdSetVersion(cmd *cli.Cmd) {
 
 	cmd.Action = func() {
 
-		err := manager.writeVersionFile(*workdir, *setVersion)
+		err := manager.WriteVersionFile(*workdir, *setVersion)
 
 		failOnErr(err)
 
 		if *doCommit {
-			err = manager.commitVersionFile(*workdir)
+			err = manager.CommitVersionFile(*workdir)
 			failOnErr(err)
 		}
 

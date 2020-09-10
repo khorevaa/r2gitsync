@@ -1,24 +1,34 @@
 package plugin
 
 import (
+	"github.com/khorevaa/r2gitsync/cmd"
 	"github.com/micro/cli/v2"
 	"net/http"
 )
 
 // Plugin is the interface for plugins to micro. It differs from go-micro in that it's for
 // the micro API, Web, Sidecar, CLI. It's a method of building middleware for the HTTP side.
-type Plugin interface {
+type PluginSymbol interface {
 
 	// Global Flags
 	Flags() []cli.Flag
 	// Sub-commands
 	Commands() []*cli.Command
-	// Init called when command line args are parsed.
-	// The initialised cli.Context is passed in.
-	Init(sm SubscribeManager) error
 
 	// Name of the plugin
 	String() string
+	Desc() string
+	Version() string
+	Name() string
+	New() Plugin
+}
+
+type Plugin interface {
+
+	// Init called when command line args are parsed.
+	// The initialised cli.Context is passed in.
+	Init(sm SubscribeManager) error
+	Handler() Handler
 }
 
 type SubscribeManager interface {
@@ -51,12 +61,12 @@ type Handler func(http.Handler) http.Handler
 
 type plugin struct {
 	opts    Options
-	init    func(ctx *cli.Context) error
+	new     func() Plugin
 	handler Handler
 }
 
 func (p *plugin) Flags() []cli.Flag {
-	return p.opts.Flags
+	return cmd.StringOpt{}
 }
 
 func (p *plugin) Commands() []*cli.Command {
@@ -67,15 +77,19 @@ func (p *plugin) Handler() Handler {
 	return p.handler
 }
 
-func (p *plugin) Init(ctx *cli.Context) error {
-	return p.opts.Init(ctx)
+func (p *plugin) New() Plugin {
+	return p.new()
 }
 
 func (p *plugin) String() string {
 	return p.opts.Name
 }
 
-func newPlugin(opts ...Option) Plugin {
+func (p *plugin) Name() string {
+	return p.opts.Name
+}
+
+func newPlugin(opts ...Option) PluginSymbol {
 	options := Options{
 		Name: "default",
 		Init: func(ctx *cli.Context) error { return nil },

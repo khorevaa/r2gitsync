@@ -12,7 +12,7 @@ const (
 	AUTHORS_FILE = "AUTHORS"
 )
 
-func writeVersionFile(workdir string, version string) error {
+func WriteVersionFile(workdir string, version string) error {
 
 	data := fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
 <VERSION>%s</VERSION>`, version)
@@ -24,7 +24,7 @@ func writeVersionFile(workdir string, version string) error {
 
 }
 
-func commitVersionFile(workdir string) error {
+func CommitVersionFile(workdir string) error {
 
 	r, err := git.PlainOpen(workdir)
 

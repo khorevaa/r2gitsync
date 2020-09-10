@@ -1,9 +1,16 @@
 package manager
 
 import (
+	"github.com/khorevaa/r2gitsync/plugin/Subscription"
 	"github.com/v8platform/runner"
 	v8 "github.com/v8platform/v8"
 )
+
+type PlSm struct {
+	UpdateCfg             Subscription.UpdateCfgHandler
+	DumpConfigToFiles     Subscription.DumpConfigToFilesHandler
+	GetRepositoryHistoryH Subscription.GetRepositoryHistoryHandler
+}
 
 type Option func(*Options)
 
@@ -21,7 +28,7 @@ type Options struct {
 		MaxVersion int
 		Count      int
 	}
-	plugins *PluginsManager // TODO добавить менеджер плагинов
+	plugins *PlSm // TODO добавить менеджер плагинов
 }
 
 type ib struct {
@@ -60,7 +67,7 @@ func WithInfobase(connString, user, password string) Option {
 
 }
 
-func WithPlugins(manager *main.PluginsManager) Option {
+func WithPlugins(manager *PlSm) Option {
 
 	return func(o *Options) {
 

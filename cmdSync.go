@@ -5,6 +5,7 @@ import (
 	"github.com/khorevaa/r2gitsync/internal/args"
 	"github.com/khorevaa/r2gitsync/internal/opts"
 	"github.com/khorevaa/r2gitsync/manager"
+	"github.com/khorevaa/r2gitsync/plugin/Subscription"
 )
 
 // Sample use: vault creds reddit.com
@@ -21,6 +22,10 @@ func (app *Application) cmdSync(cmd *cli.Cmd) {
 	opts.StringOpt(cmd, "storage-pwd p", "", "пользователь хранилища 1C конфигурации").
 		Env("R2GITSYNC_STORAGE_PASSWORD GITSYNC_STORAGE_PWD GITSYNC_STORAGE_PASSWORD").
 		Ptr(&repo.Repository.Password)
+
+	opts.BoolOpt(cmd, "disable-increment", false, "отключает инкрементальную выгрузку").
+		Env("GITSYNC_DISABLE_INCREMENT").
+		Ptr(&config.disableIncrement)
 
 	opts.StringOpt(cmd, "extension e ext", "", "имя расширения для работы с хранилищем расширения").
 		Env("R2GITSYNC_EXTENSION GITSYNC_EXTENSION").
@@ -42,7 +47,8 @@ func (app *Application) cmdSync(cmd *cli.Cmd) {
 			manager.WithV8Path(config.v8path),
 			manager.WithV8version(config.v8version),
 			manager.WithLicTryCount(5),
-			manager.WithPlugins(config.pluginsManager),
+			manager.WithPlugins(manager.PlSm(Subscription.SubscribeManager{})),
+			manager.WithDisableIncrement(config.disableIncrement),
 			//WithDomainEmail(config.),
 		)
 

@@ -12,7 +12,7 @@ type SubscribeManager struct {
 	count                 int
 }
 
-func (sm *SubscribeManager) Handle(endpoint interface{}, event eventType, handler interface{}) {
+func (sm *SubscribeManager) Handle(endpoint endPointType, event eventType, handler interface{}) {
 
 	sm.mu.Lock()
 	defer func() {

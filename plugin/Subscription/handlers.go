@@ -12,10 +12,12 @@ type V8Endpoint interface {
 	Options() []interface{}
 }
 
+type endPointType string
+
 const (
-	UpdateCfg            = "\aUpdateCfg"
-	DumpConfigToFiles    = "\aDumpConfigToFiles"
-	GetRepositoryHistory = "\aGetRepositoryHistory"
+	UpdateCfg            endPointType = "\aUpdateCfg"
+	DumpConfigToFiles    endPointType = "\aDumpConfigToFiles"
+	GetRepositoryHistory endPointType = "\aGetRepositoryHistory"
 )
 
 type eventType string

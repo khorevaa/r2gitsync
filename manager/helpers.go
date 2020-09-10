@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/v8platform/designer/repository"
+	"github.com/v8platform/errors"
 	"github.com/v8platform/runner"
 	v8 "github.com/v8platform/v8"
 	"golang.org/x/text/encoding"
