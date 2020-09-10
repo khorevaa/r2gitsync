@@ -1,4 +1,4 @@
-package env
+package cmd
 
 const (
 	Versobe     = "GITSYNC_VERSOBE R2GITSYNC_VERSOBE"

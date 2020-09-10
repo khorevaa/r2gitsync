@@ -1,4 +1,4 @@
-package Subscription
+package subscription
 
 import (
 	"github.com/v8platform/designer/repository"
@@ -12,21 +12,21 @@ type V8Endpoint interface {
 	Options() []interface{}
 }
 
-type endPointType string
+type EndPointType string
 
 const (
-	UpdateCfg            endPointType = "\aUpdateCfg"
-	DumpConfigToFiles    endPointType = "\aDumpConfigToFiles"
-	GetRepositoryHistory endPointType = "\aGetRepositoryHistory"
+	UpdateCfg            EndPointType = "\aUpdateCfg"
+	DumpConfigToFiles    EndPointType = "\aDumpConfigToFiles"
+	GetRepositoryHistory EndPointType = "\aGetRepositoryHistory"
 )
 
-type eventType string
+type EventType string
 
 const (
-	BeforeEvent  eventType = "\aBefore"
-	OnEvent      eventType = "\aOn"
-	AfterEvent   eventType = "\aAfter"
-	UnknownEvent eventType = "\aUnknown"
+	BeforeEvent  EventType = "\aBefore"
+	OnEvent      EventType = "\aOn"
+	AfterEvent   EventType = "\aAfter"
+	UnknownEvent EventType = "\aUnknown"
 )
 
 type (

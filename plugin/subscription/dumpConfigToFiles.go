@@ -1,21 +1,21 @@
-package Subscription
+package subscription
 
-var _ GetRepositoryHistoryHandler = (*getRepositoryHistoryHandler)(nil)
+var _ DumpConfigToFilesHandler = (*dumpConfigToFilesHandler)(nil)
 
-type getRepositoryHistoryHandler struct {
+type dumpConfigToFilesHandler struct {
 	before []BeforeDumpConfigFn
 	on     []OnDumpConfigFn
 	after  []AfterDumpConfigFn
 }
 
-type GetRepositoryHistoryHandler interface {
+type DumpConfigToFilesHandler interface {
 	SubscribeHandler
 	Before(v8end V8Endpoint, workdir string, temp string, number int64) error
 	On(v8end V8Endpoint, workdir string, temp string, number int64, standartHandler *bool) error
 	After(v8end V8Endpoint, workdir string, temp string, number int64) error
 }
 
-func (b *getRepositoryHistoryHandler) Handle(event eventType, handler interface{}) {
+func (b *dumpConfigToFilesHandler) Handle(event EventType, handler interface{}) {
 
 	switch event {
 	case BeforeEvent:
@@ -39,7 +39,7 @@ func (b *getRepositoryHistoryHandler) Handle(event eventType, handler interface{
 
 }
 
-func (h *getRepositoryHistoryHandler) Before(v8end V8Endpoint, workdir string, temp string, version int64) error {
+func (h *dumpConfigToFilesHandler) Before(v8end V8Endpoint, workdir string, temp string, version int64) error {
 
 	for _, fn := range h.before {
 
@@ -53,7 +53,7 @@ func (h *getRepositoryHistoryHandler) Before(v8end V8Endpoint, workdir string, t
 	return nil
 }
 
-func (h *getRepositoryHistoryHandler) On(v8end V8Endpoint, workdir string, temp string, version int64, standartHandler *bool) error {
+func (h *dumpConfigToFilesHandler) On(v8end V8Endpoint, workdir string, temp string, version int64, standartHandler *bool) error {
 
 	for _, fn := range h.on {
 
@@ -67,7 +67,7 @@ func (h *getRepositoryHistoryHandler) On(v8end V8Endpoint, workdir string, temp 
 	return nil
 }
 
-func (h *getRepositoryHistoryHandler) After(v8end V8Endpoint, workdir string, temp string, version int64) error {
+func (h *dumpConfigToFilesHandler) After(v8end V8Endpoint, workdir string, temp string, version int64) error {
 
 	for _, fn := range h.after {
 

@@ -1,4 +1,4 @@
-package Subscription
+package subscription
 
 import (
 	"sync"
@@ -12,7 +12,7 @@ type SubscribeManager struct {
 	count                 int
 }
 
-func (sm *SubscribeManager) Handle(endpoint endPointType, event eventType, handler interface{}) {
+func (sm *SubscribeManager) Handle(endpoint EndPointType, event EventType, handler interface{}) {
 
 	sm.mu.Lock()
 	defer func() {

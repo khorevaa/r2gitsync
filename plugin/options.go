@@ -1,9 +1,7 @@
 package plugin
 
 import (
-	cli2 "github.com/jawher/mow.cli"
-	"github.com/micro/cli/v2"
-	"net/http"
+	"github.com/khorevaa/r2gitsync/cmd/flags"
 )
 
 type Option func(o *plugin)
@@ -11,16 +9,16 @@ type Option func(o *plugin)
 type InitFn func() Plugin
 
 // WithFlag adds flags to a plugin
-func WithFlag(flag ...cli2.VarParam) Option {
+func WithFlag(flag ...flags.Flag) Option {
 	return func(o *plugin) {
-		o.Flags = append(o.Flags, flag...)
+		o.flags = append(o.flags, flag...)
 	}
 }
 
 // WithCommand adds commands to a plugin
-func WithCommand(cmd ...*cli.Command) Option {
+func WithCommand(cmd ...string) Option {
 	return func(o *plugin) {
-		o.Commands = append(o.Commands, cmd...)
+		o.commands = append(o.commands, cmd...)
 	}
 }
 
@@ -36,79 +34,55 @@ type plugin struct {
 	desk     string
 	name     string
 	init     InitFn
-	flags    []cli.Flag
-	commands []*cli.Command
+	flags    []flags.Flag
+	commands []string
 }
 
-func (p *plugin) Flags() []cli.Flag {
-	return p.opts.Flags
+func (p *plugin) Flags() []flags.Flag {
+	return p.flags
 }
 
-func (p *plugin) Commands() []*cli.Command {
-	return p.opts.Commands
+func (p *plugin) Commands() []string {
+	return p.commands
 }
 
-func (p *plugin) Handler() Handler {
-	return p.handler
-}
-
-func (p *plugin) New() Plugin {
-	return p.new()
+func (p *plugin) Init() Plugin {
+	return p.init()
 }
 
 func (p *plugin) String() string {
-	return p.opts.Name
+	return p.Name()
 }
 
 func (p *plugin) Name() string {
-	return p.opts.Name
+	return p.name
 }
 
-func newPlugin(opts ...Option) PluginSymbol {
-	options := Options{
-		Name: "default",
-		Init: func(ctx *cli.Context) error { return nil },
+func (p *plugin) Desc() string {
+	return p.desk
+}
+
+func (p *plugin) Version() string {
+	return p.version
+}
+
+func newPlugin(name, version, desc string, init InitFn, opts ...Option) PluginSymbol {
+
+	p := plugin{
+		name:    name,
+		version: version,
+		desk:    desc,
+		init:    init,
 	}
 
 	for _, o := range opts {
-		o(&options)
+		o(&p)
 	}
 
-	handler := func(hdlr http.Handler) http.Handler {
-		for _, h := range options.Handlers {
-			hdlr = h(hdlr)
-		}
-		return hdlr
-	}
-
-	return &plugin{
-		opts:    options,
-		handler: handler,
-	}
-}
-
-// Plugins lists the global plugins
-func Plugins(opts ...PluginOption) []Plugin {
-	return defaultManager.Plugins(opts...)
-}
-
-// Register registers a global plugins
-func Register(plugin Plugin, opts ...PluginOption) error {
-	return defaultManager.Register(plugin, opts...)
-}
-
-// IsRegistered check plugin whether registered global.
-// Notice plugin is not check whether is nil
-func IsRegistered(plugin Plugin, opts ...PluginOption) bool {
-	return defaultManager.isRegistered(plugin, opts...)
-}
-
-// NewManager creates a new plugin manager
-func NewManager() Manager {
-	return newManager()
+	return &p
 }
 
 // NewPlugin makes it easy to create a new plugin
-func NewPlugin(opts ...Option) Plugin {
-	return newPlugin(opts...)
+func NewPlugin(name, version, desc string, init InitFn, opts ...Option) PluginSymbol {
+	return newPlugin(name, version, desc, init, opts...)
 }

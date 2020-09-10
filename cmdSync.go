@@ -2,10 +2,11 @@ package main
 
 import (
 	cli "github.com/jawher/mow.cli"
+	"github.com/khorevaa/r2gitsync/cmd/flags"
 	"github.com/khorevaa/r2gitsync/internal/args"
 	"github.com/khorevaa/r2gitsync/internal/opts"
 	"github.com/khorevaa/r2gitsync/manager"
-	"github.com/khorevaa/r2gitsync/plugin/Subscription"
+	"github.com/khorevaa/r2gitsync/plugin/subscription"
 )
 
 // Sample use: vault creds reddit.com
@@ -35,6 +36,11 @@ func (app *Application) cmdSync(cmd *cli.Cmd) {
 		Env("R2GITSYNC_STORAGE_PATH GITSYNC_STORAGE_PATH").
 		Ptr(&repo.Repository.Path)
 
+	flags.StringArg("PATH", "", "Путь к хранилищу конфигурации 1С.",
+		"R2GITSYNC_STORAGE_PATH GITSYNC_STORAGE_PATH").
+		Ptr(&repo.Repository.Path).
+		Apply(cmd)
+
 	WorkdirArgPtr(&repo.WorkDir, cmd)
 
 	cmd.Spec = "[OPTIONS] PATH [WORKDIR]"
@@ -47,7 +53,7 @@ func (app *Application) cmdSync(cmd *cli.Cmd) {
 			manager.WithV8Path(config.v8path),
 			manager.WithV8version(config.v8version),
 			manager.WithLicTryCount(5),
-			manager.WithPlugins(manager.PlSm(Subscription.SubscribeManager{})),
+			manager.WithPlugins(manager.PlSm(subscription.SubscribeManager{})),
 			manager.WithDisableIncrement(config.disableIncrement),
 			//WithDomainEmail(config.),
 		)

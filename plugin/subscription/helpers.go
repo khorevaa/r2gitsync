@@ -1,7 +1,7 @@
-package Subscription
+package subscription
 
 type SubscribeHandler interface {
-	Handle(event eventType, handler interface{})
+	Handle(event EventType, handler interface{})
 	//Empty() bool
 }
 

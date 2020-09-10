@@ -4,7 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/jawher/mow.cli"
-	"github.com/khorevaa/r2gitsync/internal/env"
+	"github.com/khorevaa/r2gitsync/cmd"
 	"github.com/khorevaa/r2gitsync/internal/opts"
 	"os"
 	"path"
@@ -56,10 +56,10 @@ func main() {
 	app.Version("version v", buildVersion(version, commit, date, builtBy))
 
 	opts.StringOpt(app, "v8version", "8.3", "маска версии платформы 1С (8.3, 8.3.5, 8.3.6.2299 и т.п.)").
-		Env(env.V8Version).
+		Env(cmd.V8Version).
 		Ptr(&config.v8version)
 	opts.StringOpt(app, "v8-path v8path", "", "путь к исполняемому файлу платформы 1С (Например, /opt/1C/v8.3/x86_64/1cv8)").
-		Env(env.V8Path).
+		Env(cmd.V8Path).
 		Ptr(&config.v8path)
 	opts.StringOpt(app, "U ib-author ib-usr db-author", "", "пользователь информационной базы").
 		Env("GITSYNC_IB_USR GITSYNC_IB_USER GITSYNC_DB_USER").
@@ -74,7 +74,7 @@ func main() {
 		Env("GITSYNC_TEMP GITSYNC_TEMPDIR").
 		Ptr(&config.tempDir)
 	opts.BoolOpt(app, "debug", false, "Bывод отладочной информации").
-		Env(env.Versobe).
+		Env(cmd.Versobe).
 		Ptr(&config.debug)
 
 	app.Before = func() {

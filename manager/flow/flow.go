@@ -1,7 +1,7 @@
 package flow
 
 import (
-	"github.com/khorevaa/r2gitsync/plugin/Subscription"
+	"github.com/khorevaa/r2gitsync/plugin/subscription"
 	"github.com/v8platform/designer/repository"
 	"github.com/v8platform/errors"
 	"github.com/v8platform/runner"
@@ -55,7 +55,7 @@ func Tasker() Flow {
 	return tasker{}
 }
 
-func WithSubscribes(sm *Subscription.SubscribeManager) Flow {
+func WithSubscribes(sm *subscription.SubscribeManager) Flow {
 	return tasker{}.WithSubscribes(sm)
 }
 

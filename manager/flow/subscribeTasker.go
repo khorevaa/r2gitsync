@@ -1,12 +1,12 @@
 package flow
 
-import "github.com/khorevaa/r2gitsync/plugin/Subscription"
+import "github.com/khorevaa/r2gitsync/plugin/subscription"
 
 var _ Flow = (*subscribeTasker)(nil)
 
 type subscribeTasker struct {
 	tasker
-	pm *Subscription.SubscribeManager
+	pm *subscription.SubscribeManager
 }
 
 func (t subscribeTasker) UpdateCfg(v8end V8Endpoint, workDir string, number int64) (err error) {

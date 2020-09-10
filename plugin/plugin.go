@@ -1,9 +1,9 @@
 package plugin
 
 import (
-	"github.com/khorevaa/r2gitsync/cmd"
-	"github.com/micro/cli/v2"
-	"net/http"
+	"github.com/khorevaa/r2gitsync/cmd/flags"
+	"github.com/khorevaa/r2gitsync/context"
+	"github.com/khorevaa/r2gitsync/plugin/subscription"
 )
 
 // Plugin is the interface for plugins to micro. It differs from go-micro in that it's for
@@ -11,28 +11,25 @@ import (
 type PluginSymbol interface {
 
 	// Global Flags
-	Flags() []cli.Flag
+	Flags() []flags.Flag
 	// Sub-commands
-	Commands() []*cli.Command
+	Commands() []string
 
 	// Name of the plugin
 	String() string
 	Desc() string
 	Version() string
 	Name() string
-	New() Plugin
+	Init() Plugin
 }
 
 type Plugin interface {
-
-	// Init called when command line args are parsed.
-	// The initialised cli.Context is passed in.
 	Init(sm SubscribeManager) error
-	Handler() Handler
+	InitContext(tx context.Context)
 }
 
 type SubscribeManager interface {
-	Handle(endpoint interface{}, handler interface{})
+	Handle(endpoint subscription.EndPointType, event subscription.EventType, handler interface{})
 }
 
 // Manager is the plugin manager which stores plugins and allows them to be retrieved.
@@ -55,63 +52,6 @@ func Module(m string) PluginOption {
 	}
 }
 
-// Handler is the plugin middleware handler which wraps an existing http.Handler passed in.
-// Its the responsibility of the Handler to call the next http.Handler in the chain.
-type Handler func(http.Handler) http.Handler
-
-type plugin struct {
-	opts    Options
-	new     func() Plugin
-	handler Handler
-}
-
-func (p *plugin) Flags() []cli.Flag {
-	return cmd.StringOpt{}
-}
-
-func (p *plugin) Commands() []*cli.Command {
-	return p.opts.Commands
-}
-
-func (p *plugin) Handler() Handler {
-	return p.handler
-}
-
-func (p *plugin) New() Plugin {
-	return p.new()
-}
-
-func (p *plugin) String() string {
-	return p.opts.Name
-}
-
-func (p *plugin) Name() string {
-	return p.opts.Name
-}
-
-func newPlugin(opts ...Option) PluginSymbol {
-	options := Options{
-		Name: "default",
-		Init: func(ctx *cli.Context) error { return nil },
-	}
-
-	for _, o := range opts {
-		o(&options)
-	}
-
-	handler := func(hdlr http.Handler) http.Handler {
-		for _, h := range options.Handlers {
-			hdlr = h(hdlr)
-		}
-		return hdlr
-	}
-
-	return &plugin{
-		opts:    options,
-		handler: handler,
-	}
-}
-
 // Plugins lists the global plugins
 func Plugins(opts ...PluginOption) []Plugin {
 	return defaultManager.Plugins(opts...)
@@ -131,9 +71,4 @@ func IsRegistered(plugin Plugin, opts ...PluginOption) bool {
 // NewManager creates a new plugin manager
 func NewManager() Manager {
 	return newManager()
-}
-
-// NewPlugin makes it easy to create a new plugin
-func NewPlugin(opts ...Option) Plugin {
-	return newPlugin(opts...)
 }

@@ -1,4 +1,4 @@
-package Subscription
+package subscription
 
 var _ UpdateCfgHandler = (*updateCfgHandler)(nil)
 
@@ -15,7 +15,7 @@ type updateCfgHandler struct {
 	after  []AfterUpdateCfgFn
 }
 
-func (b *updateCfgHandler) Handle(event eventType, handler interface{}) {
+func (b *updateCfgHandler) Handle(event EventType, handler interface{}) {
 
 	switch event {
 	case BeforeEvent:

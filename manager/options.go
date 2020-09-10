@@ -1,15 +1,15 @@
 package manager
 
 import (
-	"github.com/khorevaa/r2gitsync/plugin/Subscription"
+	"github.com/khorevaa/r2gitsync/plugin/subscription"
 	"github.com/v8platform/runner"
 	v8 "github.com/v8platform/v8"
 )
 
 type PlSm struct {
-	UpdateCfg             Subscription.UpdateCfgHandler
-	DumpConfigToFiles     Subscription.DumpConfigToFilesHandler
-	GetRepositoryHistoryH Subscription.GetRepositoryHistoryHandler
+	UpdateCfg             subscription.UpdateCfgHandler
+	DumpConfigToFiles     subscription.DumpConfigToFilesHandler
+	GetRepositoryHistoryH subscription.GetRepositoryHistoryHandler
 }
 
 type Option func(*Options)

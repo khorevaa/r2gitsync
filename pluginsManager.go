@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/hashicorp/go-multierror"
-	"github.com/khorevaa/r2gitsync/plugin/Subscription"
+	"github.com/khorevaa/r2gitsync/plugin/subscription"
 )
 
 type ManagerConfig struct {
@@ -12,7 +12,7 @@ type ManagerConfig struct {
 }
 
 type PluginsManager struct {
-	*Subscription.SubscribeManager
+	*subscription.SubscribeManager
 	plugins []*PluginSymbol
 	config  ManagerConfig
 }
@@ -20,7 +20,7 @@ type PluginsManager struct {
 func NewPluginsManager(cfg ManagerConfig) *PluginsManager {
 
 	return &PluginsManager{
-		SubscribeManager: &Subscription.SubscribeManager{},
+		SubscribeManager: &subscription.SubscribeManager{},
 		config:           cfg,
 	}
 

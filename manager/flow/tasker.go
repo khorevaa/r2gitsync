@@ -1,7 +1,7 @@
 package flow
 
 import (
-	"github.com/khorevaa/r2gitsync/plugin/Subscription"
+	"github.com/khorevaa/r2gitsync/plugin/subscription"
 	"github.com/v8platform/designer/repository"
 	"io/ioutil"
 	"os"
@@ -125,7 +125,7 @@ func (t tasker) CommitFiles(endpoint V8Endpoint, dir string, a string, d time.Ti
 	return nil
 }
 
-func (t tasker) WithSubscribes(sm *Subscription.SubscribeManager) Flow {
+func (t tasker) WithSubscribes(sm *subscription.SubscribeManager) Flow {
 
 	return subscribeTasker{
 		tasker: t,
