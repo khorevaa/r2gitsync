@@ -7,15 +7,12 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/hashicorp/go-multierror"
 	"github.com/khorevaa/r2gitsync/manager/flow"
-	"github.com/v8platform/designer"
 	"github.com/v8platform/designer/repository"
 	"github.com/v8platform/v8"
 	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
-	"sort"
-	"strings"
 	"time"
 )
 
@@ -82,9 +79,9 @@ func (r *SyncRepository) sync(opts *Options) error {
 
 	r.flow = flow.Tasker()
 
-	if opts.plugins.SubscribeManager != nil {
+	if opts.plugins != nil {
 
-		r.flow = flow.WithSubscribes(opts.plugins.SubscribeManager)
+		r.flow = flow.WithSubscribes(opts.plugins)
 
 	}
 
@@ -104,10 +101,10 @@ func (r *SyncRepository) sync(opts *Options) error {
 		return nil
 	}
 
-	nextVersion := r.Versions[0].Number()
-	maxVersion := r.MaxVersion
+	//nextVersion := r.Versions[0].Number()
+	//maxVersion := r.MaxVersion
 
-	taskFlow.StartSyncVersions(r.endpoint, r.Versions, r.CurrentVersion, &nextVersion, &maxVersion)
+	//taskFlow.StartSyncVersions(r.endpoint, r.Versions, r.CurrentVersion, &nextVersion, &maxVersion)
 
 	for _, rVersion := range r.Versions {
 
@@ -336,221 +333,199 @@ func (r *SyncRepository) syncVersionFiles(rVersion RepositoryVersion, opts *Opti
 
 }
 
-func (r *SyncRepository) DumpConfigToFiles(dumpDir string, opts *Options) (err error) {
-
-	standartHandler := true
-
-	err = opts.plugins.WithDumpCfgToFilesHandler(opts.infobase, r.Repository, r.Extention, &dumpDir, &standartHandler)
-
-	if err != nil {
-		return
-	}
-
-	if standartHandler {
-		err = r.dumpConfigToFilesHandler(dumpDir, opts)
-	}
-
-	err = opts.plugins.AfterDumpCfgToFilesHandler(opts.infobase, r.Repository, r.Extention, &dumpDir)
-
-	return
-
-}
-
-func (r *SyncRepository) dumpConfigToFilesHandler(dumpDir string, opts *Options) error {
-
-	DumpConfigToFilesOptions := designer.DumpConfigToFilesOptions{
-		Dir:       dumpDir,
-		Force:     true,
-		Extension: r.Extention,
-	}
-
-	err := main.Run(opts.infobase, DumpConfigToFilesOptions, opts)
-
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (r *SyncRepository) ClearWorkDir(opts *Options) (err error) {
-
-	standartHandler := true
-
-	err = opts.plugins.WithClearWorkdirHandler(r.WorkDir, &standartHandler)
-
-	if err != nil {
-		return
-	}
-
-	if standartHandler {
-		err = r.clearWorkDirHandler(opts)
-	}
-
-	err = opts.plugins.AfterClearWorkdirHandler(r.WorkDir)
-
-	return
-
-}
-
-func (r *SyncRepository) clearWorkDirHandler(opts *Options) error {
-
-	err := os.RemoveAll(r.WorkDir) // TODO Сделать копирование файлов или избранную очистку
-
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (r *SyncRepository) MoveToWorkDir(dumpDir string, opts *Options) (err error) {
-
-	standartHandler := true
-
-	err = opts.plugins.WithMoveToWorkDirHandler(r.WorkDir, dumpDir, &standartHandler)
-
-	if err != nil {
-		return
-	}
-
-	if standartHandler {
-		err = r.moveToWorkDirHandler(dumpDir, opts)
-	}
-
-	err = opts.plugins.AfterMoveToWorkDirHandler(r.WorkDir, dumpDir)
-
-	return
-
-}
-
-func (r *SyncRepository) moveToWorkDirHandler(dumpDir string, opts *Options) error {
-
-	err := os.RemoveAll(r.WorkDir) // TODO Сделать копирование файлов или избранную очистку
-
-	if err != nil {
-		return err
-	}
-	return nil
-}
+//
+//func (r *SyncRepository) DumpConfigToFiles(dumpDir string, opts *Options) (err error) {
+//
+//	standartHandler := true
+//
+//	err = opts.plugins.WithDumpCfgToFilesHandler(opts.infobase, r.Repository, r.Extention, &dumpDir, &standartHandler)
+//
+//	if err != nil {
+//		return
+//	}
+//
+//	if standartHandler {
+//		err = r.dumpConfigToFilesHandler(dumpDir, opts)
+//	}
+//
+//	err = opts.plugins.AfterDumpCfgToFilesHandler(opts.infobase, r.Repository, r.Extention, &dumpDir)
+//
+//	return
+//
+//}
+//
+//func (r *SyncRepository) dumpConfigToFilesHandler(dumpDir string, opts *Options) error {
+//
+//	DumpConfigToFilesOptions := designer.DumpConfigToFilesOptions{
+//		Dir:       dumpDir,
+//		Force:     true,
+//		Extension: r.Extention,
+//	}
+//
+//	err := main.Run(opts.infobase, DumpConfigToFilesOptions, opts)
+//
+//	if err != nil {
+//		return err
+//	}
+//	return nil
+//}
+//
+//func (r *SyncRepository) ClearWorkDir(opts *Options) (err error) {
+//
+//	standartHandler := true
+//
+//	err = opts.plugins.WithClearWorkdirHandler(r.WorkDir, &standartHandler)
+//
+//	if err != nil {
+//		return
+//	}
+//
+//	if standartHandler {
+//		err = r.clearWorkDirHandler(opts)
+//	}
+//
+//	err = opts.plugins.AfterClearWorkdirHandler(r.WorkDir)
+//
+//	return
+//
+//}
+//
+//func (r *SyncRepository) clearWorkDirHandler(opts *Options) error {
+//
+//	err := os.RemoveAll(r.WorkDir) // TODO Сделать копирование файлов или избранную очистку
+//
+//	if err != nil {
+//		return err
+//	}
+//	return nil
+//}
+//
+//func (r *SyncRepository) MoveToWorkDir(dumpDir string, opts *Options) (err error) {
+//
+//	standartHandler := true
+//
+//	err = opts.plugins.WithMoveToWorkDirHandler(r.WorkDir, dumpDir, &standartHandler)
+//
+//	if err != nil {
+//		return
+//	}
+//
+//	if standartHandler {
+//		err = r.moveToWorkDirHandler(dumpDir, opts)
+//	}
+//
+//	err = opts.plugins.AfterMoveToWorkDirHandler(r.WorkDir, dumpDir)
+//
+//	return
+//
+//}
+//
+//func (r *SyncRepository) moveToWorkDirHandler(dumpDir string, opts *Options) error {
+//
+//	err := os.RemoveAll(r.WorkDir) // TODO Сделать копирование файлов или избранную очистку
+//
+//	if err != nil {
+//		return err
+//	}
+//	return nil
+//}
 
 func (r *SyncRepository) GetRepositoryHistory(opts *Options) (err error) {
 
-	standartHandler := true
-
-	err = opts.plugins.WithGetRepositoryHistoryHandler(r.WorkDir, r.Repository, &r.Versions, opts, &standartHandler)
-
-	if err != nil {
-		return
-	}
-
-	if standartHandler {
-		err = r.getRepositoryHistoryHandler(opts)
-		if err != nil {
-			return
-		}
-
-	}
-
-	err = opts.plugins.AfterGetRepositoryHistoryHandler(r.WorkDir, r.Repository, &r.Versions)
+	r.Versions, err = r.flow.GetRepositoryVersions(r.endpoint, r.WorkDir, r.CurrentVersion)
 
 	return
 
 }
 
-func (r *SyncRepository) getRepositoryHistoryHandler(opts *Options) error {
-
-	reportFile, err := ioutil.TempFile(opts.tempDir, "v8_rep_history")
-	if err != nil {
-		return err
-	}
-	reportFile.Close()
-	report := reportFile.Name()
-
-	defer os.Remove(report)
-
-	RepositoryReportOptions := repository.RepositoryReportOptions{
-		Repository: r.Repository,
-		File:       report,
-		Extension:  r.Extention,
-		NBegin:     r.CurrentVersion,
-	}.GroupByComment()
-
-	err = Run(opts.infobase, RepositoryReportOptions, opts)
-
-	if err != nil {
-		return err
-	}
-
-	r.Versions, err = parseRepositoryReport(report)
-
-	if err != nil {
-		return err
-	}
-
-	sort.Slice(r.Versions, func(i, j int) bool {
-		return r.Versions[i].Number() < r.Versions[j].Number()
-	})
-
-	if len(r.Versions) > 0 {
-		r.MaxVersion = r.Versions[len(r.Versions)-1].Number()
-	}
-
-	return nil
-}
-
+//
+//func (r *SyncRepository) getRepositoryHistoryHandler(opts *Options) error {
+//
+//	reportFile, err := ioutil.TempFile(opts.tempDir, "v8_rep_history")
+//	if err != nil {
+//		return err
+//	}
+//	reportFile.Close()
+//	report := reportFile.Name()
+//
+//	defer os.Remove(report)
+//
+//	RepositoryReportOptions := repository.RepositoryReportOptions{
+//		Repository: r.Repository,
+//		File:       report,
+//		Extension:  r.Extention,
+//		NBegin:     r.CurrentVersion,
+//	}.GroupByComment()
+//
+//	err = Run(opts.infobase, RepositoryReportOptions, opts)
+//
+//	if err != nil {
+//		return err
+//	}
+//
+//	r.Versions, err = parseRepositoryReport(report)
+//
+//	if err != nil {
+//		return err
+//	}
+//
+//	sort.Slice(r.Versions, func(i, j int) bool {
+//		return r.Versions[i].Number() < r.Versions[j].Number()
+//	})
+//
+//	if len(r.Versions) > 0 {
+//		r.MaxVersion = r.Versions[len(r.Versions)-1].Number()
+//	}
+//
+//	return nil
+//}
+//
 func (r *SyncRepository) GetRepositoryAuthors(opts *Options) (err error) {
 
-	standartHandler := true
-	authors := new(AuthorsList)
+	authors, _ := r.flow.GetRepositoryAuthors(r.endpoint, r.WorkDir)
 
-	err = opts.plugins.WithGetRepositoryAuthorsHandler(r.WorkDir, r.Repository, authors, opts, &standartHandler)
+	for _, author := range authors {
 
-	if err != nil {
-		r.Authors = authors
-		return
+		r.Authors[author.Name()] = author
 	}
-
-	if standartHandler {
-		err = r.getRepositoryAuthorsHandler(authors, opts)
-	}
-
-	err = opts.plugins.AfterGetGetRepositoryAuthorsHandler(r.WorkDir, r.Repository, authors)
 
 	return
 
 }
 
-func (r *SyncRepository) getRepositoryAuthorsHandler(authors *AuthorsList, opts *Options) error {
-
-	file := path.Join(r.WorkDir, main.AUTHORS_FILE)
-	_, err := os.Lstat(file)
-
-	r.Authors = new(AuthorsList)
-	authorsTable := *r.Authors
-	if err != nil {
-		authors = &authorsTable
-		return nil
-	}
-
-	bytesRead, _ := ioutil.ReadFile(file)
-	file_content := string(bytesRead)
-	lines := strings.Split(file_content, "\n")
-
-	for _, line := range lines {
-
-		line = strings.TrimSpace(line)
-
-		if len(line) == 0 || strings.HasPrefix(line, "//") {
-			continue
-		}
-
-		data := strings.Split(line, "=")
-
-		authorsTable[data[0]] = NewAuthor(decodeAuthor([]byte(data[1])))
-
-	}
-
-	r.Authors = &authorsTable
-
-	return nil
-
-}
+//
+//func (r *SyncRepository) getRepositoryAuthorsHandler(authors *AuthorsList, opts *Options) error {
+//
+//	file := path.Join(r.WorkDir, main.AUTHORS_FILE)
+//	_, err := os.Lstat(file)
+//
+//	r.Authors = new(AuthorsList)
+//	authorsTable := *r.Authors
+//	if err != nil {
+//		authors = &authorsTable
+//		return nil
+//	}
+//
+//	bytesRead, _ := ioutil.ReadFile(file)
+//	file_content := string(bytesRead)
+//	lines := strings.Split(file_content, "\n")
+//
+//	for _, line := range lines {
+//
+//		line = strings.TrimSpace(line)
+//
+//		if len(line) == 0 || strings.HasPrefix(line, "//") {
+//			continue
+//		}
+//
+//		data := strings.Split(line, "=")
+//
+//		authorsTable[data[0]] = NewAuthor(decodeAuthor([]byte(data[1])))
+//
+//	}
+//
+//	r.Authors = &authorsTable
+//
+//	return nil
+//
+//}

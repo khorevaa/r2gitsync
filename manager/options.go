@@ -28,7 +28,7 @@ type Options struct {
 		MaxVersion int
 		Count      int
 	}
-	plugins *PlSm // TODO добавить менеджер плагинов
+	plugins *subscription.SubscribeManager // TODO добавить менеджер плагинов
 }
 
 type ib struct {
@@ -42,6 +42,7 @@ func (o *Options) Options() []runner.Option {
 	return []runner.Option{
 		v8.WithPath(o.v8Path),
 		v8.WithVersion(o.v8version),
+		v8.WithCommonValues([]string{"/DisableStartupDialogs", "/DisableStartupDialogs"}),
 	}
 
 }
@@ -67,7 +68,7 @@ func WithInfobase(connString, user, password string) Option {
 
 }
 
-func WithPlugins(manager *PlSm) Option {
+func WithPlugins(manager *subscription.SubscribeManager) Option {
 
 	return func(o *Options) {
 
@@ -156,16 +157,6 @@ func WithLicTryCount(count int) Option {
 		}
 
 		o.licTryCount = count
-
-	}
-
-}
-
-func WithIncrementSync(increment bool) Option {
-
-	return func(o *Options) {
-
-		o.increment = increment
 
 	}
 

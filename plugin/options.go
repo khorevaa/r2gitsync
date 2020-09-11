@@ -66,7 +66,7 @@ func (p *plugin) Version() string {
 	return p.version
 }
 
-func newPlugin(name, version, desc string, init InitFn, opts ...Option) PluginSymbol {
+func newPlugin(name, version, desc string, init InitFn, opts ...Option) Symbol {
 
 	p := plugin{
 		name:    name,
@@ -83,6 +83,6 @@ func newPlugin(name, version, desc string, init InitFn, opts ...Option) PluginSy
 }
 
 // NewPlugin makes it easy to create a new plugin
-func NewPlugin(name, version, desc string, init InitFn, opts ...Option) PluginSymbol {
+func NewPlugin(name, version, desc string, init InitFn, opts ...Option) Symbol {
 	return newPlugin(name, version, desc, init, opts...)
 }

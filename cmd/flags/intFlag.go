@@ -19,7 +19,7 @@ type IntFlag struct {
 
 func (o IntFlag) Apply(cmd command, ctx context.Context) {
 
-	if o.Destination != nil {
+	if o.Destination == nil {
 		o.Destination = new(int)
 	}
 	ctx.Set(o.Name, o.Destination)

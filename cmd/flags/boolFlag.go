@@ -19,7 +19,7 @@ type BoolFlag struct {
 
 func (o BoolFlag) Apply(cmd command, ctx context.Context) {
 
-	if o.Destination != nil {
+	if o.Destination == nil {
 		o.Destination = new(bool)
 	}
 	ctx.Set(o.Name, o.Destination)

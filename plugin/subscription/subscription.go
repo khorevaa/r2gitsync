@@ -1,6 +1,8 @@
 package subscription
 
 import (
+	"github.com/khorevaa/r2gitsync/context"
+
 	"sync"
 )
 
@@ -9,7 +11,9 @@ type SubscribeManager struct {
 	UpdateCfg             UpdateCfgHandler
 	DumpConfigToFiles     DumpConfigToFilesHandler
 	GetRepositoryHistoryH GetRepositoryHistoryHandler
-	count                 int
+
+	subscribers []Plugin
+	count       int
 }
 
 func (sm *SubscribeManager) Handle(endpoint EndPointType, event EventType, handler interface{}) {
@@ -34,6 +38,33 @@ func (sm *SubscribeManager) Handle(endpoint EndPointType, event EventType, handl
 
 	default:
 		panic("plugins: unsupported endpoint")
+	}
+
+}
+
+func (sm *SubscribeManager) Subscribe(sub Plugin) error {
+
+	count := sm.count
+
+	err := sub.Init(sm)
+
+	if count == sm.count {
+		return nil
+	}
+
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+
+	sm.subscribers = append(sm.subscribers, sub)
+
+	return err
+
+}
+
+func (sm *SubscribeManager) SendContext(ctx context.Context) {
+
+	for _, subscriber := range sm.subscribers {
+		subscriber.InitContext(ctx)
 	}
 
 }

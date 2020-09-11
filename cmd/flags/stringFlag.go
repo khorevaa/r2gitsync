@@ -19,7 +19,7 @@ type StringFlag struct {
 
 func (o StringFlag) Apply(cmd command, ctx context.Context) {
 
-	if o.Destination != nil {
+	if o.Destination == nil {
 		o.Destination = new(string)
 	}
 	ctx.Set(o.Name, o.Destination)

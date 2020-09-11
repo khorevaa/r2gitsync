@@ -1,6 +1,7 @@
 package subscription
 
 import (
+	"github.com/khorevaa/r2gitsync/context"
 	"github.com/v8platform/designer/repository"
 	v8 "github.com/v8platform/v8"
 )
@@ -10,6 +11,11 @@ type V8Endpoint interface {
 	Repository() *repository.Repository
 	Extention() string
 	Options() []interface{}
+}
+
+type Plugin interface {
+	Init(sm *SubscribeManager) error
+	InitContext(ctx context.Context)
 }
 
 type EndPointType string

@@ -49,7 +49,7 @@ func (t tasker) GetRepositoryVersions(v8end V8Endpoint, dir string, nBegin int64
 		NBegin:    nBegin,
 	}.GroupByComment().WithRepository(*v8end.Repository())
 
-	err = run(*v8end.Infobase(), RepositoryReportOptions, v8end.Options())
+	err = run(*v8end.Infobase(), RepositoryReportOptions, v8end.Options()...)
 
 	if err != nil {
 		return

@@ -25,19 +25,19 @@ var NewPlugin = plugin.NewPlugin(
 	plugin.WithFlag(
 		flags.IntOpt(
 			"l limit",
-			"выгрузить не более <Количества> версий от текущей выгруженной",
 			0,
-			"GITSYNC_LIMIT"),
+			"выгрузить не более <Количества> версий от текущей выгруженной").
+			Env("GITSYNC_LIMIT"),
 		flags.IntOpt(
 			"minversion",
-			"<номер> минимальной версии для выгрузки",
 			0,
-			"GITSYNC_MIN_VERSION"),
+			"<номер> минимальной версии для выгрузки").
+			Env("GITSYNC_MIN_VERSION"),
 		flags.IntOpt(
 			"maxversion",
-			"<номер> максимальной версии для выгрузки",
 			0,
-			"GITSYNC_MAX_VERSION"),
+			"<номер> максимальной версии для выгрузки").
+			Env("GITSYNC_MAX_VERSION"),
 	))
 
 type limitPlugin struct {
@@ -49,6 +49,8 @@ type limitPlugin struct {
 func (t *limitPlugin) Init(sm plugin.SubscribeManager) error {
 
 	sm.Handle(subscription.GetRepositoryHistory, subscription.OnEvent, "")
+
+	return nil
 
 }
 

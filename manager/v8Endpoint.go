@@ -30,7 +30,7 @@ func (end *v8Endpoint) Options() []interface{} {
 
 	var opts []interface{}
 
-	for o := range end.options {
+	for _, o := range end.options {
 
 		opts = append(opts, o)
 

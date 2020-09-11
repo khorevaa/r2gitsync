@@ -25,7 +25,9 @@ type Context interface {
 
 func NewContext() Context {
 
-	return &ctx{}
+	return &ctx{
+		flagSet: make(flagSet),
+	}
 
 }
 

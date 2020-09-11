@@ -13,12 +13,12 @@ import (
 const pluginSymbolName = "NewPlugin"
 
 type PluginsLoader struct {
-	plugins []func() Plugin
+	plugins []Symbol
 	dir     string
 	loaded  bool
 }
 
-func (pl *PluginsLoader) Plugins() []func() Plugin {
+func (pl *PluginsLoader) Plugins() []Symbol {
 	return pl.plugins
 }
 
@@ -58,7 +58,7 @@ func (pl *PluginsLoader) LoadPlugins(force bool) error {
 				cmdPlugin.Name(), pluginSymbolName)
 			continue
 		}
-		pl.plugins = append(pl.plugins, pluginSymbol.(func() Plugin))
+		pl.plugins = append(pl.plugins, pluginSymbol.(Symbol))
 
 	}
 
