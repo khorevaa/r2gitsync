@@ -7,9 +7,20 @@ import (
 	"github.com/khorevaa/r2gitsync/cmd/flags"
 	"github.com/khorevaa/r2gitsync/context"
 	"github.com/khorevaa/r2gitsync/plugin"
+	"io/ioutil"
 	"os"
 	"path"
 	"strings"
+)
+
+const (
+	disabledPluginsFileName = "disabled-plugins"
+	appDirName              = ".r2gitsync"
+)
+
+var (
+	appDirPwd     = path.Join(pwd, appDirName)
+	pluginsDirPwd = path.Join(appDirPwd, "plugins")
 )
 
 type Application struct {
@@ -27,9 +38,9 @@ type configApp struct {
 		ConnectionString string
 	}
 
-	v8path  string
-	tempDir string
-
+	v8path           string
+	tempDir          string
+	workspace        string
 	disableIncrement bool
 }
 
@@ -42,6 +53,7 @@ func NewApp(version string) *Application {
 	}
 
 	loadPlugins()
+	disablePlugins()
 
 	app.Cli = cli.App("r2gitsync", "Синхронизация 1С Хранилища с git")
 	app.ctx = context.NewContext()
@@ -51,6 +63,9 @@ func NewApp(version string) *Application {
 	flags.StringOpt("v8version", "8.3", "маска версии платформы 1С (8.3, 8.3.5, 8.3.6.2299 и т.п.)").
 		Env(V8VersionEnv).
 		Ptr(&config.v8version).Apply(app, app.ctx)
+	flags.StringOpt("ws workspace", "", "рабочая область приложения").
+		//Env(V8VersionEnv).
+		Ptr(&config.workspace).Apply(app, app.ctx)
 	flags.StringOpt("v8-path v8path", "", "путь к исполняемому файлу платформы 1С (Например, /opt/1C/v8.3/x86_64/1cv8)").
 		Env(V8PathEnv).
 		Ptr(&config.v8path).Apply(app, app.ctx)
@@ -82,11 +97,7 @@ func NewApp(version string) *Application {
 
 	}
 
-	app.After = func() {
-
-		fmt.Println("after error")
-
-	}
+	app.After = func() {}
 
 	app.ErrorHandling = flag.ExitOnError
 
@@ -95,7 +106,7 @@ func NewApp(version string) *Application {
 	app.Command("sync s", "Выполняет синхронизацию хранилища 1С с git-репозиторием", app.cmdSync)
 	app.Command("set-version sv", "Устанавливает необходимую версию в файл VERSION", app.cmdSetVersion)
 	app.Command("plugins p", "Управление плагинами", func(pluginsCmd *cli.Cmd) {
-		pluginsCmd.Command("list ls", "Вывод списка плагинов", app.cmdPlugins)
+		pluginsCmd.Command("list ls", "Вывод списка плагинов", app.cmdPluginsList)
 		pluginsCmd.Command("enable e", "Активизация установленных плагинов", app.cmdPlugins)
 		pluginsCmd.Command("disable d", "Деактивизация установленных плагинов", app.cmdPlugins)
 		pluginsCmd.Command("install i", "Установка новых плагинов", app.cmdPlugins)
@@ -122,7 +133,7 @@ func (app *Application) cmdInit(cmd *cli.Cmd) {
 
 func loadPlugins() {
 
-	pluginsDir := os.Getenv(PLUGINS_DIR)
+	pluginsDir := getEnv(PluginsDirEnv)
 
 	if len(pluginsDir) == 0 {
 		appDataDir := getAppDataDir("r2gitsync")
@@ -136,11 +147,41 @@ func loadPlugins() {
 	err := plugin.LoadPlugins(pluginsDir)
 	failOnErr(err)
 
-	disablePlugins := os.Getenv("R2GITSYNC_DISABLE_PLUGINS")
+}
 
-	if len(pluginsDir) == 0 {
+func getEnv(envs ...string) string {
 
-		_ = plugin.Disable(strings.Fields(disablePlugins)...)
+	for _, env := range envs {
+
+		keys := strings.Fields(env)
+
+		for _, key := range keys {
+			value := strings.TrimSpace(os.Getenv(key))
+
+			if len(value) > 0 {
+				return value
+			}
+		}
+
+	}
+
+	return ""
+
+}
+
+func disablePlugins() {
+
+	pl := getEnv("R2GITSYNC_DISABLE_PLUGINS")
+	_ = plugin.Disable(strings.Split(pl, ",")...)
+
+	filename := path.Join(appDirPwd, disabledPluginsFileName)
+	if ok, _ := Exists(filename); ok {
+		content, err := ioutil.ReadFile(filename)
+		if err != nil {
+			failOnErr(err)
+		}
+		lines := strings.Split(string(content), "\n")
+		_ = plugin.Disable(lines...)
 
 	}
 

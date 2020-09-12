@@ -10,11 +10,12 @@ import (
 var pwd, _ = os.Getwd()
 
 var WorkdirArg = flags.StringFlag{
-	FlagType: flags.ArgType,
-	Name:     "WORKDIR",
-	Desc:     "Каталог исходников внутри локальной копии git-репозитория.",
-	EnvVar:   WorkDirEnv,
-	Value:    pwd,
+	FlagType:  flags.ArgType,
+	Name:      "WORKDIR",
+	Desc:      "Каталог исходников внутри локальной копии git-репозитория.",
+	EnvVar:    WorkDirEnv,
+	Value:     pwd,
+	HideValue: true,
 }
 
 func failOnErr(err error) {

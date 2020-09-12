@@ -6,12 +6,6 @@ import (
 	v8 "github.com/v8platform/v8"
 )
 
-type PlSm struct {
-	UpdateCfg             subscription.UpdateCfgHandler
-	DumpConfigToFiles     subscription.DumpConfigToFilesHandler
-	GetRepositoryHistoryH subscription.GetRepositoryHistoryHandler
-}
-
 type Option func(*Options)
 
 type Options struct {
@@ -35,6 +29,14 @@ type ib struct {
 	User             string
 	Password         string
 	ConnectionString string
+}
+
+func (o *Options) DomainEmail() string {
+
+	if len(o.domainEmail) == 0 {
+		return "localhost"
+	}
+	return o.domainEmail
 }
 
 func (o *Options) Options() []runner.Option {

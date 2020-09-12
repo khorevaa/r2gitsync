@@ -61,7 +61,7 @@ func (app *Application) cmdSync(cmd *cli.Cmd) {
 			manager.WithV8Path(app.config.v8path),
 			manager.WithV8version(app.config.v8version),
 			manager.WithLicTryCount(5),
-			manager.WithPlugins(plugin.SubscribePluginManager()),
+			manager.WithPlugins(plugin.SubscribeManager()),
 			manager.WithDisableIncrement(app.config.disableIncrement),
 			//WithDomainEmail(config.),
 		)

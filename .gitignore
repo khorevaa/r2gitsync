@@ -12,5 +12,9 @@
 *.out
 .idea/
 dist/
+.r2gitsync/
+out/
+.run/
+test_sync/
 # Dependency directories (remove the comment below to include it)
 # vendor/

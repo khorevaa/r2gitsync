@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/khorevaa/r2gitsync/cmd"
+	_ "github.com/khorevaa/r2gitsync/plugins"
 	"os"
 )
 

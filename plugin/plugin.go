@@ -5,6 +5,8 @@ import (
 	"github.com/khorevaa/r2gitsync/cmd/flags"
 	"github.com/khorevaa/r2gitsync/context"
 	"github.com/khorevaa/r2gitsync/plugin/subscription"
+	. "github.com/khorevaa/r2gitsync/plugin/types"
+	"github.com/pkg/errors"
 )
 
 // Plugin is the interface for plugins to micro. It differs from go-micro in that it's for
@@ -20,17 +22,14 @@ type Symbol interface {
 	String() string
 	Desc() string
 	Version() string
+	ShortVersion() string
 	Name() string
 	Init() Plugin
 }
 
 type Plugin interface {
-	Init(sm *subscription.SubscribeManager) error
+	Subscriber() Subscriber
 	InitContext(ctx context.Context)
-}
-
-type SubscribeManager interface {
-	Handle(endpoint subscription.EndPointType, event subscription.EventType, handler interface{})
 }
 
 // Manager is the plugin manager which stores plugins and allows them to be retrieved.
@@ -58,7 +57,8 @@ func Register(names ...Symbol) error {
 
 	for _, name := range names {
 		err := defaultManager.Register(name)
-		mErr = multierror.Append(mErr, err)
+
+		mErr = multierror.Append(mErr, errors.Wrapf(err, "plugin <%s>", name))
 	}
 
 	return mErr.ErrorOrNil()
@@ -102,18 +102,20 @@ func RegistryFlags(name string, cmd command, ctx context.Context) {
 
 }
 
-func SubscribePluginManager() *subscription.SubscribeManager {
+func SubscribeManager() *subscription.SubscribeManager {
 	return defaultManager.sm
-}
-
-// NewManager creates a new plugin manager
-func NewSubscribeManager() *subscription.SubscribeManager {
-	return &subscription.SubscribeManager{}
 }
 
 // NewManager creates a new plugin manager
 func NewManager() Manager {
 	return newManager()
+}
+
+func Subscription(handlers ...interface{}) Subscriber {
+
+	return subscriber{
+		handlers: handlers,
+	}
 }
 
 func Subscribe() error {
@@ -123,6 +125,9 @@ func Subscribe() error {
 
 func SendContext(ctx context.Context) {
 	defaultManager.SendContext(ctx)
+}
+func IsEnabled(name string) bool {
+	return defaultManager.IsEnabled(name)
 }
 
 func LoadPlugins(dir string) error {

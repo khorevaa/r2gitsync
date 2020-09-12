@@ -6,6 +6,7 @@ import (
 	"github.com/khorevaa/r2gitsync/cmd/flags"
 	"github.com/khorevaa/r2gitsync/context"
 	"github.com/khorevaa/r2gitsync/plugin/subscription"
+	"sort"
 	"sync"
 )
 
@@ -30,24 +31,27 @@ func newManager() *manager {
 		plugins:    make(map[string]Symbol),
 		registered: make(map[string]bool),
 		enabled:    make(map[string]bool),
-		sm:         &subscription.SubscribeManager{},
+		sm:         subscription.NewSubscribeManager(),
 	}
 }
 
-func (m *manager) Plugins() []Symbol {
+func (m *manager) Plugins() (pl []Symbol) {
 
 	m.Lock()
 	defer m.Unlock()
 
 	if len(m.plugins) > 0 {
-
-		var pl []Symbol
 		for _, p := range m.plugins {
 			pl = append(pl, p)
 		}
+
 	}
 
-	return []Symbol{}
+	sort.Slice(pl, func(i, j int) bool {
+		return pl[i].Name() > pl[j].Name()
+	})
+
+	return
 }
 
 func (m *manager) EnabledPlugins() []Symbol {
@@ -73,23 +77,20 @@ func (m *manager) EnabledPlugins() []Symbol {
 	return []Symbol{}
 }
 
-func (m *manager) Register(p Symbol) error {
+func (m *manager) Register(sym Symbol) error {
 
 	m.Lock()
 	defer m.Unlock()
 
-	name := p.String()
-
-	if _, ok := m.plugins[name]; !ok {
-		return fmt.Errorf("Plugin with name %s is not find", name)
-	}
+	name := sym.String()
 
 	if m.registered[name] {
 		return fmt.Errorf("Plugin with name %s already registered", name)
 	}
 
-	m.plugins[name] = p
+	m.plugins[name] = sym
 	m.registered[name] = true
+	m.enabled[name] = true
 
 	return nil
 }
@@ -143,15 +144,15 @@ func (m *manager) IsEnabled(name string) bool {
 
 func (m *manager) RegisterFlags(name string, cmd command, ctx context.Context) {
 
-	for _, plugin := range m.plugins {
+	for _, symbol := range m.plugins {
 
-		if !m.IsEnabled(plugin.String()) {
+		if !m.IsEnabled(symbol.String()) {
 			continue
 		}
 
-		if contains(plugin.Commands(), name) {
+		if contains(symbol.Commands(), name) {
 
-			registryFlags(plugin.Flags(), cmd, ctx)
+			registryFlags(symbol.Flags(), cmd, ctx)
 
 		}
 

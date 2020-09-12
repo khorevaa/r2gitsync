@@ -1,5 +1,7 @@
 package subscription
 
+import . "github.com/khorevaa/r2gitsync/plugin/types"
+
 var _ DumpConfigToFilesHandler = (*dumpConfigToFilesHandler)(nil)
 
 type dumpConfigToFilesHandler struct {
@@ -8,35 +10,17 @@ type dumpConfigToFilesHandler struct {
 	after  []AfterDumpConfigFn
 }
 
+func (h *dumpConfigToFilesHandler) Subscribe(sub UpdateCfgSubscriber) {
+	panic("implement me")
+}
+
 type DumpConfigToFilesHandler interface {
 	SubscribeHandler
+
+	Subscribe(sub UpdateCfgSubscriber)
 	Before(v8end V8Endpoint, workdir string, temp string, number int64) error
 	On(v8end V8Endpoint, workdir string, temp string, number int64, standartHandler *bool) error
 	After(v8end V8Endpoint, workdir string, temp string, number int64) error
-}
-
-func (b *dumpConfigToFilesHandler) Handle(event EventType, handler interface{}) {
-
-	switch event {
-	case BeforeEvent:
-
-		fn := handler.(BeforeDumpConfigFn)
-		b.before = append(b.before, fn)
-
-	case OnEvent:
-
-		fn := handler.(OnDumpConfigFn)
-		b.on = append(b.on, fn)
-
-	case AfterEvent:
-
-		fn := handler.(AfterDumpConfigFn)
-		b.after = append(b.after, fn)
-
-	default:
-		panic("plugins: unsupported event type")
-	}
-
 }
 
 func (h *dumpConfigToFilesHandler) Before(v8end V8Endpoint, workdir string, temp string, version int64) error {

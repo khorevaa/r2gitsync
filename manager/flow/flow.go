@@ -39,16 +39,16 @@ type Flow interface {
 	FinishSyncProcess(v8end V8Endpoint, dir string)
 
 	UpdateCfg(v8end V8Endpoint, workDir string, number int64) (err error)
-	DumpConfigToFiles(v8end V8Endpoint, dir string, dir2 string, number int64) error
+	DumpConfigToFiles(v8end V8Endpoint, update bool, dir string, dir2 string, number int64) error
 
 	ClearWorkDir(v8end V8Endpoint, dir string, tempDir string) error
 	MoveToWorkDir(v8end V8Endpoint, dir string, tempDir string) error
-	WriteVersionFile(v8end V8Endpoint, dir string, number int64) error
-	CommitFiles(v8end V8Endpoint, dir string, author string, d time.Time, comment string) error
+	WriteVersionFile(v8end V8Endpoint, dir string, number int64, filename string) error
+	CommitFiles(v8end V8Endpoint, dir string, author RepositoryAuthor, when time.Time, comment string) error
 
 	GetRepositoryVersions(v8end V8Endpoint, dir string, NBegin int64) ([]RepositoryVersion, error)
 	ConfigureRepositoryVersions(v8end V8Endpoint, versions []RepositoryVersion, NCurrent, NNext, NMax *int64) (err error)
-	GetRepositoryAuthors(v8end V8Endpoint, dir string) ([]RepositoryAuthor, error)
+	GetRepositoryAuthors(v8end V8Endpoint, dir string, filenme string) (map[string]RepositoryAuthor, error)
 }
 
 func Tasker() Flow {

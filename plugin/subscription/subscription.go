@@ -2,7 +2,7 @@ package subscription
 
 import (
 	"github.com/khorevaa/r2gitsync/context"
-
+	. "github.com/khorevaa/r2gitsync/plugin/types"
 	"sync"
 )
 
@@ -16,37 +16,13 @@ type SubscribeManager struct {
 	count       int
 }
 
-func (sm *SubscribeManager) Handle(endpoint EndPointType, event EventType, handler interface{}) {
-
-	sm.mu.Lock()
-	defer func() {
-
-		sm.count++
-		sm.mu.Unlock()
-
-	}()
-
-	switch endpoint {
-
-	case UpdateCfg:
-
-		sm.UpdateCfg.Handle(event, handler)
-
-	case DumpConfigToFiles:
-
-		sm.DumpConfigToFiles.Handle(event, handler)
-
-	default:
-		panic("plugins: unsupported endpoint")
-	}
-
-}
-
-func (sm *SubscribeManager) Subscribe(sub Plugin) error {
+func (sm *SubscribeManager) Subscribe(p Plugin) error {
 
 	count := sm.count
 
-	err := sub.Init(sm)
+	sub := p.Subscriber()
+
+	sm.subscribe(sub)
 
 	if count == sm.count {
 		return nil
@@ -55,9 +31,9 @@ func (sm *SubscribeManager) Subscribe(sub Plugin) error {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 
-	sm.subscribers = append(sm.subscribers, sub)
+	sm.subscribers = append(sm.subscribers, p)
 
-	return err
+	return nil
 
 }
 
@@ -66,6 +42,22 @@ func (sm *SubscribeManager) SendContext(ctx context.Context) {
 	for _, subscriber := range sm.subscribers {
 		subscriber.InitContext(ctx)
 	}
+
+}
+
+func (sm *SubscribeManager) subscribe(sub Subscriber) {
+
+	handlers := sub.Handlers()
+
+	for _, handler := range handlers {
+
+		switch h := handler.(type) {
+		case UpdateCfgSubscriber:
+			sm.UpdateCfg.Subscribe(h)
+		}
+	}
+
+	//sm.UpdateCfg.Subscribe(sub.UpdateCfg)
 
 }
 

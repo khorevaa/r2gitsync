@@ -1,17 +1,13 @@
 package plugin
 
-import "fmt"
+import (
+	"fmt"
+)
 
-func BuildVersion(version, commit, date, builtBy string) string {
+func BuildVersion(version, commit string) string {
 	var result = version
 	if commit != "" {
-		result = fmt.Sprintf("%s\ncommit: %s", result, commit)
-	}
-	if date != "" {
-		result = fmt.Sprintf("%s\nbuilt at: %s", result, date)
-	}
-	if builtBy != "" {
-		result = fmt.Sprintf("%s\nbuilt by: %s", result, builtBy)
+		result = fmt.Sprintf("%s+%s", result, commit)
 	}
 	return result
 }

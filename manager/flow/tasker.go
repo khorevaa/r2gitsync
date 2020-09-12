@@ -1,15 +1,22 @@
 package flow
 
 import (
+	"fmt"
 	"github.com/khorevaa/r2gitsync/plugin/subscription"
+	"github.com/v8platform/designer"
 	"github.com/v8platform/designer/repository"
 	"io/ioutil"
 	"os"
+	"path"
+	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 )
 
 var _ Flow = (*tasker)(nil)
+
+const ConfigDumpInfoFileName = "ConfigDumpInfo.xml"
 
 type tasker struct {
 }
@@ -47,7 +54,9 @@ func (t tasker) GetRepositoryVersions(v8end V8Endpoint, dir string, nBegin int64
 		File:      report,
 		Extension: v8end.Extention(),
 		NBegin:    nBegin,
-	}.GroupByComment().WithRepository(*v8end.Repository())
+	}.
+		GroupByComment().
+		WithRepository(*v8end.Repository())
 
 	err = run(*v8end.Infobase(), RepositoryReportOptions, v8end.Options()...)
 
@@ -72,10 +81,37 @@ func (t tasker) GetRepositoryVersions(v8end V8Endpoint, dir string, nBegin int64
 	return
 }
 
-func (t tasker) GetRepositoryAuthors(v8end V8Endpoint, dir string) ([]RepositoryAuthor, error) {
-	// TODO
+func (t tasker) GetRepositoryAuthors(v8end V8Endpoint, dir string, filename string) (authors map[string]RepositoryAuthor, err error) {
 
-	return nil, nil
+	authors = make(map[string]RepositoryAuthor)
+
+	file := path.Join(dir, filename)
+	if ok, _ := Exists(file); !ok {
+
+		return
+
+	}
+
+	bytesRead, _ := ioutil.ReadFile(file)
+	file_content := string(bytesRead)
+	lines := strings.Split(file_content, "\n")
+
+	for _, line := range lines {
+
+		line = strings.TrimSpace(line)
+
+		if len(line) == 0 || strings.HasPrefix(line, "//") {
+			continue
+		}
+
+		data := strings.Split(line, "=")
+
+		authors[data[0]] = NewAuthor(decodeAuthor([]byte(data[1])))
+
+	}
+
+	return
+
 }
 
 func (t tasker) UpdateCfg(v8end V8Endpoint, workDir string, number int64) (err error) {
@@ -95,34 +131,73 @@ func (t tasker) FinishSyncVersion(endpoint V8Endpoint, workdir string, tempdir s
 	return
 }
 
-func (t tasker) DumpConfigToFiles(endpoint V8Endpoint, dir string, dir2 string, number int64) error {
-	//TODO
+func (t tasker) DumpConfigToFiles(endpoint V8Endpoint, update bool, dir string, tempdir string, number int64) error {
+
+	var configDumpInfoFile = ""
+
+	if update {
+		configDumpInfoFile = path.Join(dir, ConfigDumpInfoFileName)
+
+		if ok, _ := Exists(configDumpInfoFile); !ok {
+			update = false
+			configDumpInfoFile = ""
+		}
+	}
+
+	DumpConfigToFilesOptions := designer.DumpConfigToFilesOptions{
+		Dir:                      tempdir,
+		Force:                    true,
+		Update:                   update,
+		Extension:                endpoint.Extention(),
+		ConfigDumpInfoForChanges: configDumpInfoFile,
+	}
+
+	err := run(*endpoint.Infobase(), DumpConfigToFilesOptions, endpoint.Options())
+
+	if err != nil {
+		return err
+	}
 	return nil
+
 }
 
 func (t tasker) FinishSyncProcess(endpoint V8Endpoint, dir string) {
 	return
 }
 
-func (t tasker) ClearWorkDir(endpoint V8Endpoint, dir string, dir2 string) error {
+func (t tasker) ClearWorkDir(endpoint V8Endpoint, dir string, tempDir string) error {
 
-	//TODO
+	err := clearDir(dir, "VERSION", "AUTHORS", ".git") // TODO Сделать копирование файлов или избранную очистку
+
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
-func (t tasker) MoveToWorkDir(endpoint V8Endpoint, dir string, dir2 string) error {
-	//TODO
-	return nil
+func (t tasker) MoveToWorkDir(endpoint V8Endpoint, dir string, tempDir string) error {
+
+	err := CopyDir(tempDir, dir)
+
+	return err
 }
 
-func (t tasker) WriteVersionFile(endpoint V8Endpoint, dir string, number int64) error {
-	//TODO
-	return nil
+func (t tasker) WriteVersionFile(endpoint V8Endpoint, dir string, number int64, versionFile string) error {
+
+	data := fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
+<VERSION>%d</VERSION>`, number)
+
+	filename := filepath.Join(dir, versionFile)
+	err := ioutil.WriteFile(filename, []byte(data), 0644)
+
+	return err
 }
 
-func (t tasker) CommitFiles(endpoint V8Endpoint, dir string, a string, d time.Time, comment string) error {
-	//TODO
-	return nil
+func (t tasker) CommitFiles(endpoint V8Endpoint, dir string, author RepositoryAuthor, date time.Time, comment string) error {
+
+	err := CommitFiles(dir, author, date, comment)
+
+	return err
 }
 
 func (t tasker) WithSubscribes(sm *subscription.SubscribeManager) Flow {

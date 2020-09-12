@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"github.com/khorevaa/r2gitsync/cmd/flags"
+	"strings"
 )
 
 type Option func(o *plugin)
@@ -64,6 +65,12 @@ func (p *plugin) Desc() string {
 
 func (p *plugin) Version() string {
 	return p.version
+}
+
+func (p *plugin) ShortVersion() string {
+
+	v := strings.Split(p.version, "+")
+	return v[0]
 }
 
 func newPlugin(name, version, desc string, init InitFn, opts ...Option) Symbol {

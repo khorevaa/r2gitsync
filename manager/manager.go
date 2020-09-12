@@ -3,8 +3,6 @@ package manager
 import (
 	"encoding/xml"
 	"fmt"
-	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/hashicorp/go-multierror"
 	"github.com/khorevaa/r2gitsync/manager/flow"
 	"github.com/v8platform/designer/repository"
@@ -13,7 +11,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"time"
 )
 
 type SyncRepository struct {
@@ -23,8 +20,8 @@ type SyncRepository struct {
 	Versions []flow.RepositoryVersion
 	Authors  map[string]flow.RepositoryAuthor
 
-	Extention string
-
+	Extention        string
+	increment        bool
 	CurrentVersion   int64 `xml:"VERSION"`
 	MinVersion       int64
 	MaxVersion       int64
@@ -85,6 +82,8 @@ func (r *SyncRepository) sync(opts *Options) error {
 
 	}
 
+	r.increment = !opts.disableIncrement
+
 	taskFlow := r.flow
 
 	taskFlow.StartSyncProcess(r.endpoint, r.WorkDir)
@@ -101,10 +100,14 @@ func (r *SyncRepository) sync(opts *Options) error {
 		return nil
 	}
 
-	//nextVersion := r.Versions[0].Number()
-	//maxVersion := r.MaxVersion
+	nextVersion := r.Versions[0].Number()
+	maxVersion := r.MaxVersion
 
-	//taskFlow.StartSyncVersions(r.endpoint, r.Versions, r.CurrentVersion, &nextVersion, &maxVersion)
+	err = taskFlow.ConfigureRepositoryVersions(r.endpoint, r.Versions, &r.CurrentVersion, &nextVersion, &maxVersion)
+
+	if err != nil {
+		return err
+	}
 
 	for _, rVersion := range r.Versions {
 
@@ -135,80 +138,11 @@ func (r *SyncRepository) WriteVersionFile(CurrentVersion int64) error {
 
 }
 
-func (r *SyncRepository) CommitVersionFile(author string, when time.Time, comment string) error {
-
-	g, err := git.PlainOpen(r.WorkDir)
-
-	if err != nil {
-		return err
-	}
-
-	filename := filepath.Join(r.WorkDir, VERSION_FILE)
-
-	w, err := g.Worktree()
-
-	if err != nil {
-		return err
-	}
-
-	w.Add(filename)
-
-	c, err := w.Commit(comment, &git.CommitOptions{
-		Author: &object.Signature{
-			Name:  author,
-			Email: author,
-			When:  when,
-		},
-	})
-
-	if err != nil {
-		return err
-	}
-
-	_, err = g.CommitObject(c)
-
-	return err
-}
-
-func (r *SyncRepository) commitFiles(author string, when time.Time, comment string) error {
-
-	g, err := git.PlainOpen(r.WorkDir)
-
-	if err != nil {
-		return err
-	}
-
-	w, err := g.Worktree()
-
-	if err != nil {
-		return err
-	}
-
-	_ = w.AddGlob(r.WorkDir)
-
-	c, err := w.Commit(comment, &git.CommitOptions{
-		All: true,
-		Author: &object.Signature{
-			Name:  author,
-			Email: author,
-			When:  when,
-		},
-	})
-
-	if err != nil {
-		return err
-	}
-
-	_, err = g.CommitObject(c)
-
-	return err
-
-}
-
 func (r *SyncRepository) prepare(opts *Options) error {
 
 	if !opts.infobaseCreated {
 
+		// TODO Перенести в flow
 		CreateFileInfobase := v8.CreateFileInfobase(opts.infobase.Path())
 
 		err := Run(opts.infobase, CreateFileInfobase, opts)
@@ -270,9 +204,9 @@ func (r *SyncRepository) syncVersionFiles(rVersion RepositoryVersion, opts *Opti
 		return err
 	}
 
-	flow := r.flow
+	flowTask := r.flow
 
-	err = flow.StartSyncVersion(r.endpoint, r.WorkDir, tempDir, rVersion.Number())
+	err = flowTask.StartSyncVersion(r.endpoint, r.WorkDir, tempDir, rVersion.Number())
 
 	if err != nil {
 		return err
@@ -280,47 +214,47 @@ func (r *SyncRepository) syncVersionFiles(rVersion RepositoryVersion, opts *Opti
 
 	defer func() {
 
-		flow.FinishSyncVersion(r.endpoint, r.WorkDir, tempDir, rVersion.Number(), &err)
+		flowTask.FinishSyncVersion(r.endpoint, r.WorkDir, tempDir, rVersion.Number(), &err)
 
 		_ = os.RemoveAll(tempDir)
 
 	}()
 
-	err = flow.UpdateCfg(r.endpoint, r.WorkDir, rVersion.Number())
+	err = flowTask.UpdateCfg(r.endpoint, r.WorkDir, rVersion.Number())
 
 	if err != nil {
 		return err
 	}
 
-	err = flow.DumpConfigToFiles(r.endpoint, r.WorkDir, tempDir, rVersion.Number())
+	err = flowTask.DumpConfigToFiles(r.endpoint, r.increment, r.WorkDir, tempDir, rVersion.Number())
 
 	if err != nil {
 		return err
 	}
 
-	err = flow.ClearWorkDir(r.endpoint, r.WorkDir, tempDir)
+	err = flowTask.ClearWorkDir(r.endpoint, r.WorkDir, tempDir)
 
 	if err != nil {
 		return err
 	}
 
-	err = flow.MoveToWorkDir(r.endpoint, r.WorkDir, tempDir)
+	err = flowTask.MoveToWorkDir(r.endpoint, r.WorkDir, tempDir)
 
 	if err != nil {
 		return err
 	}
 
-	err = flow.WriteVersionFile(r.endpoint, r.WorkDir, rVersion.Number())
+	err = flowTask.WriteVersionFile(r.endpoint, r.WorkDir, rVersion.Number(), VERSION_FILE)
 
 	if err != nil {
 		return err
 	}
 
-	err = flow.CommitFiles(r.endpoint, r.WorkDir, rVersion.Author(), rVersion.Date(), rVersion.Comment())
+	err = flowTask.CommitFiles(r.endpoint, r.WorkDir, r.getRepositoryAuthor(rVersion.Author(), opts), rVersion.Date(), rVersion.Comment())
 
 	if err != nil {
 
-		errV := flow.WriteVersionFile(r.endpoint, r.WorkDir, rVersion.Number())
+		errV := flowTask.WriteVersionFile(r.endpoint, r.WorkDir, rVersion.Number(), VERSION_FILE)
 		if errV != nil {
 			return multierror.Append(err, errV)
 		}
@@ -333,102 +267,20 @@ func (r *SyncRepository) syncVersionFiles(rVersion RepositoryVersion, opts *Opti
 
 }
 
-//
-//func (r *SyncRepository) DumpConfigToFiles(dumpDir string, opts *Options) (err error) {
-//
-//	standartHandler := true
-//
-//	err = opts.plugins.WithDumpCfgToFilesHandler(opts.infobase, r.Repository, r.Extention, &dumpDir, &standartHandler)
-//
-//	if err != nil {
-//		return
-//	}
-//
-//	if standartHandler {
-//		err = r.dumpConfigToFilesHandler(dumpDir, opts)
-//	}
-//
-//	err = opts.plugins.AfterDumpCfgToFilesHandler(opts.infobase, r.Repository, r.Extention, &dumpDir)
-//
-//	return
-//
-//}
-//
-//func (r *SyncRepository) dumpConfigToFilesHandler(dumpDir string, opts *Options) error {
-//
-//	DumpConfigToFilesOptions := designer.DumpConfigToFilesOptions{
-//		Dir:       dumpDir,
-//		Force:     true,
-//		Extension: r.Extention,
-//	}
-//
-//	err := main.Run(opts.infobase, DumpConfigToFilesOptions, opts)
-//
-//	if err != nil {
-//		return err
-//	}
-//	return nil
-//}
-//
-//func (r *SyncRepository) ClearWorkDir(opts *Options) (err error) {
-//
-//	standartHandler := true
-//
-//	err = opts.plugins.WithClearWorkdirHandler(r.WorkDir, &standartHandler)
-//
-//	if err != nil {
-//		return
-//	}
-//
-//	if standartHandler {
-//		err = r.clearWorkDirHandler(opts)
-//	}
-//
-//	err = opts.plugins.AfterClearWorkdirHandler(r.WorkDir)
-//
-//	return
-//
-//}
-//
-//func (r *SyncRepository) clearWorkDirHandler(opts *Options) error {
-//
-//	err := os.RemoveAll(r.WorkDir) // TODO Сделать копирование файлов или избранную очистку
-//
-//	if err != nil {
-//		return err
-//	}
-//	return nil
-//}
-//
-//func (r *SyncRepository) MoveToWorkDir(dumpDir string, opts *Options) (err error) {
-//
-//	standartHandler := true
-//
-//	err = opts.plugins.WithMoveToWorkDirHandler(r.WorkDir, dumpDir, &standartHandler)
-//
-//	if err != nil {
-//		return
-//	}
-//
-//	if standartHandler {
-//		err = r.moveToWorkDirHandler(dumpDir, opts)
-//	}
-//
-//	err = opts.plugins.AfterMoveToWorkDirHandler(r.WorkDir, dumpDir)
-//
-//	return
-//
-//}
-//
-//func (r *SyncRepository) moveToWorkDirHandler(dumpDir string, opts *Options) error {
-//
-//	err := os.RemoveAll(r.WorkDir) // TODO Сделать копирование файлов или избранную очистку
-//
-//	if err != nil {
-//		return err
-//	}
-//	return nil
-//}
+func (r SyncRepository) getRepositoryAuthor(name string, opts *Options) RepositoryAuthor {
+
+	author, ok := r.Authors[name]
+
+	if !ok {
+
+		author = flow.NewAuthor(name, fmt.Sprintf("%s@%s", name, opts.DomainEmail()))
+
+		r.Authors[name] = author
+	}
+
+	return author
+
+}
 
 func (r *SyncRepository) GetRepositoryHistory(opts *Options) (err error) {
 
@@ -438,94 +290,10 @@ func (r *SyncRepository) GetRepositoryHistory(opts *Options) (err error) {
 
 }
 
-//
-//func (r *SyncRepository) getRepositoryHistoryHandler(opts *Options) error {
-//
-//	reportFile, err := ioutil.TempFile(opts.tempDir, "v8_rep_history")
-//	if err != nil {
-//		return err
-//	}
-//	reportFile.Close()
-//	report := reportFile.Name()
-//
-//	defer os.Remove(report)
-//
-//	RepositoryReportOptions := repository.RepositoryReportOptions{
-//		Repository: r.Repository,
-//		File:       report,
-//		Extension:  r.Extention,
-//		NBegin:     r.CurrentVersion,
-//	}.GroupByComment()
-//
-//	err = Run(opts.infobase, RepositoryReportOptions, opts)
-//
-//	if err != nil {
-//		return err
-//	}
-//
-//	r.Versions, err = parseRepositoryReport(report)
-//
-//	if err != nil {
-//		return err
-//	}
-//
-//	sort.Slice(r.Versions, func(i, j int) bool {
-//		return r.Versions[i].Number() < r.Versions[j].Number()
-//	})
-//
-//	if len(r.Versions) > 0 {
-//		r.MaxVersion = r.Versions[len(r.Versions)-1].Number()
-//	}
-//
-//	return nil
-//}
-//
 func (r *SyncRepository) GetRepositoryAuthors(opts *Options) (err error) {
 
-	authors, _ := r.flow.GetRepositoryAuthors(r.endpoint, r.WorkDir)
-
-	for _, author := range authors {
-
-		r.Authors[author.Name()] = author
-	}
+	r.Authors, _ = r.flow.GetRepositoryAuthors(r.endpoint, r.WorkDir, AUTHORS_FILE)
 
 	return
 
 }
-
-//
-//func (r *SyncRepository) getRepositoryAuthorsHandler(authors *AuthorsList, opts *Options) error {
-//
-//	file := path.Join(r.WorkDir, main.AUTHORS_FILE)
-//	_, err := os.Lstat(file)
-//
-//	r.Authors = new(AuthorsList)
-//	authorsTable := *r.Authors
-//	if err != nil {
-//		authors = &authorsTable
-//		return nil
-//	}
-//
-//	bytesRead, _ := ioutil.ReadFile(file)
-//	file_content := string(bytesRead)
-//	lines := strings.Split(file_content, "\n")
-//
-//	for _, line := range lines {
-//
-//		line = strings.TrimSpace(line)
-//
-//		if len(line) == 0 || strings.HasPrefix(line, "//") {
-//			continue
-//		}
-//
-//		data := strings.Split(line, "=")
-//
-//		authorsTable[data[0]] = NewAuthor(decodeAuthor([]byte(data[1])))
-//
-//	}
-//
-//	r.Authors = &authorsTable
-//
-//	return nil
-//
-//}

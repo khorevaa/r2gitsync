@@ -1,5 +1,7 @@
 package subscription
 
+import . "github.com/khorevaa/r2gitsync/plugin/types"
+
 var _ GetRepositoryHistoryHandler = (*getRepositoryHistoryHandler)(nil)
 
 type getRepositoryHistoryHandler struct {
@@ -8,35 +10,15 @@ type getRepositoryHistoryHandler struct {
 	after  []AfterDumpConfigFn
 }
 
+func (h *getRepositoryHistoryHandler) Subscribe(sub Subscriber) {
+	panic("implement me")
+}
+
 type GetRepositoryHistoryHandler interface {
 	SubscribeHandler
 	Before(v8end V8Endpoint, workdir string, temp string, number int64) error
 	On(v8end V8Endpoint, workdir string, temp string, number int64, standartHandler *bool) error
 	After(v8end V8Endpoint, workdir string, temp string, number int64) error
-}
-
-func (b *getRepositoryHistoryHandler) Handle(event EventType, handler interface{}) {
-
-	switch event {
-	case BeforeEvent:
-
-		fn := handler.(BeforeDumpConfigFn)
-		b.before = append(b.before, fn)
-
-	case OnEvent:
-
-		fn := handler.(OnDumpConfigFn)
-		b.on = append(b.on, fn)
-
-	case AfterEvent:
-
-		fn := handler.(AfterDumpConfigFn)
-		b.after = append(b.after, fn)
-
-	default:
-		panic("plugins: unsupported event type")
-	}
-
 }
 
 func (h *getRepositoryHistoryHandler) Before(v8end V8Endpoint, workdir string, temp string, version int64) error {

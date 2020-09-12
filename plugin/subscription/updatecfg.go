@@ -1,9 +1,12 @@
 package subscription
 
+import . "github.com/khorevaa/r2gitsync/plugin/types"
+
 var _ UpdateCfgHandler = (*updateCfgHandler)(nil)
 
 type UpdateCfgHandler interface {
 	SubscribeHandler
+	Subscribe(sub UpdateCfgSubscriber)
 	Before(v8end V8Endpoint, workdir string, number int64) error
 	On(v8end V8Endpoint, workdir string, number int64, standartHandler *bool) error
 	After(v8end V8Endpoint, workdir string, number int64) error
@@ -15,26 +18,20 @@ type updateCfgHandler struct {
 	after  []AfterUpdateCfgFn
 }
 
-func (b *updateCfgHandler) Handle(event EventType, handler interface{}) {
+func (b *updateCfgHandler) Subscribe(sub UpdateCfgSubscriber) {
 
-	switch event {
-	case BeforeEvent:
+	updateCfg := sub
 
-		fn := handler.(BeforeUpdateCfgFn)
-		b.before = append(b.before, fn)
+	if updateCfg.Before != nil {
+		b.before = append(b.before, updateCfg.Before)
+	}
 
-	case OnEvent:
+	if updateCfg.On != nil {
+		b.on = append(b.on, updateCfg.On)
+	}
 
-		fn := handler.(OnUpdateCfgFn)
-		b.on = append(b.on, fn)
-
-	case AfterEvent:
-
-		fn := handler.(AfterUpdateCfgFn)
-		b.after = append(b.after, fn)
-
-	default:
-		panic("plugins: unsupported event type")
+	if updateCfg.After != nil {
+		b.after = append(b.after, updateCfg.After)
 	}
 
 }

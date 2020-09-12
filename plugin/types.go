@@ -1,31 +1,8 @@
 package plugin
 
-import cli "github.com/jawher/mow.cli"
-
-type EndPointType string
-
-const (
-	UpdateCfg            EndPointType = "\aUpdateCfg"
-	DumpConfigToFiles    EndPointType = "\aDumpConfigToFiles"
-	GetRepositoryHistory EndPointType = "\aGetRepositoryHistory"
+import (
+	cli "github.com/jawher/mow.cli"
 )
-
-func (t EndPointType) String() string {
-	return string(t)
-}
-
-type EventType string
-
-const (
-	BeforeEvent  EventType = "\aBefore"
-	OnEvent      EventType = "\aOn"
-	AfterEvent   EventType = "\aAfter"
-	UnknownEvent EventType = "\aUnknown"
-)
-
-func (t EventType) String() string {
-	return string(t)
-}
 
 type command interface {
 	String(p cli.StringParam) *string
@@ -38,4 +15,12 @@ type command interface {
 	IntPtr(into *int, p cli.IntParam)
 	Float64Ptr(into *float64, p cli.Float64Param)
 	StringsPtr(into *[]string, p cli.StringsParam)
+}
+
+type subscriber struct {
+	handlers []interface{}
+}
+
+func (s subscriber) Handlers() []interface{} {
+	return s.handlers
 }

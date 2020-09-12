@@ -4,22 +4,20 @@ import (
 	"github.com/khorevaa/r2gitsync/cmd/flags"
 	"github.com/khorevaa/r2gitsync/context"
 	"github.com/khorevaa/r2gitsync/plugin"
-	"github.com/khorevaa/r2gitsync/plugin/subscription"
+	. "github.com/khorevaa/r2gitsync/plugin/types"
 )
 
 var (
 	version = "dev"
 	commit  = ""
-	date    = ""
-	builtBy = ""
 )
 
 var NewPlugin = plugin.NewPlugin(
 	"limit",
-	plugin.BuildVersion(version, commit, date, builtBy),
-	"Плагин добавляет возможность инкрементальной выгрузки в конфигурации",
+	plugin.BuildVersion(version, commit),
+	"Плагин добавляет возможность органичений при выгрузке конфигурации",
 	func() plugin.Plugin {
-		return new(limitPlugin)
+		return new(LimitPlugin)
 	},
 	plugin.WithCommand("sync"),
 	plugin.WithFlag(
@@ -40,21 +38,33 @@ var NewPlugin = plugin.NewPlugin(
 			Env("GITSYNC_MAX_VERSION"),
 	))
 
-type limitPlugin struct {
+type LimitPlugin struct {
 	limit      int
 	minversion int
 	maxversion int
 }
 
-func (t *limitPlugin) Init(sm plugin.SubscribeManager) error {
+func (t *LimitPlugin) Subscriber() Subscriber {
 
-	sm.Handle(subscription.GetRepositoryHistory, subscription.OnEvent, "")
+	return plugin.Subscription(
+		UpdateCfgSubscriber{
+			Before: t.beforeUpdateCfg,
+		})
+	//return subscription.Subscriber{
+	//	UpdateCfg: subscription.UpdateCfgSubscriber{
+	//		Before: t.beforeUpdateCfg,
+	//	},
+	//}
+
+}
+
+func (t *LimitPlugin) beforeUpdateCfg(v8end V8Endpoint, workdir string, version int64) error {
 
 	return nil
 
 }
 
-func (t *limitPlugin) InitContext(ctx context.Context) {
+func (t *LimitPlugin) InitContext(ctx context.Context) {
 
 	t.limit = ctx.Int("limit")
 	t.maxversion = ctx.Int("maxversion")
