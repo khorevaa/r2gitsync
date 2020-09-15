@@ -16,10 +16,10 @@ func WithFlag(flag ...flags.Flag) Option {
 	}
 }
 
-// WithCommand adds commands to a plugin
-func WithCommand(cmd ...string) Option {
+// WithModule adds modules to a plugin
+func WithModule(module ...string) Option {
 	return func(o *plugin) {
-		o.commands = append(o.commands, cmd...)
+		o.modules = append(o.modules, module...)
 	}
 }
 
@@ -31,20 +31,20 @@ func WithInit(fn InitFn) Option {
 }
 
 type plugin struct {
-	version  string
-	desk     string
-	name     string
-	init     InitFn
-	flags    []flags.Flag
-	commands []string
+	version string
+	desk    string
+	name    string
+	init    InitFn
+	flags   []flags.Flag
+	modules []string
 }
 
 func (p *plugin) Flags() []flags.Flag {
 	return p.flags
 }
 
-func (p *plugin) Commands() []string {
-	return p.commands
+func (p *plugin) Modules() []string {
+	return p.modules
 }
 
 func (p *plugin) Init() Plugin {

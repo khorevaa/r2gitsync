@@ -36,7 +36,7 @@ func (app *Application) cmdPluginsList(cmd *cli.Cmd) {
 			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t\n", "---------", "------", "----", "--------")
 			for _, arg := range list {
 
-				if plugin.IsEnabled(arg.Name()) || showAll {
+				if plugin(arg.Name()) || showAll {
 					var (
 						enable  = ansi.Color("выкл\t", "red")
 						name    = arg.Name()

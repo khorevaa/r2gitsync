@@ -18,6 +18,5 @@ func NewSubscribeManager() *SubscribeManager {
 }
 
 type Plugin interface {
-	Subscriber() Subscriber
-	InitContext(ctx context.Context)
+	Subscribe(ctx context.Context) Subscriber
 }

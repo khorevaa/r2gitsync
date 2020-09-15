@@ -15,8 +15,8 @@ type Symbol interface {
 
 	// Global Flags
 	Flags() []flags.Flag
-	// Sub-commands
-	Commands() []string
+	// Sub-modules
+	Modules() []string
 
 	// Name of the plugin
 	String() string
@@ -28,26 +28,78 @@ type Symbol interface {
 }
 
 type Plugin interface {
-	Subscriber() Subscriber
-	InitContext(ctx context.Context)
+	Subscribe(ctx context.Context) Subscriber
 }
 
 // Manager is the plugin manager which stores plugins and allows them to be retrieved.
 // This is used by all the components of micro.
 type Manager interface {
-	Plugins() []Symbol
-	EnabledPlugins() []Symbol
+	Plugins(module string) []Symbol
+	EnabledPlugins(module string) []Symbol
 	Register(plugin Symbol) error
-	IsRegistered(plugin Symbol) bool
+	IsRegistered(plugin Symbol, module string) bool
 	RegisterFlags(command string, cmd command, ctx context.Context)
-	IsEnabled(name string) bool
-	Enable(name string) error
-	Disable(name string) error
+	Enable(name string)
+	Disable(name string)
+}
+
+type RegisteredPluginList map[string]*RegisteredPlugin
+
+func (pl RegisteredPluginList) Items() (arr []*RegisteredPlugin) {
+
+	arr = make([]*RegisteredPlugin, len(pl))
+
+	for _, registeredPlugin := range pl {
+		arr = append(arr, registeredPlugin)
+	}
+	return
+}
+
+func (pl *RegisteredPluginList) Add(rp RegisteredPlugin) {
+
+	if pl.Find(rp.ID) != nil {
+		return
+	}
+
+	pl.items = append(pl.items, &rp)
+}
+
+func (pl RegisteredPluginList) Find(id string) *RegisteredPlugin {
+
+	for _, item := range pl.items {
+
+		if item.ID == id {
+			return item
+		}
+
+	}
+	return nil
+}
+
+type PluginsMetadata struct {
+	ID           string
+	Name         string
+	Version      string
+	ShortVersion string
+	Desc         string
+	Modules      []string
+	Flags        []flags.Flag
+}
+
+type RegisteredPlugin struct {
+	PluginsMetadata
+	Enable bool
 }
 
 // Plugins lists the global plugins
-func Plugins() []Symbol {
+func Plugins() (pl map[string][]string) {
 	return defaultManager.Plugins()
+}
+
+func GetPluginInfo(name, module string) (Symbol, bool) {
+
+	return defaultManager.Plugin(name, module)
+
 }
 
 // Register registers a global plugins
@@ -65,45 +117,29 @@ func Register(names ...Symbol) error {
 }
 
 // Enable a global plugins
-func Enable(names ...string) error {
-
-	mErr := &multierror.Error{}
+func Enable(names ...string) {
 
 	for _, name := range names {
-		err := defaultManager.Enable(name)
-		mErr = multierror.Append(mErr, err)
+		defaultManager.Enable(name)
 	}
-
-	return mErr.ErrorOrNil()
 }
 
 // Disable a global plugins
-func Disable(names ...string) error {
-
-	mErr := &multierror.Error{}
+func Disable(names ...string) {
 
 	for _, name := range names {
-		err := defaultManager.Disable(name)
-		mErr = multierror.Append(mErr, err)
+		defaultManager.Disable(name)
 	}
-
-	return mErr.ErrorOrNil()
 }
 
-// IsRegistered check plugin whether registered global.
-// Notice plugin is not check whether is nil
-func IsRegistered(plugin Symbol) bool {
-	return defaultManager.IsRegistered(plugin)
-}
+func RegistryFlags(modName string, cmd command, ctx context.Context) {
 
-func RegistryFlags(name string, cmd command, ctx context.Context) {
-
-	defaultManager.RegisterFlags(name, cmd, ctx)
+	defaultManager.RegisterFlags(modName, cmd, ctx)
 
 }
 
-func SubscribeManager() *subscription.SubscribeManager {
-	return defaultManager.sm
+func SubscribeManager(modName string) *subscription.SubscribeManager {
+	return defaultManager.SubscribeManager(modName)
 }
 
 // NewManager creates a new plugin manager
@@ -118,16 +154,9 @@ func Subscription(handlers ...interface{}) Subscriber {
 	}
 }
 
-func Subscribe() error {
+func Subscribe(module string, ctx context.Context) error {
 
-	return defaultManager.Subscribe()
-}
-
-func SendContext(ctx context.Context) {
-	defaultManager.SendContext(ctx)
-}
-func IsEnabled(name string) bool {
-	return defaultManager.IsEnabled(name)
+	return defaultManager.Subscribe(module, ctx)
 }
 
 func LoadPlugins(dir string) error {

@@ -2,6 +2,7 @@ package plugin
 
 import (
 	cli "github.com/jawher/mow.cli"
+	"github.com/khorevaa/r2gitsync/context"
 )
 
 type command interface {
@@ -15,6 +16,10 @@ type command interface {
 	IntPtr(into *int, p cli.IntParam)
 	Float64Ptr(into *float64, p cli.Float64Param)
 	StringsPtr(into *[]string, p cli.StringsParam)
+}
+
+type BasePlugin struct {
+	Context context.Context
 }
 
 type subscriber struct {

@@ -91,9 +91,9 @@ func NewApp(version string) *Application {
 			fmt.Println("Включен режим отладки")
 		}
 
-		err := plugin.Subscribe()
+		//err := plugin.Subscribe("", app.ctx)
 
-		failOnErr(err)
+		//failOnErr(err)
 
 	}
 

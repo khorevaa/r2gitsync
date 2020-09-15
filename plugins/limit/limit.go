@@ -19,7 +19,7 @@ var NewPlugin = plugin.NewPlugin(
 	func() plugin.Plugin {
 		return new(LimitPlugin)
 	},
-	plugin.WithCommand("sync"),
+	plugin.WithModule("sync"),
 	plugin.WithFlag(
 		flags.IntOpt(
 			"l limit",
@@ -39,12 +39,33 @@ var NewPlugin = plugin.NewPlugin(
 	))
 
 type LimitPlugin struct {
+	plugin.BasePlugin
 	limit      int
 	minversion int
 	maxversion int
 }
 
 func (t *LimitPlugin) Subscriber() Subscriber {
+
+	return plugin.Subscription(
+		UpdateCfgSubscriber{
+			Before: t.beforeUpdateCfg,
+		})
+	//return subscription.Subscriber{
+	//	UpdateCfg: subscription.UpdateCfgSubscriber{
+	//		Before: t.beforeUpdateCfg,
+	//	},
+	//}
+
+}
+
+func (t *LimitPlugin) Subscribe(ctx context.Context) Subscriber {
+
+	t.Context = ctx
+
+	t.limit = ctx.Int("limit")
+	t.maxversion = ctx.Int("maxversion")
+	t.minversion = ctx.Int("minversion")
 
 	return plugin.Subscription(
 		UpdateCfgSubscriber{

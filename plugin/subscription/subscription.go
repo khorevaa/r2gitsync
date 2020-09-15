@@ -16,11 +16,11 @@ type SubscribeManager struct {
 	count       int
 }
 
-func (sm *SubscribeManager) Subscribe(p Plugin) error {
+func (sm *SubscribeManager) Subscribe(p Plugin, ctx context.Context) error {
 
 	count := sm.count
 
-	sub := p.Subscriber()
+	sub := p.Subscribe(ctx)
 
 	sm.subscribe(sub)
 
@@ -34,14 +34,6 @@ func (sm *SubscribeManager) Subscribe(p Plugin) error {
 	sm.subscribers = append(sm.subscribers, p)
 
 	return nil
-
-}
-
-func (sm *SubscribeManager) SendContext(ctx context.Context) {
-
-	for _, subscriber := range sm.subscribers {
-		subscriber.InitContext(ctx)
-	}
 
 }
 
