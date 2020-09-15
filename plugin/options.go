@@ -23,7 +23,7 @@ func WithModule(module ...string) Option {
 	}
 }
 
-// WithInit sets the init function
+// WithInit sets the Init function
 func WithInit(fn InitFn) Option {
 	return func(o *plugin) {
 		o.init = fn

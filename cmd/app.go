@@ -172,7 +172,7 @@ func getEnv(envs ...string) string {
 func disablePlugins() {
 
 	pl := getEnv("R2GITSYNC_DISABLE_PLUGINS")
-	_ = plugin.Disable(strings.Split(pl, ",")...)
+	plugin.Disable(strings.Split(pl, ",")...)
 
 	filename := path.Join(appDirPwd, disabledPluginsFileName)
 	if ok, _ := Exists(filename); ok {
@@ -181,7 +181,7 @@ func disablePlugins() {
 			failOnErr(err)
 		}
 		lines := strings.Split(string(content), "\n")
-		_ = plugin.Disable(lines...)
+		plugin.Disable(lines...)
 
 	}
 

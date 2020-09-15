@@ -5,6 +5,7 @@ import (
 	"github.com/khorevaa/r2gitsync/cmd/flags"
 	"github.com/khorevaa/r2gitsync/manager"
 	"github.com/khorevaa/r2gitsync/plugin"
+	"github.com/khorevaa/r2gitsync/plugin/subscription"
 )
 
 // Sample use: vault creds reddit.com
@@ -48,9 +49,10 @@ func (app *Application) cmdSync(cmd *cli.Cmd) {
 
 	cmd.Spec = "[OPTIONS] PATH [WORKDIR]"
 
+	var sm *subscription.SubscribeManager
 	cmd.Before = func() {
 
-		_ = plugin.Subscribe("sync", app.ctx)
+		sm, _ = plugin.Subscribe("sync", app.ctx)
 	}
 
 	cmd.Action = func() {
@@ -61,7 +63,7 @@ func (app *Application) cmdSync(cmd *cli.Cmd) {
 			manager.WithV8Path(app.config.v8path),
 			manager.WithV8version(app.config.v8version),
 			manager.WithLicTryCount(5),
-			manager.WithPlugins(plugin.SubscribeManager("sync")),
+			manager.WithPlugins(sm),
 			manager.WithDisableIncrement(app.config.disableIncrement),
 			//WithDomainEmail(config.),
 		)

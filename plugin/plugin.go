@@ -7,6 +7,7 @@ import (
 	"github.com/khorevaa/r2gitsync/plugin/subscription"
 	. "github.com/khorevaa/r2gitsync/plugin/types"
 	"github.com/pkg/errors"
+	"strings"
 )
 
 // Plugin is the interface for plugins to micro. It differs from go-micro in that it's for
@@ -34,20 +35,19 @@ type Plugin interface {
 // Manager is the plugin manager which stores plugins and allows them to be retrieved.
 // This is used by all the components of micro.
 type Manager interface {
-	Plugins(module string) []Symbol
-	EnabledPlugins(module string) []Symbol
+	Plugins() []RegisteredPlugin
 	Register(plugin Symbol) error
-	IsRegistered(plugin Symbol, module string) bool
+	IsRegistered(name string) bool
 	RegisterFlags(command string, cmd command, ctx context.Context)
 	Enable(name string)
 	Disable(name string)
 }
 
-type RegisteredPluginList map[string]*RegisteredPlugin
+type RegisteredPluginList map[string]RegisteredPlugin
 
-func (pl RegisteredPluginList) Items() (arr []*RegisteredPlugin) {
+func (pl RegisteredPluginList) Items() (arr []RegisteredPlugin) {
 
-	arr = make([]*RegisteredPlugin, len(pl))
+	//arr = make([]RegisteredPlugin, len(pl))
 
 	for _, registeredPlugin := range pl {
 		arr = append(arr, registeredPlugin)
@@ -55,25 +55,55 @@ func (pl RegisteredPluginList) Items() (arr []*RegisteredPlugin) {
 	return
 }
 
-func (pl *RegisteredPluginList) Add(rp RegisteredPlugin) {
+func (pl RegisteredPluginList) Add(rp RegisteredPlugin) {
 
-	if pl.Find(rp.ID) != nil {
+	if len(pl.Find(rp.ID).ID) > 0 {
 		return
 	}
 
-	pl.items = append(pl.items, &rp)
+	pl[rp.ID] = rp
 }
 
-func (pl RegisteredPluginList) Find(id string) *RegisteredPlugin {
+func (pl RegisteredPluginList) Find(id string) RegisteredPlugin {
 
-	for _, item := range pl.items {
+	return pl[id]
+}
 
-		if item.ID == id {
-			return item
+func (pl RegisteredPluginList) ByModule(moduleName string) []RegisteredPlugin {
+
+	var arr []RegisteredPlugin
+
+	for _, registeredPlugin := range pl {
+		for _, mod := range registeredPlugin.Modules {
+			if strings.EqualFold(mod, moduleName) {
+				arr = append(arr, registeredPlugin)
+			}
 		}
-
 	}
-	return nil
+
+	return arr
+}
+
+func (pl RegisteredPluginList) changeEnable(name string, enable bool) {
+
+	rp, ok := pl[name]
+	rp.Enable = enable
+	if ok {
+		pl[name] = rp
+	}
+
+}
+
+func (pl RegisteredPluginList) Enable(name string) {
+
+	pl.changeEnable(name, true)
+
+}
+
+func (pl RegisteredPluginList) Disable(name string) {
+
+	pl.changeEnable(name, false)
+
 }
 
 type PluginsMetadata struct {
@@ -84,6 +114,7 @@ type PluginsMetadata struct {
 	Desc         string
 	Modules      []string
 	Flags        []flags.Flag
+	Init         InitFn
 }
 
 type RegisteredPlugin struct {
@@ -92,14 +123,8 @@ type RegisteredPlugin struct {
 }
 
 // Plugins lists the global plugins
-func Plugins() (pl map[string][]string) {
+func Plugins() []RegisteredPlugin {
 	return defaultManager.Plugins()
-}
-
-func GetPluginInfo(name, module string) (Symbol, bool) {
-
-	return defaultManager.Plugin(name, module)
-
 }
 
 // Register registers a global plugins
@@ -138,8 +163,8 @@ func RegistryFlags(modName string, cmd command, ctx context.Context) {
 
 }
 
-func SubscribeManager(modName string) *subscription.SubscribeManager {
-	return defaultManager.SubscribeManager(modName)
+func Subscribe(modName string, ctx context.Context) (*subscription.SubscribeManager, error) {
+	return defaultManager.Subscribe(modName, ctx)
 }
 
 // NewManager creates a new plugin manager
@@ -152,11 +177,6 @@ func Subscription(handlers ...interface{}) Subscriber {
 	return subscriber{
 		handlers: handlers,
 	}
-}
-
-func Subscribe(module string, ctx context.Context) error {
-
-	return defaultManager.Subscribe(module, ctx)
 }
 
 func LoadPlugins(dir string) error {
