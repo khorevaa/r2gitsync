@@ -1,15 +1,14 @@
 package manager
 
 import (
-	"encoding/xml"
 	"fmt"
 	"github.com/hashicorp/go-multierror"
 	"github.com/khorevaa/r2gitsync/manager/flow"
+	"github.com/khorevaa/r2gitsync/manager/types"
 	"github.com/v8platform/designer/repository"
 	"github.com/v8platform/v8"
 	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
 )
 
@@ -17,8 +16,8 @@ type SyncRepository struct {
 	repository.Repository
 	Name     string
 	WorkDir  string
-	Versions []flow.RepositoryVersion
-	Authors  map[string]flow.RepositoryAuthor
+	Versions []types.RepositoryVersion
+	Authors  map[string]types.RepositoryAuthor
 
 	Extention        string
 	increment        bool
@@ -26,7 +25,7 @@ type SyncRepository struct {
 	MinVersion       int64
 	MaxVersion       int64
 	LimitSyncVersion int64
-	endpoint         flow.V8Endpoint
+	endpoint         types.V8Endpoint
 	flow             flow.Flow
 }
 
@@ -37,35 +36,14 @@ func (r *SyncRepository) Auth(user, passowrd string) {
 
 }
 
-func (r *SyncRepository) readCurrentVersion() error {
+func (r *SyncRepository) ReadCurrentVersion() (err error) {
 
-	fileVersion := path.Join(r.WorkDir, VERSION_FILE)
+	r.CurrentVersion, err = r.flow.ReadVersionFile(r.endpoint, r.WorkDir, VERSION_FILE)
 
-	// Open our xmlFile
-	xmlFile, err := os.Open(fileVersion)
-	// if we os.Open returns an error then handle it
-	if err != nil {
-		return err
-	}
-
-	// defer the closing of our xmlFile so that we can parse it later on
-	defer xmlFile.Close()
-
-	// read our opened xmlFile as a byte array.
-	byteValue, _ := ioutil.ReadAll(xmlFile)
-
-	// xmlFiles content into 'users' which we defined above
-	err = xml.Unmarshal(byteValue, &r.CurrentVersion)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-
+	return
 }
 
-func (r *SyncRepository) sync(opts *Options) error {
+func (r *SyncRepository) sync(opts *Options) (err error) {
 
 	r.endpoint = &v8Endpoint{
 		infobase:   &opts.infobase,
@@ -87,9 +65,9 @@ func (r *SyncRepository) sync(opts *Options) error {
 	taskFlow := r.flow
 
 	taskFlow.StartSyncProcess(r.endpoint, r.WorkDir)
-	defer taskFlow.FinishSyncProcess(r.endpoint, r.WorkDir)
+	defer taskFlow.FinishSyncProcess(r.endpoint, r.WorkDir, &err)
 
-	err := r.prepare(opts)
+	err = r.prepare(opts)
 
 	if err != nil {
 		return err
@@ -103,7 +81,7 @@ func (r *SyncRepository) sync(opts *Options) error {
 	nextVersion := r.Versions[0].Number()
 	maxVersion := r.MaxVersion
 
-	err = taskFlow.ConfigureRepositoryVersions(r.endpoint, r.Versions, &r.CurrentVersion, &nextVersion, &maxVersion)
+	err = taskFlow.ConfigureRepositoryVersions(r.endpoint, &r.Versions, &r.CurrentVersion, &nextVersion, &maxVersion)
 
 	if err != nil {
 		return err
@@ -142,7 +120,6 @@ func (r *SyncRepository) prepare(opts *Options) error {
 
 	if !opts.infobaseCreated {
 
-		// TODO Перенести в flow
 		CreateFileInfobase := v8.CreateFileInfobase(opts.infobase.Path())
 
 		err := Run(opts.infobase, CreateFileInfobase, opts)
@@ -156,7 +133,7 @@ func (r *SyncRepository) prepare(opts *Options) error {
 
 	r.CurrentVersion = 0
 
-	err := r.readCurrentVersion()
+	err := r.ReadCurrentVersion()
 
 	if err != nil {
 		return err
@@ -196,7 +173,7 @@ func Sync(r SyncRepository, opts ...Option) error {
 
 }
 
-func (r *SyncRepository) syncVersionFiles(rVersion RepositoryVersion, opts *Options) (err error) {
+func (r *SyncRepository) syncVersionFiles(rVersion types.RepositoryVersion, opts *Options) (err error) {
 
 	tempDir, err := ioutil.TempDir(opts.tempDir, fmt.Sprintf("v%d", rVersion.Number()))
 
@@ -206,11 +183,7 @@ func (r *SyncRepository) syncVersionFiles(rVersion RepositoryVersion, opts *Opti
 
 	flowTask := r.flow
 
-	err = flowTask.StartSyncVersion(r.endpoint, r.WorkDir, tempDir, rVersion.Number())
-
-	if err != nil {
-		return err
-	}
+	flowTask.StartSyncVersion(r.endpoint, r.WorkDir, tempDir, rVersion.Number())
 
 	defer func() {
 
@@ -226,7 +199,7 @@ func (r *SyncRepository) syncVersionFiles(rVersion RepositoryVersion, opts *Opti
 		return err
 	}
 
-	err = flowTask.DumpConfigToFiles(r.endpoint, r.increment, r.WorkDir, tempDir, rVersion.Number())
+	err = flowTask.DumpConfigToFiles(r.endpoint, r.WorkDir, tempDir, rVersion.Number(), r.increment)
 
 	if err != nil {
 		return err
@@ -267,7 +240,7 @@ func (r *SyncRepository) syncVersionFiles(rVersion RepositoryVersion, opts *Opti
 
 }
 
-func (r SyncRepository) getRepositoryAuthor(name string, opts *Options) RepositoryAuthor {
+func (r SyncRepository) getRepositoryAuthor(name string, opts *Options) types.RepositoryAuthor {
 
 	author, ok := r.Authors[name]
 

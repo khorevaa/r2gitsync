@@ -52,14 +52,14 @@ package subscription
 //
 //type UpdateCfgSubscriber struct {
 //	On OnUpdateCfgFn
-//	Before BeforeUpdateCfgFn
-//	After AfterUpdateCfgFn
+//	Start BeforeUpdateCfgFn
+//	Finish AfterUpdateCfgFn
 //}
 //
 //func (s UpdateCfgSubscriber) Empty() bool {
 //	return s.On == nil &&
-//		s.After == nil &&
-//		s.Before == nil
+//		s.Finish == nil &&
+//		s.Start == nil
 //}
 //
 //func (s UpdateCfgSubscriber) OnFn(fn OnUpdateCfgFn) UpdateCfgSubscriber {
@@ -68,11 +68,11 @@ package subscription
 //}
 //
 //func (s UpdateCfgSubscriber) BeforeFn(fn BeforeUpdateCfgFn) UpdateCfgSubscriber {
-//	s.Before = fn
+//	s.Start = fn
 //	return s
 //}
 //
 //func (s UpdateCfgSubscriber) AfterFn(fn AfterUpdateCfgFn) UpdateCfgSubscriber {
-//	s.After = fn
+//	s.Finish = fn
 //	return s
 //}

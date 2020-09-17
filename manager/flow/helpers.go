@@ -3,6 +3,7 @@ package flow
 import (
 	"bytes"
 	"fmt"
+	"github.com/khorevaa/r2gitsync/manager/types"
 	"golang.org/x/text/encoding"
 	"io"
 	"io/ioutil"
@@ -60,7 +61,7 @@ func (a repositoryAuthor) Desc() string {
 	return fmt.Sprintf("%s <%s> ", a.name, a.email)
 }
 
-func NewAuthor(name, email string) RepositoryAuthor {
+func NewAuthor(name, email string) types.RepositoryAuthor {
 
 	return repositoryAuthor{
 		name:  name,
@@ -69,7 +70,7 @@ func NewAuthor(name, email string) RepositoryAuthor {
 
 }
 
-func parseRepositoryReport(file string) (versions []RepositoryVersion, err error) {
+func parseRepositoryReport(file string) (versions []types.RepositoryVersion, err error) {
 
 	err, bytes := readFile(file, nil)
 	if err != nil {

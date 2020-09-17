@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"fmt"
 	cli "github.com/jawher/mow.cli"
 	"github.com/khorevaa/r2gitsync/cmd/flags"
+	"github.com/khorevaa/r2gitsync/log"
 	"os"
 )
 
@@ -20,7 +20,7 @@ var WorkdirArg = flags.StringFlag{
 
 func failOnErr(err error) {
 	if err != nil {
-		fmt.Printf("Ошибка выполненния программы: %v \n", err.Error())
+		log.Errorf("Ошибка выполненния программы: %v \n", err.Error())
 		cli.Exit(1)
 	}
 }

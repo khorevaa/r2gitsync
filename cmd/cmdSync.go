@@ -57,18 +57,18 @@ func (app *Application) cmdSync(cmd *cli.Cmd) {
 
 	cmd.Action = func() {
 
-		err := manager.Sync(repo,
-			manager.WithInfobaseConfig(app.config.Infobase),
-			manager.WithTempDir(app.config.tempDir),
-			manager.WithV8Path(app.config.v8path),
-			manager.WithV8version(app.config.v8version),
-			manager.WithLicTryCount(5),
-			manager.WithPlugins(sm),
-			manager.WithDisableIncrement(app.config.disableIncrement),
-			//WithDomainEmail(config.),
-		)
+		//err := manager.Sync(repo,
+		//	manager.WithInfobaseConfig(app.config.Infobase),
+		//	manager.WithTempDir(app.config.TempDir),
+		//	manager.WithV8Path(app.config.v8path),
+		//	manager.WithV8version(app.config.V8version),
+		//	manager.WithLicTryCount(5),
+		//	manager.WithPlugins(sm),
+		//	manager.WithDisableIncrement(app.config.disableIncrement),
+		//	//WithDomainEmail(config.),
+		//)
 
-		failOnErr(err)
+		//failOnErr(err)
 
 	}
 

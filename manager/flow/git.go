@@ -3,6 +3,7 @@ package flow
 import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/khorevaa/r2gitsync/manager/types"
 	"path/filepath"
 	"time"
 )
@@ -41,7 +42,7 @@ func CommitFile(filename string, msg string, opts *git.CommitOptions) error {
 	return err
 }
 
-func CommitFiles(dir string, author RepositoryAuthor, when time.Time, comment string) error {
+func CommitFiles(dir string, author types.RepositoryAuthor, when time.Time, comment string) error {
 
 	g, err := git.PlainOpen(dir)
 

@@ -9,10 +9,6 @@ import (
 	"sync"
 )
 
-const defaultModule = "r2gitsync"
-
-const EmptyPlugin = ""
-
 type manager struct {
 	sync.Mutex
 
@@ -74,21 +70,6 @@ func (m *manager) Plugins() []RegisteredPlugin {
 	return m.registered.Items()
 }
 
-func newPluginMetadata(sym Symbol) PluginsMetadata {
-
-	return PluginsMetadata{
-		ID:           sym.Name(),
-		Name:         sym.Name(),
-		Version:      sym.Version(),
-		ShortVersion: sym.ShortVersion(),
-		Desc:         sym.Desc(),
-		Modules:      sym.Modules(),
-		Flags:        sym.Flags(),
-		Init:         sym.Init,
-	}
-
-}
-
 func (m *manager) Register(sym Symbol) error {
 
 	m.Lock()
@@ -99,8 +80,8 @@ func (m *manager) Register(sym Symbol) error {
 	}
 
 	m.registered[sym.Name()] = RegisteredPlugin{
-		PluginsMetadata: newPluginMetadata(sym),
-		Enable:          true,
+		sym,
+		true,
 	}
 
 	return nil
@@ -143,20 +124,11 @@ func (m *manager) RegisterFlags(module string, cmd command, ctx context.Context)
 
 	for _, pl := range plugins {
 
-		registryFlags(pl.Flags, cmd, ctx)
+		registryFlags(pl.Flags(), cmd, ctx)
 
 	}
 
 	return
-}
-
-func contains(arr []string, str string) bool {
-	for _, a := range arr {
-		if a == str {
-			return true
-		}
-	}
-	return false
 }
 
 func registryFlags(flag []flags.Flag, cmd command, ctx context.Context) {

@@ -14,6 +14,7 @@ require (
 	github.com/v8platform/errors v0.1.0
 	github.com/v8platform/runner v0.0.0-20200630132946-b282ee2b45e9
 	github.com/v8platform/v8 v8.0.0-20200702104120-90569bc7da9d
+	go.uber.org/zap v1.16.0
 	golang.org/x/text v0.3.3
 
 )

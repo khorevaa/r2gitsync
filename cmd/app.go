@@ -2,11 +2,12 @@ package cmd
 
 import (
 	"flag"
-	"fmt"
 	"github.com/jawher/mow.cli"
 	"github.com/khorevaa/r2gitsync/cmd/flags"
 	"github.com/khorevaa/r2gitsync/context"
+	"github.com/khorevaa/r2gitsync/log"
 	"github.com/khorevaa/r2gitsync/plugin"
+	p "github.com/khorevaa/r2gitsync/plugins"
 	"io/ioutil"
 	"os"
 	"path"
@@ -30,8 +31,8 @@ type Application struct {
 }
 
 type configApp struct {
-	debug     bool
-	v8version string
+	Debug     bool
+	V8version string
 	Infobase  struct {
 		User             string
 		Password         string
@@ -39,8 +40,8 @@ type configApp struct {
 	}
 
 	v8path           string
-	tempDir          string
-	workspace        string
+	TempDir          string
+	Workspace        string
 	disableIncrement bool
 }
 
@@ -51,7 +52,6 @@ func NewApp(version string) *Application {
 	app := &Application{
 		config: config,
 	}
-
 	loadPlugins()
 	disablePlugins()
 
@@ -60,12 +60,12 @@ func NewApp(version string) *Application {
 
 	app.Version("version v", version)
 
-	flags.StringOpt("v8version", "8.3", "маска версии платформы 1С (8.3, 8.3.5, 8.3.6.2299 и т.п.)").
+	flags.StringOpt("V8version", "8.3", "маска версии платформы 1С (8.3, 8.3.5, 8.3.6.2299 и т.п.)").
 		Env(V8VersionEnv).
-		Ptr(&config.v8version).Apply(app, app.ctx)
-	flags.StringOpt("ws workspace", "", "рабочая область приложения").
+		Ptr(&config.V8version).Apply(app, app.ctx)
+	flags.StringOpt("ws Workspace", "", "рабочая область приложения").
 		//Env(V8VersionEnv).
-		Ptr(&config.workspace).Apply(app, app.ctx)
+		Ptr(&config.Workspace).Apply(app, app.ctx)
 	flags.StringOpt("v8-path v8path", "", "путь к исполняемому файлу платформы 1С (Например, /opt/1C/v8.3/x86_64/1cv8)").
 		Env(V8PathEnv).
 		Ptr(&config.v8path).Apply(app, app.ctx)
@@ -80,15 +80,16 @@ func NewApp(version string) *Application {
 		Ptr(&config.Infobase.ConnectionString).Apply(app, app.ctx)
 	flags.StringOpt("t tempdir", "", "путь к каталогу временных файлов").
 		Env("GITSYNC_TEMP GITSYNC_TEMPDIR").
-		Ptr(&config.tempDir).Apply(app, app.ctx)
+		Ptr(&config.TempDir).Apply(app, app.ctx)
 	flags.BoolOpt("debug", false, "Bывод отладочной информации").
 		Env(VersobeEnv).
-		Ptr(&config.debug).Apply(app, app.ctx)
+		Ptr(&config.Debug).Apply(app, app.ctx)
 
 	app.Before = func() {
 
-		if config.debug {
-			fmt.Println("Включен режим отладки")
+		if config.Debug {
+			log.SetDebug()
+			log.Debugw("Включен режим отладки", "config", config)
 		}
 
 		//err := plugin.Subscribe("", app.ctx)
@@ -146,6 +147,8 @@ func loadPlugins() {
 
 	err := plugin.LoadPlugins(pluginsDir)
 	failOnErr(err)
+
+	plugin.Register(p.Plugins...)
 
 }
 

@@ -18,22 +18,19 @@ type updateCfgHandler struct {
 	after  []AfterUpdateCfgFn
 }
 
-func (b *updateCfgHandler) Subscribe(sub UpdateCfgSubscriber) {
+func (h *updateCfgHandler) Subscribe(sub UpdateCfgSubscriber) {
 
-	updateCfg := sub
-
-	if updateCfg.Before != nil {
-		b.before = append(b.before, updateCfg.Before)
+	if sub.Before != nil {
+		h.before = append(h.before, sub.Before)
 	}
 
-	if updateCfg.On != nil {
-		b.on = append(b.on, updateCfg.On)
+	if sub.On != nil {
+		h.on = append(h.on, sub.On)
 	}
 
-	if updateCfg.After != nil {
-		b.after = append(b.after, updateCfg.After)
+	if sub.After != nil {
+		h.after = append(h.after, sub.After)
 	}
-
 }
 
 func (h *updateCfgHandler) Before(v8end V8Endpoint, workdir string, version int64) error {

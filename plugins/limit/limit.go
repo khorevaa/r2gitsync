@@ -53,7 +53,7 @@ func (t *LimitPlugin) Subscriber() Subscriber {
 		})
 	//return subscription.Subscriber{
 	//	UpdateCfg: subscription.UpdateCfgSubscriber{
-	//		Before: t.beforeUpdateCfg,
+	//		Start: t.beforeUpdateCfg,
 	//	},
 	//}
 
@@ -73,7 +73,7 @@ func (t *LimitPlugin) Subscribe(ctx context.Context) Subscriber {
 		})
 	//return subscription.Subscriber{
 	//	UpdateCfg: subscription.UpdateCfgSubscriber{
-	//		Before: t.beforeUpdateCfg,
+	//		Start: t.beforeUpdateCfg,
 	//	},
 	//}
 
@@ -82,13 +82,5 @@ func (t *LimitPlugin) Subscribe(ctx context.Context) Subscriber {
 func (t *LimitPlugin) beforeUpdateCfg(v8end V8Endpoint, workdir string, version int64) error {
 
 	return nil
-
-}
-
-func (t *LimitPlugin) InitContext(ctx context.Context) {
-
-	t.limit = ctx.Int("limit")
-	t.maxversion = ctx.Int("maxversion")
-	t.minversion = ctx.Int("minversion")
 
 }

@@ -17,12 +17,7 @@ type Options struct {
 	infobase         v8.Infobase
 	infobaseCreated  bool
 	disableIncrement bool
-	limit            struct {
-		MinVersion int
-		MaxVersion int
-		Count      int
-	}
-	plugins *subscription.SubscribeManager // TODO добавить менеджер плагинов
+	plugins          *subscription.SubscribeManager // TODO добавить менеджер плагинов
 }
 
 type ib struct {
@@ -89,20 +84,6 @@ func WithDisableIncrement(disable bool) Option {
 	return func(o *Options) {
 
 		o.disableIncrement = disable
-
-	}
-
-}
-
-func WithLimit(limit struct {
-	MinVersion int
-	MaxVersion int
-	Count      int
-}) Option {
-
-	return func(o *Options) {
-
-		o.limit = limit
 
 	}
 

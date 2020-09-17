@@ -4,9 +4,11 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/khorevaa/r2gitsync/cmd/flags"
 	"github.com/khorevaa/r2gitsync/context"
+	"github.com/khorevaa/r2gitsync/log"
 	"github.com/khorevaa/r2gitsync/plugin/subscription"
 	. "github.com/khorevaa/r2gitsync/plugin/types"
 	"github.com/pkg/errors"
+	"sort"
 	"strings"
 )
 
@@ -52,16 +54,12 @@ func (pl RegisteredPluginList) Items() (arr []RegisteredPlugin) {
 	for _, registeredPlugin := range pl {
 		arr = append(arr, registeredPlugin)
 	}
+
+	sort.Slice(arr, func(i, j int) bool {
+		return arr[i].Name() < arr[j].Name()
+	})
+
 	return
-}
-
-func (pl RegisteredPluginList) Add(rp RegisteredPlugin) {
-
-	if len(pl.Find(rp.ID).ID) > 0 {
-		return
-	}
-
-	pl[rp.ID] = rp
 }
 
 func (pl RegisteredPluginList) Find(id string) RegisteredPlugin {
@@ -74,7 +72,7 @@ func (pl RegisteredPluginList) ByModule(moduleName string) []RegisteredPlugin {
 	var arr []RegisteredPlugin
 
 	for _, registeredPlugin := range pl {
-		for _, mod := range registeredPlugin.Modules {
+		for _, mod := range registeredPlugin.Modules() {
 			if strings.EqualFold(mod, moduleName) {
 				arr = append(arr, registeredPlugin)
 			}
@@ -106,19 +104,8 @@ func (pl RegisteredPluginList) Disable(name string) {
 
 }
 
-type PluginsMetadata struct {
-	ID           string
-	Name         string
-	Version      string
-	ShortVersion string
-	Desc         string
-	Modules      []string
-	Flags        []flags.Flag
-	Init         InitFn
-}
-
 type RegisteredPlugin struct {
-	PluginsMetadata
+	Symbol
 	Enable bool
 }
 
@@ -134,7 +121,7 @@ func Register(names ...Symbol) error {
 
 	for _, name := range names {
 		err := defaultManager.Register(name)
-
+		log.Debugw("Register plugin", "name", name.Name(), "version", name.Version())
 		mErr = multierror.Append(mErr, errors.Wrapf(err, "plugin <%s>", name))
 	}
 

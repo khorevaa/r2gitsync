@@ -1,7 +1,9 @@
 package flow
 
 import (
+	"encoding/xml"
 	"fmt"
+	"github.com/khorevaa/r2gitsync/manager/types"
 	"github.com/khorevaa/r2gitsync/plugin/subscription"
 	"github.com/v8platform/designer"
 	"github.com/v8platform/designer/repository"
@@ -21,30 +23,36 @@ const ConfigDumpInfoFileName = "ConfigDumpInfo.xml"
 type tasker struct {
 }
 
-func (t tasker) ConfigureRepositoryVersions(v8end V8Endpoint, versions []RepositoryVersion, NBegin, NNext, NMax *int64) (err error) {
+func (t tasker) ConfigureRepositoryVersions(v8end types.V8Endpoint, versions *[]types.RepositoryVersion, NBegin, NNext, NMax *int64) (err error) {
 
-	if len(versions) > 0 {
-		maxVersion := versions[len(versions)-1].Number()
+	ver := *versions
+
+	if len(ver) > 0 {
+		maxVersion := ver[len(ver)-1].Number()
 		*NMax = maxVersion
 	}
 
+	versions = &ver
+
 	return
 }
 
-func (t tasker) StartSyncVersion(v8end V8Endpoint, workdir string, tempdir string, number int64) error {
-	return nil
-}
-
-func (t tasker) StartSyncProcess(v8end V8Endpoint, dir string) {
+func (t tasker) StartSyncVersion(v8end types.V8Endpoint, workdir string, tempdir string, number int64) {
 	return
 }
 
-func (t tasker) GetRepositoryVersions(v8end V8Endpoint, dir string, nBegin int64) (versions []RepositoryVersion, err error) {
+func (t tasker) StartSyncProcess(v8end types.V8Endpoint, dir string) {
+	return
+}
+
+func (t tasker) GetRepositoryVersions(v8end types.V8Endpoint, dir string, nBegin int64) (versions []types.RepositoryVersion, err error) {
 
 	reportFile, err := ioutil.TempFile(os.TempDir(), "v8_rep_history")
+
 	if err != nil {
 		return
 	}
+
 	reportFile.Close()
 	report := reportFile.Name()
 
@@ -74,27 +82,23 @@ func (t tasker) GetRepositoryVersions(v8end V8Endpoint, dir string, nBegin int64
 		return versions[i].Number() < versions[j].Number()
 	})
 
-	//if len(r.Versions) > 0 {
-	//	r.MaxVersion = r.Versions[len(r.Versions)-1].Number()
-	//}
-
 	return
 }
 
-func (t tasker) GetRepositoryAuthors(v8end V8Endpoint, dir string, filename string) (authors map[string]RepositoryAuthor, err error) {
+func (t tasker) GetRepositoryAuthors(v8end types.V8Endpoint, dir string, filename string) (map[string]types.RepositoryAuthor, error) {
 
-	authors = make(map[string]RepositoryAuthor)
+	authors := make(map[string]types.RepositoryAuthor)
 
 	file := path.Join(dir, filename)
 	if ok, _ := Exists(file); !ok {
 
-		return
+		return authors, nil
 
 	}
 
 	bytesRead, _ := ioutil.ReadFile(file)
-	file_content := string(bytesRead)
-	lines := strings.Split(file_content, "\n")
+	fileContent := string(bytesRead)
+	lines := strings.Split(fileContent, "\n")
 
 	for _, line := range lines {
 
@@ -110,11 +114,11 @@ func (t tasker) GetRepositoryAuthors(v8end V8Endpoint, dir string, filename stri
 
 	}
 
-	return
+	return authors, nil
 
 }
 
-func (t tasker) UpdateCfg(v8end V8Endpoint, workDir string, number int64) (err error) {
+func (t tasker) UpdateCfg(v8end types.V8Endpoint, workDir string, number int64) (err error) {
 
 	RepositoryUpdateCfgOptions := repository.RepositoryUpdateCfgOptions{
 		Version:   number,
@@ -127,11 +131,11 @@ func (t tasker) UpdateCfg(v8end V8Endpoint, workDir string, number int64) (err e
 	return
 }
 
-func (t tasker) FinishSyncVersion(endpoint V8Endpoint, workdir string, tempdir string, number int64, err *error) {
+func (t tasker) FinishSyncVersion(endpoint types.V8Endpoint, workdir string, tempdir string, number int64, err *error) {
 	return
 }
 
-func (t tasker) DumpConfigToFiles(endpoint V8Endpoint, update bool, dir string, tempdir string, number int64) error {
+func (t tasker) DumpConfigToFiles(endpoint types.V8Endpoint, dir string, tempdir string, number int64, update bool) error {
 
 	var configDumpInfoFile = ""
 
@@ -161,28 +165,27 @@ func (t tasker) DumpConfigToFiles(endpoint V8Endpoint, update bool, dir string, 
 
 }
 
-func (t tasker) FinishSyncProcess(endpoint V8Endpoint, dir string) {
+func (t tasker) FinishSyncProcess(endpoint types.V8Endpoint, dir string, err *error) {
 	return
 }
 
-func (t tasker) ClearWorkDir(endpoint V8Endpoint, dir string, tempDir string) error {
+func (t tasker) ClearWorkDir(endpoint types.V8Endpoint, dir string, tempDir string) error {
 
-	err := clearDir(dir, "VERSION", "AUTHORS", ".git") // TODO Сделать копирование файлов или избранную очистку
-
+	err := clearDir(dir, "VERSION", "AUTHORS", ".git")
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (t tasker) MoveToWorkDir(endpoint V8Endpoint, dir string, tempDir string) error {
+func (t tasker) MoveToWorkDir(endpoint types.V8Endpoint, dir string, tempDir string) error {
 
 	err := CopyDir(tempDir, dir)
 
 	return err
 }
 
-func (t tasker) WriteVersionFile(endpoint V8Endpoint, dir string, number int64, versionFile string) error {
+func (t tasker) WriteVersionFile(endpoint types.V8Endpoint, dir string, number int64, versionFile string) error {
 
 	data := fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
 <VERSION>%d</VERSION>`, number)
@@ -193,7 +196,7 @@ func (t tasker) WriteVersionFile(endpoint V8Endpoint, dir string, number int64, 
 	return err
 }
 
-func (t tasker) CommitFiles(endpoint V8Endpoint, dir string, author RepositoryAuthor, date time.Time, comment string) error {
+func (t tasker) CommitFiles(endpoint types.V8Endpoint, dir string, author types.RepositoryAuthor, date time.Time, comment string) error {
 
 	err := CommitFiles(dir, author, date, comment)
 
@@ -207,4 +210,38 @@ func (t tasker) WithSubscribes(sm *subscription.SubscribeManager) Flow {
 		pm:     sm,
 	}
 
+}
+
+func (t tasker) ReadVersionFile(end types.V8Endpoint, dir string, filename string) (int64, error) {
+
+	type versionReader struct {
+		CurrentVersion int64 `xml:"VERSION"`
+	}
+
+	fileVesrion := filename
+
+	// Open our xmlFile
+	xmlFile, err := os.Open(fileVesrion)
+	// if we os.Open returns an error then handle it
+	if err != nil {
+		return 0, err
+	}
+
+	// defer the closing of our xmlFile so that we can parse it later on
+	defer xmlFile.Close()
+
+	var r = versionReader{}
+
+	// read our opened xmlFile as a byte array.
+	byteValue, _ := ioutil.ReadAll(xmlFile)
+	fmt.Println(string(byteValue))
+
+	// xmlFiles content into 'users' which we defined above
+	err = xml.Unmarshal(byteValue, &r.CurrentVersion)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return r.CurrentVersion, nil
 }

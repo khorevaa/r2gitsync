@@ -4,6 +4,7 @@ import (
 	"fmt"
 	cli "github.com/jawher/mow.cli"
 	"github.com/khorevaa/r2gitsync/cmd/flags"
+	"github.com/khorevaa/r2gitsync/log"
 	"github.com/khorevaa/r2gitsync/plugin"
 	"os"
 	"strings"
@@ -25,6 +26,8 @@ func (app *Application) cmdPluginsList(cmd *cli.Cmd) {
 	cmd.Action = func() {
 		list := plugin.Plugins()
 
+		log.Debugw("plugins list", "list", list)
+
 		if len(list) > 0 {
 
 			//w := os.Stdout
@@ -33,17 +36,17 @@ func (app *Application) cmdPluginsList(cmd *cli.Cmd) {
 			w := tabwriter.NewWriter(stdOut, 10, 1, 3, ' ', 0)
 			defer w.Flush()
 			fmt.Fprintf(stdOut, "Список плагинов:\t\n")
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t\n", "Состояние", "Версия", "Имя", "Команды", "Описание")
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t\n", "---------", "------", "----", "-------", "--------")
+			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t  %s\t\n", "Состояние", "Версия", "Имя", "Модули", "Описание")
+			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t  %s\t\n", "---------", "------", "----", "------", "--------")
 			for _, arg := range list {
 
 				if arg.Enable || showAll {
 					var (
 						enable  = ansi.Color("выкл\t", "red")
-						name    = arg.Name
-						desc    = arg.Desc
-						version = arg.ShortVersion
-						modules = strings.Join(arg.Modules, ",")
+						name    = arg.Name()
+						desc    = arg.Desc()
+						version = arg.ShortVersion()
+						modules = strings.Join(arg.Modules(), ",")
 					)
 
 					if arg.Enable {

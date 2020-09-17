@@ -11,9 +11,18 @@ type SubscribeHandler interface {
 func NewSubscribeManager() *SubscribeManager {
 	return &SubscribeManager{
 
-		UpdateCfg:             &updateCfgHandler{},
-		DumpConfigToFiles:     &dumpConfigToFilesHandler{},
-		GetRepositoryHistoryH: &getRepositoryHistoryHandler{},
+		UpdateCfg:                   &updateCfgHandler{},
+		DumpConfigToFiles:           &dumpConfigToFilesHandler{},
+		GetRepositoryHistory:        &getRepositoryHistoryHandler{},
+		GetRepositoryAuthors:        &getRepositoryAuthorsHandler{},
+		ConfigureRepositoryVersions: &configureRepositoryVersionsHandler{},
+		SyncProcess:                 &syncProcessHandler{},
+		SyncVersion:                 &syncversionHandler{},
+		ClearWorkdir:                &clearWorkdirHandler{},
+		MoveToWorkdir:               &moveToWorkdirHandler{},
+		CommitFiles:                 &commitFilesHandler{},
+		ReadVersionFile:             &readVersionFileHandler{},
+		WriteVersionFile:            &writeVersionFileHandler{},
 	}
 }
 
