@@ -8,7 +8,7 @@ import (
 	"github.com/khorevaa/r2gitsync/manager/types"
 	"github.com/lithammer/shortuuid/v3"
 	"github.com/v8platform/designer/repository"
-	"github.com/v8platform/v8"
+	v8 "github.com/v8platform/v8"
 	"go.uber.org/zap"
 	"io/ioutil"
 	"os"
@@ -24,7 +24,7 @@ type SyncRepository struct {
 	Authors  map[string]types.RepositoryAuthor
 
 	Extention      string
-	increment      bool
+	Increment      bool
 	CurrentVersion int64 `xml:"VERSION"`
 	MinVersion     int64
 	MaxVersion     int64
@@ -49,51 +49,47 @@ func (r *SyncRepository) ReadCurrentVersion() (err error) {
 
 func (r *SyncRepository) sync(opts *Options) (err error) {
 
-	if opts.logger != nil {
-		r.log = opts.logger.Named("manager")
-	}
-	if r.log == nil {
-		r.log = log.NewLogger().Named("manager")
+	r.configureLog(opts)
+	r.prepareTasker(opts)
+	r.configureInfobase(opts)
+	err = r.configure(opts)
+
+	if err != nil {
+		return err
 	}
 
-	if len(r.Name) == 0 {
-		r.Name = shortuuid.New()
-	}
+	r.endpoint = r.newEndpoint(opts)
 
 	r.log.Infow("Start sync with repository",
 		zap.String("name", r.Name),
 		zap.String("path", r.Repository.Path),
 	)
 
-	r.endpoint = &v8Endpoint{
-		infobase:   &opts.infobase,
-		repository: &r.Repository,
-		options:    opts.Options(),
-		extention:  r.Extention,
-	}
-
 	r.log.Infow("Using infobase for sync",
 		zap.String("path", opts.infobase.ConnectionString()))
 
-	r.flow = flow.Tasker(r.log)
-
-	if opts.plugins != nil {
-
-		r.log.Info("Using plugins for sync")
-		r.flow = flow.WithSubscribes(r.log.With(zap.String("tasker", "subscriber")), opts.plugins)
-
+	if r.Increment {
+		r.log.Infow("Using increment dump config to files", zap.Bool("Increment", r.Increment))
 	}
-
-	r.increment = !opts.disableIncrement
-	r.log.Infow("Using increment dump config to files", zap.Bool("increment", r.increment))
 
 	taskFlow := r.flow
 
 	taskFlow.StartSyncProcess(r.endpoint, r.Workdir)
 	defer taskFlow.FinishSyncProcess(r.endpoint, r.Workdir, &err)
 
-	err = r.prepare(opts)
+	err = r.ReadCurrentVersion()
 
+	if err != nil {
+		return err
+	}
+
+	err = r.GetRepositoryAuthors()
+
+	if err != nil {
+		return err
+	}
+
+	err = r.GetRepositoryHistory()
 	if err != nil {
 		return err
 	}
@@ -150,43 +146,37 @@ func (r *SyncRepository) WriteVersionFile(CurrentVersion int64) error {
 
 }
 
-func (r *SyncRepository) prepare(opts *Options) error {
+func (r *SyncRepository) configure(opts *Options) error {
 
-	if !opts.infobaseCreated {
-
-		CreateFileInfobase := v8.CreateFileInfobase(opts.infobase.Path())
-
-		err := Run(opts.infobase, CreateFileInfobase, opts)
-
-		if err != nil {
-			return err
-		}
-
-		opts.infobaseCreated = true
+	if len(r.Name) == 0 {
+		r.Name = shortuuid.New()
 	}
 
 	r.CurrentVersion = 0
-
-	err := r.ReadCurrentVersion()
-
-	if err != nil {
-		return err
-	}
-
-	err = r.GetRepositoryAuthors(opts)
-
-	if err != nil {
-		return err
-	}
-
-	r.MaxVersion = 0
-
-	err = r.GetRepositoryHistory(opts)
-	if err != nil {
-		return err
-	}
+	r.Increment = !opts.disableIncrement
 
 	return nil
+}
+func (r *SyncRepository) newEndpoint(opts *Options) *v8Endpoint {
+	return &v8Endpoint{
+		infobase:   &opts.infobase,
+		repository: &r.Repository,
+		options:    opts.Options(),
+		extention:  r.Extention,
+	}
+}
+
+func (r *SyncRepository) prepareTasker(opts *Options) {
+
+	r.flow = flow.Tasker(r.log)
+
+	if opts.plugins != nil {
+
+		r.log.Info("Using plugins for sync")
+		r.flow = flow.WithSubscribes(r.log.With(zap.String("tasker", "subscriber")), opts.plugins)
+
+	}
+
 }
 
 func (r *SyncRepository) Sync(opts ...Option) error {
@@ -241,7 +231,7 @@ func (r *SyncRepository) syncVersionFiles(rVersion types.RepositoryVersion, opts
 		return err
 	}
 
-	err = flowTask.DumpConfigToFiles(r.endpoint, r.Workdir, tempDir, rVersion.Number(), r.increment)
+	err = flowTask.DumpConfigToFiles(r.endpoint, r.Workdir, tempDir, rVersion.Number(), r.Increment)
 
 	if err != nil {
 		return err
@@ -282,7 +272,7 @@ func (r *SyncRepository) syncVersionFiles(rVersion types.RepositoryVersion, opts
 
 }
 
-func (r SyncRepository) getRepositoryAuthor(name string, opts *Options) types.RepositoryAuthor {
+func (r *SyncRepository) getRepositoryAuthor(name string, opts *Options) types.RepositoryAuthor {
 
 	author, ok := r.Authors[name]
 
@@ -297,7 +287,7 @@ func (r SyncRepository) getRepositoryAuthor(name string, opts *Options) types.Re
 
 }
 
-func (r *SyncRepository) GetRepositoryHistory(opts *Options) (err error) {
+func (r *SyncRepository) GetRepositoryHistory() (err error) {
 
 	r.Versions, err = r.flow.GetRepositoryVersions(r.endpoint, r.Workdir, r.CurrentVersion)
 
@@ -305,10 +295,45 @@ func (r *SyncRepository) GetRepositoryHistory(opts *Options) (err error) {
 
 }
 
-func (r *SyncRepository) GetRepositoryAuthors(opts *Options) (err error) {
+func (r *SyncRepository) GetRepositoryAuthors() (err error) {
 
 	r.Authors, _ = r.flow.GetRepositoryAuthors(r.endpoint, r.Workdir, AUTHORS_FILE)
 
 	return
+
+}
+
+func (r *SyncRepository) configureLog(opts *Options) {
+
+	if opts.logger != nil {
+		r.log = opts.logger.Named("manager")
+	}
+	if r.log == nil {
+		r.log = log.NewLogger().Named("manager")
+	}
+
+}
+
+func (r *SyncRepository) configureInfobase(opts *Options) error {
+
+	if !opts.infobaseCreated {
+
+		path := opts.infobase.Path()
+		if len(path) == 0 {
+			opts.infobase = v8.NewTempIB()
+		}
+
+		CreateFileInfobase := v8.CreateFileInfobase(opts.infobase.Path())
+
+		err := Run(opts.infobase, CreateFileInfobase, opts)
+
+		if err != nil {
+			return err
+		}
+
+		opts.infobaseCreated = true
+	}
+
+	return nil
 
 }
