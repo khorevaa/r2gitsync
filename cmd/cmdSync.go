@@ -32,7 +32,7 @@ func (app *Application) cmdSync(cmd *cli.Cmd) {
 
 	flags.StringOpt("extension e ext", "", "имя расширения для работы с хранилищем расширения").
 		Env("R2GITSYNC_EXTENSION GITSYNC_EXTENSION").
-		Ptr(&repo.Extention).
+		Ptr(&repo.Extension).
 		Apply(cmd, app.ctx)
 
 	flags.StringArg("PATH", "", "Путь к хранилищу конфигурации 1С.").

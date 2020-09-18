@@ -16,6 +16,12 @@ import (
 	"time"
 )
 
+func Sync(r SyncRepository, opts ...Option) error {
+
+	return r.Sync(opts...)
+
+}
+
 type SyncRepository struct {
 	repository.Repository
 	Name     string
@@ -23,7 +29,7 @@ type SyncRepository struct {
 	Versions []types.RepositoryVersion
 	Authors  map[string]types.RepositoryAuthor
 
-	Extention      string
+	Extension      string
 	Increment      bool
 	CurrentVersion int64 `xml:"VERSION"`
 	MinVersion     int64
@@ -31,6 +37,18 @@ type SyncRepository struct {
 	endpoint       types.V8Endpoint
 	flow           flow.Flow
 	log            log.Logger
+}
+
+func (r *SyncRepository) Sync(opts ...Option) error {
+
+	options := &Options{}
+
+	for _, o := range opts {
+		o(options)
+	}
+
+	return r.sync(options)
+
 }
 
 func (r *SyncRepository) Auth(user, passowrd string) {
@@ -47,13 +65,40 @@ func (r *SyncRepository) ReadCurrentVersion() (err error) {
 	return
 }
 
+func (r *SyncRepository) GetRepositoryHistory() (err error) {
+
+	r.Versions, err = r.flow.GetRepositoryVersions(r.endpoint, r.Workdir, r.CurrentVersion)
+
+	return
+
+}
+
+func (r *SyncRepository) GetRepositoryAuthors() (err error) {
+
+	r.Authors, _ = r.flow.GetRepositoryAuthors(r.endpoint, r.Workdir, AUTHORS_FILE)
+
+	return
+
+}
+
+func (r *SyncRepository) WriteVersionFile(CurrentVersion int64) error {
+
+	data := fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
+<VERSION>%d</VERSION>`, CurrentVersion)
+
+	filename := filepath.Join(r.Workdir, VERSION_FILE)
+	err := ioutil.WriteFile(filename, []byte(data), 0644)
+
+	return err
+
+}
+
 func (r *SyncRepository) sync(opts *Options) (err error) {
 
-	r.configureLog(opts)
+	r.configure(opts)
 	r.prepareTasker(opts)
-	r.configureInfobase(opts)
-	err = r.configure(opts)
 
+	err = r.configureInfobase(opts)
 	if err != nil {
 		return err
 	}
@@ -134,69 +179,6 @@ func (r *SyncRepository) sync(opts *Options) (err error) {
 	return nil
 }
 
-func (r *SyncRepository) WriteVersionFile(CurrentVersion int64) error {
-
-	data := fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
-<VERSION>%d</VERSION>`, CurrentVersion)
-
-	filename := filepath.Join(r.Workdir, VERSION_FILE)
-	err := ioutil.WriteFile(filename, []byte(data), 0644)
-
-	return err
-
-}
-
-func (r *SyncRepository) configure(opts *Options) error {
-
-	if len(r.Name) == 0 {
-		r.Name = shortuuid.New()
-	}
-
-	r.CurrentVersion = 0
-	r.Increment = !opts.disableIncrement
-
-	return nil
-}
-func (r *SyncRepository) newEndpoint(opts *Options) *v8Endpoint {
-	return &v8Endpoint{
-		infobase:   &opts.infobase,
-		repository: &r.Repository,
-		options:    opts.Options(),
-		extention:  r.Extention,
-	}
-}
-
-func (r *SyncRepository) prepareTasker(opts *Options) {
-
-	r.flow = flow.Tasker(r.log)
-
-	if opts.plugins != nil {
-
-		r.log.Info("Using plugins for sync")
-		r.flow = flow.WithSubscribes(r.log.With(zap.String("tasker", "subscriber")), opts.plugins)
-
-	}
-
-}
-
-func (r *SyncRepository) Sync(opts ...Option) error {
-
-	options := &Options{}
-
-	for _, o := range opts {
-		o(options)
-	}
-
-	return r.sync(options)
-
-}
-
-func Sync(r SyncRepository, opts ...Option) error {
-
-	return r.Sync(opts...)
-
-}
-
 func (r *SyncRepository) syncVersionFiles(rVersion types.RepositoryVersion, opts *Options) (err error) {
 
 	tempDir, err := ioutil.TempDir(opts.tempDir, fmt.Sprintf("v%d", rVersion.Number()))
@@ -272,6 +254,85 @@ func (r *SyncRepository) syncVersionFiles(rVersion types.RepositoryVersion, opts
 
 }
 
+func (r *SyncRepository) configure(opts *Options) {
+
+	if opts.logger != nil {
+		r.log = opts.logger.Named("manager")
+	}
+	if r.log == nil {
+		r.log = log.NewLogger().Named("manager")
+	}
+
+	if len(r.Name) == 0 {
+		r.Name = shortuuid.New()
+	}
+
+	r.CurrentVersion = 0
+	r.Increment = !opts.disableIncrement
+
+}
+
+func (r *SyncRepository) prepareTasker(opts *Options) {
+
+	r.flow = flow.Tasker(r.log)
+
+	if opts.plugins != nil {
+
+		r.log.Info("Using plugins for sync")
+		r.flow = flow.WithSubscribes(r.log.With(zap.String("tasker", "subscriber")), opts.plugins)
+
+	}
+
+}
+
+func (r *SyncRepository) configureInfobase(opts *Options) error {
+
+	if !opts.infobaseCreated {
+
+		if opts.infobase == nil {
+			opts.infobase = v8.NewTempIB()
+		}
+
+		CreateFileInfobase := v8.CreateFileInfobase(opts.infobase.Path())
+
+		err := flow.Run(opts.infobase, CreateFileInfobase, opts)
+
+		if err != nil {
+			return err
+		}
+
+		if len(r.Extension) > 0 {
+
+			tempExtension, err := restoreTempExtension()
+			if err != nil {
+				return err
+			}
+
+			LoadExtensionCfg := v8.LoadExtensionCfg(tempExtension, r.Extension)
+			err = flow.Run(opts.infobase, LoadExtensionCfg, opts)
+
+			if err != nil {
+				return err
+			}
+
+		}
+
+		opts.infobaseCreated = true
+	}
+
+	return nil
+
+}
+
+func (r *SyncRepository) newEndpoint(opts *Options) *v8Endpoint {
+	return &v8Endpoint{
+		infobase:   &opts.infobase,
+		repository: &r.Repository,
+		options:    opts.Options(),
+		extention:  r.Extension,
+	}
+}
+
 func (r *SyncRepository) getRepositoryAuthor(name string, opts *Options) types.RepositoryAuthor {
 
 	author, ok := r.Authors[name]
@@ -287,53 +348,18 @@ func (r *SyncRepository) getRepositoryAuthor(name string, opts *Options) types.R
 
 }
 
-func (r *SyncRepository) GetRepositoryHistory() (err error) {
-
-	r.Versions, err = r.flow.GetRepositoryVersions(r.endpoint, r.Workdir, r.CurrentVersion)
-
-	return
-
-}
-
-func (r *SyncRepository) GetRepositoryAuthors() (err error) {
-
-	r.Authors, _ = r.flow.GetRepositoryAuthors(r.endpoint, r.Workdir, AUTHORS_FILE)
-
-	return
-
-}
-
-func (r *SyncRepository) configureLog(opts *Options) {
-
-	if opts.logger != nil {
-		r.log = opts.logger.Named("manager")
-	}
-	if r.log == nil {
-		r.log = log.NewLogger().Named("manager")
+func restoreTempExtension() (string, error) {
+	tempFile, err := ioutil.TempFile("", ".cfe")
+	defer tempFile.Close()
+	if err != nil {
+		return "", err
 	}
 
-}
+	bytes, err := Asset("tempExtension.cfe")
+	_, err = tempFile.Write(bytes)
 
-func (r *SyncRepository) configureInfobase(opts *Options) error {
-
-	if !opts.infobaseCreated {
-
-		path := opts.infobase.Path()
-		if len(path) == 0 {
-			opts.infobase = v8.NewTempIB()
-		}
-
-		CreateFileInfobase := v8.CreateFileInfobase(opts.infobase.Path())
-
-		err := Run(opts.infobase, CreateFileInfobase, opts)
-
-		if err != nil {
-			return err
-		}
-
-		opts.infobaseCreated = true
+	if err != nil {
+		return "", err
 	}
-
-	return nil
-
+	return tempFile.Name(), nil
 }

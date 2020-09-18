@@ -146,7 +146,27 @@ func (t *managerTestSuite) TestSimpleSync() {
 	logger.SetDebug()
 
 	err := repo.Sync(
-		WithInfobaseConfig(ib{}),
+		WithLogger(logger), // TODO FIX
+	)
+	t.r().NoError(err)
+
+}
+
+func (t *managerTestSuite) TestSyncExtension() {
+
+	repo := SyncRepository{
+		Name: "TestExtension",
+		Repository: repository.Repository{
+			Path: t.RepositoryPath,
+		},
+		Workdir:   t.WorkdirPath,
+		Extension: "MyExtension",
+	}
+
+	logger := log.NewLogger()
+	logger.SetDebug()
+
+	err := repo.Sync(
 		WithLogger(logger), // TODO FIX
 	)
 	t.r().NoError(err)
