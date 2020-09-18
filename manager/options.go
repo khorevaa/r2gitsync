@@ -1,6 +1,7 @@
 package manager
 
 import (
+	"github.com/khorevaa/r2gitsync/log"
 	"github.com/khorevaa/r2gitsync/plugin/subscription"
 	"github.com/v8platform/runner"
 	v8 "github.com/v8platform/v8"
@@ -18,6 +19,7 @@ type Options struct {
 	infobaseCreated  bool
 	disableIncrement bool
 	plugins          *subscription.SubscribeManager // TODO добавить менеджер плагинов
+	logger           log.Logger
 }
 
 type ib struct {
@@ -84,6 +86,16 @@ func WithDisableIncrement(disable bool) Option {
 	return func(o *Options) {
 
 		o.disableIncrement = disable
+
+	}
+
+}
+
+func WithLogger(logger log.Logger) Option {
+
+	return func(o *Options) {
+
+		o.logger = logger
 
 	}
 

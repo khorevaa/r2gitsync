@@ -1,6 +1,7 @@
 package flow
 
 import (
+	"github.com/khorevaa/r2gitsync/log"
 	"github.com/khorevaa/r2gitsync/manager/types"
 	"github.com/khorevaa/r2gitsync/plugin/subscription"
 	"time"
@@ -10,7 +11,8 @@ var _ Flow = (*subscribeTasker)(nil)
 
 type subscribeTasker struct {
 	tasker
-	pm *subscription.SubscribeManager
+	log log.Logger
+	pm  *subscription.SubscribeManager
 }
 
 func (t subscribeTasker) StartSyncVersion(v8end types.V8Endpoint, workdir string, tempdir string, number int64) {

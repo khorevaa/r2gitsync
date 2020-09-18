@@ -45,7 +45,7 @@ func (app *Application) cmdSync(cmd *cli.Cmd) {
 	//	Ptr(&repo.Repository.Path).
 	//	Apply(cmd, app.ctx)
 
-	WorkdirArg.Ptr(&repo.WorkDir).Apply(cmd, app.ctx)
+	WorkdirArg.Ptr(&repo.Workdir).Apply(cmd, app.ctx)
 
 	cmd.Spec = "[OPTIONS] PATH [WORKDIR]"
 

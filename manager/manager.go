@@ -3,30 +3,34 @@ package manager
 import (
 	"fmt"
 	"github.com/hashicorp/go-multierror"
+	"github.com/khorevaa/r2gitsync/log"
 	"github.com/khorevaa/r2gitsync/manager/flow"
 	"github.com/khorevaa/r2gitsync/manager/types"
+	"github.com/lithammer/shortuuid/v3"
 	"github.com/v8platform/designer/repository"
 	"github.com/v8platform/v8"
+	"go.uber.org/zap"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 type SyncRepository struct {
 	repository.Repository
 	Name     string
-	WorkDir  string
+	Workdir  string
 	Versions []types.RepositoryVersion
 	Authors  map[string]types.RepositoryAuthor
 
-	Extention        string
-	increment        bool
-	CurrentVersion   int64 `xml:"VERSION"`
-	MinVersion       int64
-	MaxVersion       int64
-	LimitSyncVersion int64
-	endpoint         types.V8Endpoint
-	flow             flow.Flow
+	Extention      string
+	increment      bool
+	CurrentVersion int64 `xml:"VERSION"`
+	MinVersion     int64
+	MaxVersion     int64
+	endpoint       types.V8Endpoint
+	flow           flow.Flow
+	log            log.Logger
 }
 
 func (r *SyncRepository) Auth(user, passowrd string) {
@@ -38,12 +42,28 @@ func (r *SyncRepository) Auth(user, passowrd string) {
 
 func (r *SyncRepository) ReadCurrentVersion() (err error) {
 
-	r.CurrentVersion, err = r.flow.ReadVersionFile(r.endpoint, r.WorkDir, VERSION_FILE)
+	r.CurrentVersion, err = r.flow.ReadVersionFile(r.endpoint, r.Workdir, VERSION_FILE)
 
 	return
 }
 
 func (r *SyncRepository) sync(opts *Options) (err error) {
+
+	if opts.logger != nil {
+		r.log = opts.logger.Named("manager")
+	}
+	if r.log == nil {
+		r.log = log.NewLogger().Named("manager")
+	}
+
+	if len(r.Name) == 0 {
+		r.Name = shortuuid.New()
+	}
+
+	r.log.Infow("Start sync with repository",
+		zap.String("name", r.Name),
+		zap.String("path", r.Repository.Path),
+	)
 
 	r.endpoint = &v8Endpoint{
 		infobase:   &opts.infobase,
@@ -52,20 +72,25 @@ func (r *SyncRepository) sync(opts *Options) (err error) {
 		extention:  r.Extention,
 	}
 
-	r.flow = flow.Tasker()
+	r.log.Infow("Using infobase for sync",
+		zap.String("path", opts.infobase.ConnectionString()))
+
+	r.flow = flow.Tasker(r.log)
 
 	if opts.plugins != nil {
 
-		r.flow = flow.WithSubscribes(opts.plugins)
+		r.log.Info("Using plugins for sync")
+		r.flow = flow.WithSubscribes(r.log.With(zap.String("tasker", "subscriber")), opts.plugins)
 
 	}
 
 	r.increment = !opts.disableIncrement
+	r.log.Infow("Using increment dump config to files", zap.Bool("increment", r.increment))
 
 	taskFlow := r.flow
 
-	taskFlow.StartSyncProcess(r.endpoint, r.WorkDir)
-	defer taskFlow.FinishSyncProcess(r.endpoint, r.WorkDir, &err)
+	taskFlow.StartSyncProcess(r.endpoint, r.Workdir)
+	defer taskFlow.FinishSyncProcess(r.endpoint, r.Workdir, &err)
 
 	err = r.prepare(opts)
 
@@ -74,14 +99,18 @@ func (r *SyncRepository) sync(opts *Options) (err error) {
 	}
 
 	if len(r.Versions) == 0 {
-		fmt.Printf("No versions to sync")
+		r.log.Warn("No versions to sync")
 		return nil
 	}
 
 	nextVersion := r.Versions[0].Number()
-	maxVersion := r.MaxVersion
+	err = taskFlow.ConfigureRepositoryVersions(r.endpoint, &r.Versions, &r.CurrentVersion, &nextVersion, &r.MaxVersion)
 
-	err = taskFlow.ConfigureRepositoryVersions(r.endpoint, &r.Versions, &r.CurrentVersion, &nextVersion, &maxVersion)
+	r.log.Infow("Sync version number",
+		zap.Int64("currentVersion", r.CurrentVersion),
+		zap.Int64("mexVersion", r.MaxVersion),
+		zap.Int64("nextVersion", nextVersion),
+	)
 
 	if err != nil {
 		return err
@@ -89,8 +118,13 @@ func (r *SyncRepository) sync(opts *Options) (err error) {
 
 	for _, rVersion := range r.Versions {
 
-		if r.MaxVersion != 0 && rVersion.Number() > r.MaxVersion {
+		if r.MaxVersion != 0 &&
+			rVersion.Number() > r.MaxVersion {
 			break
+		}
+
+		if nextVersion > rVersion.Number() {
+			continue
 		}
 
 		err = r.syncVersionFiles(rVersion, opts)
@@ -109,7 +143,7 @@ func (r *SyncRepository) WriteVersionFile(CurrentVersion int64) error {
 	data := fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
 <VERSION>%d</VERSION>`, CurrentVersion)
 
-	filename := filepath.Join(r.WorkDir, VERSION_FILE)
+	filename := filepath.Join(r.Workdir, VERSION_FILE)
 	err := ioutil.WriteFile(filename, []byte(data), 0644)
 
 	return err
@@ -183,51 +217,59 @@ func (r *SyncRepository) syncVersionFiles(rVersion types.RepositoryVersion, opts
 
 	flowTask := r.flow
 
-	flowTask.StartSyncVersion(r.endpoint, r.WorkDir, tempDir, rVersion.Number())
+	r.log.Infow(fmt.Sprintf("Start process sources for version %d", rVersion.Number()),
+		zap.Int64("number", rVersion.Number()))
+	startTime := time.Now()
+
+	flowTask.StartSyncVersion(r.endpoint, r.Workdir, tempDir, rVersion.Number())
 
 	defer func() {
 
-		flowTask.FinishSyncVersion(r.endpoint, r.WorkDir, tempDir, rVersion.Number(), &err)
+		flowTask.FinishSyncVersion(r.endpoint, r.Workdir, tempDir, rVersion.Number(), &err)
 
 		_ = os.RemoveAll(tempDir)
 
+		r.log.Infow(fmt.Sprintf("Finished process sources for version %d", rVersion.Number()),
+			zap.Int64("number", rVersion.Number()),
+			zap.Float64("duration", time.Since(startTime).Seconds()),
+			zap.Error(err))
 	}()
 
-	err = flowTask.UpdateCfg(r.endpoint, r.WorkDir, rVersion.Number())
+	err = flowTask.UpdateCfg(r.endpoint, r.Workdir, rVersion.Number())
 
 	if err != nil {
 		return err
 	}
 
-	err = flowTask.DumpConfigToFiles(r.endpoint, r.WorkDir, tempDir, rVersion.Number(), r.increment)
+	err = flowTask.DumpConfigToFiles(r.endpoint, r.Workdir, tempDir, rVersion.Number(), r.increment)
 
 	if err != nil {
 		return err
 	}
 
-	err = flowTask.ClearWorkDir(r.endpoint, r.WorkDir, tempDir)
+	err = flowTask.ClearWorkDir(r.endpoint, r.Workdir, tempDir)
 
 	if err != nil {
 		return err
 	}
 
-	err = flowTask.MoveToWorkDir(r.endpoint, r.WorkDir, tempDir)
+	err = flowTask.MoveToWorkDir(r.endpoint, r.Workdir, tempDir)
 
 	if err != nil {
 		return err
 	}
 
-	err = flowTask.WriteVersionFile(r.endpoint, r.WorkDir, rVersion.Number(), VERSION_FILE)
+	err = flowTask.WriteVersionFile(r.endpoint, r.Workdir, rVersion.Number(), VERSION_FILE)
 
 	if err != nil {
 		return err
 	}
 
-	err = flowTask.CommitFiles(r.endpoint, r.WorkDir, r.getRepositoryAuthor(rVersion.Author(), opts), rVersion.Date(), rVersion.Comment())
+	err = flowTask.CommitFiles(r.endpoint, r.Workdir, r.getRepositoryAuthor(rVersion.Author(), opts), rVersion.Date(), rVersion.Comment())
 
 	if err != nil {
 
-		errV := flowTask.WriteVersionFile(r.endpoint, r.WorkDir, rVersion.Number(), VERSION_FILE)
+		errV := flowTask.WriteVersionFile(r.endpoint, r.Workdir, rVersion.Number(), VERSION_FILE)
 		if errV != nil {
 			return multierror.Append(err, errV)
 		}
@@ -257,7 +299,7 @@ func (r SyncRepository) getRepositoryAuthor(name string, opts *Options) types.Re
 
 func (r *SyncRepository) GetRepositoryHistory(opts *Options) (err error) {
 
-	r.Versions, err = r.flow.GetRepositoryVersions(r.endpoint, r.WorkDir, r.CurrentVersion)
+	r.Versions, err = r.flow.GetRepositoryVersions(r.endpoint, r.Workdir, r.CurrentVersion)
 
 	return
 
@@ -265,7 +307,7 @@ func (r *SyncRepository) GetRepositoryHistory(opts *Options) (err error) {
 
 func (r *SyncRepository) GetRepositoryAuthors(opts *Options) (err error) {
 
-	r.Authors, _ = r.flow.GetRepositoryAuthors(r.endpoint, r.WorkDir, AUTHORS_FILE)
+	r.Authors, _ = r.flow.GetRepositoryAuthors(r.endpoint, r.Workdir, AUTHORS_FILE)
 
 	return
 

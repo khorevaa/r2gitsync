@@ -3,10 +3,12 @@ package flow
 import (
 	"encoding/xml"
 	"fmt"
+	"github.com/khorevaa/r2gitsync/log"
 	"github.com/khorevaa/r2gitsync/manager/types"
 	"github.com/khorevaa/r2gitsync/plugin/subscription"
 	"github.com/v8platform/designer"
 	"github.com/v8platform/designer/repository"
+	"go.uber.org/zap"
 	"io/ioutil"
 	"os"
 	"path"
@@ -21,6 +23,7 @@ var _ Flow = (*tasker)(nil)
 const ConfigDumpInfoFileName = "ConfigDumpInfo.xml"
 
 type tasker struct {
+	log log.Logger
 }
 
 func (t tasker) ConfigureRepositoryVersions(v8end types.V8Endpoint, versions *[]types.RepositoryVersion, NBegin, NNext, NMax *int64) (err error) {
@@ -47,6 +50,10 @@ func (t tasker) StartSyncProcess(v8end types.V8Endpoint, dir string) {
 
 func (t tasker) GetRepositoryVersions(v8end types.V8Endpoint, dir string, nBegin int64) (versions []types.RepositoryVersion, err error) {
 
+	t.log.Infow("Get repository versions",
+		zap.String("path", dir),
+		zap.Int64("nBegin", nBegin))
+
 	reportFile, err := ioutil.TempFile(os.TempDir(), "v8_rep_history")
 
 	if err != nil {
@@ -72,6 +79,7 @@ func (t tasker) GetRepositoryVersions(v8end types.V8Endpoint, dir string, nBegin
 		return
 	}
 
+	t.log.Debugw("Parse repository report", zap.String("file", report))
 	versions, err = parseRepositoryReport(report)
 
 	if err != nil {
@@ -207,6 +215,7 @@ func (t tasker) WithSubscribes(sm *subscription.SubscribeManager) Flow {
 
 	return subscribeTasker{
 		tasker: t,
+		log:    t.log.Named("subscription"),
 		pm:     sm,
 	}
 
@@ -218,7 +227,7 @@ func (t tasker) ReadVersionFile(end types.V8Endpoint, dir string, filename strin
 		CurrentVersion int64 `xml:"VERSION"`
 	}
 
-	fileVesrion := filename
+	fileVesrion := path.Join(dir, filename)
 
 	// Open our xmlFile
 	xmlFile, err := os.Open(fileVesrion)
@@ -234,7 +243,6 @@ func (t tasker) ReadVersionFile(end types.V8Endpoint, dir string, filename strin
 
 	// read our opened xmlFile as a byte array.
 	byteValue, _ := ioutil.ReadAll(xmlFile)
-	fmt.Println(string(byteValue))
 
 	// xmlFiles content into 'users' which we defined above
 	err = xml.Unmarshal(byteValue, &r.CurrentVersion)

@@ -13,8 +13,20 @@ type logger struct {
 	sLog *zap.SugaredLogger
 }
 
+func (log *logger) Named(name string) Logger {
+
+	nLog := log.Logger.Named(name)
+	return &logger{
+		Logger: nLog,
+		sLog:   nLog.Sugar(),
+	}
+}
+
 func (log *logger) Debug(args ...interface{}) {
 	log.sLog.Debug(args...)
+}
+func (log *logger) Debuga(msg string, fields ...zap.Field) {
+	log.Logger.Debug(msg, fields...)
 }
 
 func (log *logger) Debugf(template string, args ...interface{}) {
@@ -82,7 +94,7 @@ var defaultLogger = newLogger()
 func newLogger() *logger {
 
 	cfg := zap.NewProductionConfig()
-	log, _ := cfg.Build()
+	log, _ := cfg.Build(zap.AddCallerSkip(1))
 	sugar := log.Sugar()
 
 	return &logger{

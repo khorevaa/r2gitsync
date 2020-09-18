@@ -1,6 +1,7 @@
 package flow
 
 import (
+	"github.com/khorevaa/r2gitsync/log"
 	"github.com/khorevaa/r2gitsync/manager/types"
 	"github.com/khorevaa/r2gitsync/plugin/subscription"
 	"github.com/v8platform/errors"
@@ -32,12 +33,18 @@ type Flow interface {
 	GetRepositoryAuthors(v8end types.V8Endpoint, dir string, filenme string) (map[string]types.RepositoryAuthor, error)
 }
 
-func Tasker() Flow {
-	return tasker{}
+func Tasker(log log.Logger) Flow {
+	return newTasker(log)
 }
 
-func WithSubscribes(sm *subscription.SubscribeManager) Flow {
-	return tasker{}.WithSubscribes(sm)
+func newTasker(log log.Logger) tasker {
+	return tasker{
+		log: log.Named("tasks"),
+	}
+}
+
+func WithSubscribes(log log.Logger, sm *subscription.SubscribeManager) Flow {
+	return newTasker(log).WithSubscribes(sm)
 }
 
 func run(where runner.Infobase, what runner.Command, opts ...interface{}) error {

@@ -12,6 +12,7 @@ func SetDebug() {
 
 type Logger interface {
 	Debug(args ...interface{})
+	Debuga(msg string, fields ...zap.Field)
 	Debugf(template string, args ...interface{})
 	Debugw(msg string, keysAndValues ...interface{})
 	Error(args ...interface{})
@@ -23,8 +24,9 @@ type Logger interface {
 	Info(args ...interface{})
 	Infof(template string, args ...interface{})
 	Infow(msg string, keysAndValues ...interface{})
-
+	Named(name string) Logger
 	With(fields ...interface{}) Logger
+	SetDebug()
 }
 
 // Debuga uses fmt.Sprint to construct and log a message at debug level.
