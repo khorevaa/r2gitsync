@@ -43,11 +43,18 @@ type configApp struct {
 	TempDir          string
 	Workspace        string
 	disableIncrement bool
+	workdir			 string
+	Storage struct {
+		Path 			string
+		User            string
+		Password        string
+		Extension		string
+	}
 }
 
-func NewApp(version string) *Application {
+var config = &configApp{}
 
-	config := &configApp{}
+func NewApp(version string) *Application {
 
 	app := &Application{
 		config: config,
@@ -119,17 +126,7 @@ func NewApp(version string) *Application {
 }
 
 func (app *Application) cmdInit(cmd *cli.Cmd) {
-
-	cmd.LongDesc = `Данный режим работает по HTTP (REST API) с базой данных.
-		Возможности:
-		* самостоятельно получает список информационных баз к обновления;
-		* поддержание нескольких потоков обновления
-		* переодический/разовый опрос необходимости обновления
-		* отправка журнала обновления на url.`
-
-	cmd.Action = func() {
-		//fmt.Printf("display account info for %s\n", *account)
-	}
+	app.CmdInit2(cmd)
 }
 
 func loadPlugins() {

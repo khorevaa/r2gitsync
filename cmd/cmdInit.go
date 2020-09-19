@@ -2,19 +2,65 @@ package cmd
 
 import (
 	cli "github.com/jawher/mow.cli"
+	"github.com/khorevaa/r2gitsync/cmd/flags"
 )
 
 // Sample use: vault creds reddit.com
 func (app *Application) CmdInit2(cmd *cli.Cmd) {
 
-	cmd.LongDesc = `Данный режим работает по HTTP (REST API) с базой данных.
-		Возможности:
-		* самостоятельно получает список информационных баз к обновления;
-		* поддержание нескольких потоков обновления
-		* переодический/разовый опрос необходимости обновления
-		* отправка журнала обновления на url.`
+	cmd.Spec = "PATH WORKDIR [ -U=<storage-user> ] [ -P=<storage-pwd> ] [ -E=<extension> ]"
+
+	cmd.LongDesc = `Инициализация структуры нового хранилища git. Подготовка к синхронизации`
+
+	flags.StringArg("PATH",
+		"",
+		"Путь к хранилищу конфигурации 1С.").
+		Env("GITSYNC_STORAGE_USER").
+		Ptr(&config.Storage.Path).Apply(cmd, app.ctx)
+
+	flags.StringArg("WORKDIR",
+		"",
+		" Адрес локального репозитория GIT.\n" +
+			"Каталог исходников внутри локальной копии git-репозитория. По умолчанию текущий каталог").
+		Env("GITSYNC_WORKDIR").
+		Ptr(&config.workdir).Apply(cmd, app.ctx)
+
+	flags.StringOpt("U storage-user",
+		"Администратор",
+		"пользователь хранилища конфигурации (env $GITSYNC_STORAGE_USER) (по умолчанию Администратор)").
+		Env("GITSYNC_STORAGE_USER").
+		Ptr(&config.Storage.User).Apply(cmd, app.ctx)
+
+	flags.StringOpt("E ext extension",
+		"",
+		"пароль пользователя хранилища конфигурации (env $GITSYNC_STORAGE_PASSWORD, $GITSYNC_STORAGE_PWD)").
+		Env("GITSYNC_STORAGE_PASSWORD $GITSYNC_STORAGE_PWD").
+		Ptr(&config.Storage.User).Apply(cmd, app.ctx)
+
+	flags.StringOpt("P storage-pwd",
+		"",
+		" имя расширения для работы с хранилищем расширения (env $GITSYNC_EXTENSION)").
+		Env("GITSYNC_EXTENSION").
+		Ptr(&config.Storage.User).Apply(cmd, app.ctx)
+	//
 
 	cmd.Action = func() {
-		//fmt.Printf("display account info for %s\n", *account)
+		initProject()
 	}
 }
+
+func initProject() {
+	createFileAutors()
+	CreateFileVersion()
+}
+
+func CreateFileVersion() {
+	// Get storage user
+
+	// Vrite storage user to Autors
+}
+
+func createFileAutors() {
+	// Create file Version
+}
+
