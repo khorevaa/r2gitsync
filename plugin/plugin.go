@@ -1,114 +1,157 @@
 package plugin
 
 import (
-	"github.com/micro/cli/v2"
-	"net/http"
+	"github.com/hashicorp/go-multierror"
+	"github.com/khorevaa/r2gitsync/cmd/flags"
+	"github.com/khorevaa/r2gitsync/context"
+	"github.com/khorevaa/r2gitsync/log"
+	"github.com/khorevaa/r2gitsync/plugin/subscription"
+	. "github.com/khorevaa/r2gitsync/plugin/types"
+	"github.com/pkg/errors"
+	"sort"
+	"strings"
 )
 
 // Plugin is the interface for plugins to micro. It differs from go-micro in that it's for
 // the micro API, Web, Sidecar, CLI. It's a method of building middleware for the HTTP side.
-type Plugin interface {
+type Symbol interface {
+
 	// Global Flags
-	Flags() []cli.Flag
-	// Sub-commands
-	Commands() []*cli.Command
-	// Handle is the middleware handler for HTTP requests. We pass in
-	// the existing handler so it can be wrapped to create a call chain.
-	Handler() Handler
-	// Init called when command line args are parsed.
-	// The initialised cli.Context is passed in.
-	Init(*cli.Context) error
+	Flags() []flags.Flag
+	// Sub-modules
+	Modules() []string
+
 	// Name of the plugin
 	String() string
+	Desc() string
+	Version() string
+	ShortVersion() string
+	Name() string
+	Init() Plugin
+}
+
+type Plugin interface {
+	Subscribe(ctx context.Context) Subscriber
 }
 
 // Manager is the plugin manager which stores plugins and allows them to be retrieved.
 // This is used by all the components of micro.
 type Manager interface {
-	Plugins(...PluginOption) []Plugin
-	Register(Plugin, ...PluginOption) error
+	Plugins() []RegisteredPlugin
+	Register(plugin Symbol) error
+	IsRegistered(name string) bool
+	RegisterFlags(command string, cmd command, ctx context.Context)
+	Enable(name string)
+	Disable(name string)
 }
 
-type PluginOptions struct {
-	Module string
-}
+type RegisteredPluginList map[string]RegisteredPlugin
 
-type PluginOption func(o *PluginOptions)
+func (pl RegisteredPluginList) Items() (arr []RegisteredPlugin) {
 
-// Module will scope the plugin to a specific module, e.g. the "api"
-func Module(m string) PluginOption {
-	return func(o *PluginOptions) {
-		o.Module = m
-	}
-}
+	//arr = make([]RegisteredPlugin, len(pl))
 
-// Handler is the plugin middleware handler which wraps an existing http.Handler passed in.
-// Its the responsibility of the Handler to call the next http.Handler in the chain.
-type Handler func(http.Handler) http.Handler
-
-type plugin struct {
-	opts    Options
-	init    func(ctx *cli.Context) error
-	handler Handler
-}
-
-func (p *plugin) Flags() []cli.Flag {
-	return p.opts.Flags
-}
-
-func (p *plugin) Commands() []*cli.Command {
-	return p.opts.Commands
-}
-
-func (p *plugin) Handler() Handler {
-	return p.handler
-}
-
-func (p *plugin) Init(ctx *cli.Context) error {
-	return p.opts.Init(ctx)
-}
-
-func (p *plugin) String() string {
-	return p.opts.Name
-}
-
-func newPlugin(opts ...Option) Plugin {
-	options := Options{
-		Name: "default",
-		Init: func(ctx *cli.Context) error { return nil },
+	for _, registeredPlugin := range pl {
+		arr = append(arr, registeredPlugin)
 	}
 
-	for _, o := range opts {
-		o(&options)
-	}
+	sort.Slice(arr, func(i, j int) bool {
+		return arr[i].Name() < arr[j].Name()
+	})
 
-	handler := func(hdlr http.Handler) http.Handler {
-		for _, h := range options.Handlers {
-			hdlr = h(hdlr)
+	return
+}
+
+func (pl RegisteredPluginList) Find(id string) RegisteredPlugin {
+
+	return pl[id]
+}
+
+func (pl RegisteredPluginList) ByModule(moduleName string) []RegisteredPlugin {
+
+	var arr []RegisteredPlugin
+
+	for _, registeredPlugin := range pl {
+		for _, mod := range registeredPlugin.Modules() {
+			if strings.EqualFold(mod, moduleName) {
+				arr = append(arr, registeredPlugin)
+			}
 		}
-		return hdlr
 	}
 
-	return &plugin{
-		opts:    options,
-		handler: handler,
+	return arr
+}
+
+func (pl RegisteredPluginList) changeEnable(name string, enable bool) {
+
+	rp, ok := pl[name]
+	rp.Enable = enable
+	if ok {
+		pl[name] = rp
 	}
+
+}
+
+func (pl RegisteredPluginList) Enable(name string) {
+
+	pl.changeEnable(name, true)
+
+}
+
+func (pl RegisteredPluginList) Disable(name string) {
+
+	pl.changeEnable(name, false)
+
+}
+
+type RegisteredPlugin struct {
+	Symbol
+	Enable bool
 }
 
 // Plugins lists the global plugins
-func Plugins(opts ...PluginOption) []Plugin {
-	return defaultManager.Plugins(opts...)
+func Plugins() []RegisteredPlugin {
+	return defaultManager.Plugins()
 }
 
 // Register registers a global plugins
-func Register(plugin Plugin, opts ...PluginOption) error {
-	return defaultManager.Register(plugin, opts...)
+func Register(names ...Symbol) error {
+
+	mErr := &multierror.Error{}
+
+	for _, name := range names {
+		err := defaultManager.Register(name)
+		log.Debugw("Register plugin", "name", name.Name(), "version", name.Version())
+		mErr = multierror.Append(mErr, errors.Wrapf(err, "plugin <%s>", name))
+	}
+
+	return mErr.ErrorOrNil()
 }
 
-// IsRegistered check plugin whether registered global.
-// Notice plugin is not check whether is nil
-func IsRegistered(plugin Plugin, opts ...PluginOption) bool {
-	return defaultManager.isRegistered(plugin, opts...)
+// Enable a global plugins
+func Enable(names ...string) {
+
+	for _, name := range names {
+		defaultManager.Enable(name)
+	}
+}
+
+// Disable a global plugins
+func Disable(names ...string) {
+
+	for _, name := range names {
+		defaultManager.Disable(name)
+	}
+}
+
+func RegistryFlags(modName string, cmd command, ctx context.Context) {
+
+	defaultManager.RegisterFlags(modName, cmd, ctx)
+
+}
+
+func Subscribe(modName string, ctx context.Context) (*subscription.SubscribeManager, error) {
+	return defaultManager.Subscribe(modName, ctx)
 }
 
 // NewManager creates a new plugin manager
@@ -116,7 +159,23 @@ func NewManager() Manager {
 	return newManager()
 }
 
-// NewPlugin makes it easy to create a new plugin
-func NewPlugin(opts ...Option) Plugin {
-	return newPlugin(opts...)
+func Subscription(handlers ...interface{}) Subscriber {
+
+	return subscriber{
+		handlers: handlers,
+	}
+}
+
+func LoadPlugins(dir string) error {
+
+	loader := NewPluginsLoader(dir)
+
+	err := loader.LoadPlugins(false)
+
+	if err != nil {
+		return err
+	}
+
+	return Register(loader.Plugins()...)
+
 }

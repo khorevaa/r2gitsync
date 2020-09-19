@@ -8,15 +8,17 @@ env:
 before:
   hooks:
     - go mod tidy
+    - go get -u github.com/go-bindata/go-bindata/...
+    - go-bindata -pkg manager -o ./manager/bindata.go -prefix bin/ ./bin
 builds:
   - env:
       - CGO_ENABLED=0
     goos:
-      - linux
-    #      - darwin
-      - windows
+#      - linux
+      - darwin
+#      - windows
     goarch:
-      - 386
+#      - 386
       - amd64
 #      - arm
 #      - arm64

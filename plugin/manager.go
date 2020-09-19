@@ -2,15 +2,53 @@ package plugin
 
 import (
 	"fmt"
+	"github.com/hashicorp/go-multierror"
+	"github.com/khorevaa/r2gitsync/cmd/flags"
+	"github.com/khorevaa/r2gitsync/context"
+	"github.com/khorevaa/r2gitsync/plugin/subscription"
 	"sync"
 )
 
-const defaultModule = "r2gitsync"
-
 type manager struct {
 	sync.Mutex
-	plugins    map[string][]Plugin
-	registered map[string]map[string]bool
+
+	modules    map[string]pluginsModule
+	registered RegisteredPluginList // тут х
+
+}
+
+type pluginsModule struct {
+	sync.Mutex
+	manager *manager
+	id      string
+	sm      *subscription.SubscribeManager
+}
+
+func (m *manager) Subscribe(module string, ctx context.Context) (*subscription.SubscribeManager, error) {
+
+	mErr := &multierror.Error{}
+
+	sm := subscription.NewSubscribeManager()
+
+	for _, pl := range m.registered.ByModule(module) {
+
+		if !pl.Enable {
+			continue
+		}
+
+		p := pl.Init()
+
+		err := sm.Subscribe(p, ctx)
+
+		mErr = multierror.Append(mErr, err)
+
+	}
+
+	if err := mErr.ErrorOrNil(); err != nil {
+		return nil, err
+	}
+
+	return sm, nil
 }
 
 var (
@@ -20,68 +58,85 @@ var (
 
 func newManager() *manager {
 	return &manager{
-		plugins:    make(map[string][]Plugin),
-		registered: make(map[string]map[string]bool),
+		registered: make(RegisteredPluginList),
 	}
 }
 
-func (m *manager) Plugins(opts ...PluginOption) []Plugin {
-	options := PluginOptions{Module: defaultModule}
-	for _, o := range opts {
-		o(&options)
-	}
+func (m *manager) Plugins() []RegisteredPlugin {
 
 	m.Lock()
 	defer m.Unlock()
 
-	if plugins, ok := m.plugins[options.Module]; ok {
-		return plugins
-	}
-	return []Plugin{}
+	return m.registered.Items()
 }
 
-func (m *manager) Register(plugin Plugin, opts ...PluginOption) error {
-	options := PluginOptions{Module: defaultModule}
-	for _, o := range opts {
-		o(&options)
-	}
+func (m *manager) Register(sym Symbol) error {
 
 	m.Lock()
 	defer m.Unlock()
 
-	name := plugin.String()
-
-	if reg, ok := m.registered[options.Module]; ok && reg[name] {
-		return fmt.Errorf("Plugin with name %s already registered", name)
+	if _, ok := m.registered[sym.Name()]; ok {
+		return fmt.Errorf("plugin with name %s already registered", sym.Name())
 	}
 
-	if _, ok := m.registered[options.Module]; !ok {
-		m.registered[options.Module] = map[string]bool{name: true}
-	} else {
-		m.registered[options.Module][name] = true
-	}
-
-	if _, ok := m.plugins[options.Module]; ok {
-		m.plugins[options.Module] = append(m.plugins[options.Module], plugin)
-	} else {
-		m.plugins[options.Module] = []Plugin{plugin}
+	m.registered[sym.Name()] = RegisteredPlugin{
+		sym,
+		true,
 	}
 
 	return nil
 }
 
-func (m *manager) isRegistered(plugin Plugin, opts ...PluginOption) bool {
-	options := PluginOptions{Module: defaultModule}
-	for _, o := range opts {
-		o(&options)
-	}
+func (m *manager) IsRegistered(name string) bool {
 
 	m.Lock()
 	defer m.Unlock()
 
-	if _, ok := m.registered[options.Module]; !ok {
-		return false
+	if _, ok := m.registered[name]; ok {
+		return true
 	}
 
-	return m.registered[options.Module][plugin.String()]
+	return false
+
+}
+
+func (m *manager) Enable(name string) {
+
+	m.Lock()
+	defer m.Unlock()
+
+	m.registered.Enable(name)
+
+}
+
+func (m *manager) Disable(name string) {
+
+	m.Lock()
+	defer m.Unlock()
+
+	m.registered.Disable(name)
+
+}
+
+func (m *manager) RegisterFlags(module string, cmd command, ctx context.Context) {
+
+	plugins := m.registered.ByModule(module)
+
+	for _, pl := range plugins {
+
+		registryFlags(pl.Flags(), cmd, ctx)
+
+	}
+
+	return
+}
+
+func registryFlags(flag []flags.Flag, cmd command, ctx context.Context) {
+
+	for _, f := range flag {
+
+		f.Apply(cmd, ctx)
+
+	}
+
 }

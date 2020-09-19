@@ -1,0 +1,17 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="go build github.com/khorevaa/r2gitsync" type="GoApplicationRunConfiguration" factoryName="Go Application" nameIsGenerated="true">
+    <module name="r2gitsync" />
+    <working_directory value="$PROJECT_DIR$" />
+    <parameters value="--debug p ls -a" />
+    <envs>
+      <env name="R2GITSYNC_DISABLE_PLUGINS" value="test2" />
+      <env name="GITSYNC_V8VERSION" value="8.3" />
+    </envs>
+    <kind value="PACKAGE" />
+    <filePath value="$PROJECT_DIR$/main.go" />
+    <package value="github.com/khorevaa/r2gitsync" />
+    <directory value="$PROJECT_DIR$" />
+    <output_directory value="$PROJECT_DIR$/out" />
+    <method v="2" />
+  </configuration>
+</component>
