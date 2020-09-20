@@ -8,6 +8,7 @@ import (
 	"github.com/khorevaa/r2gitsync/log"
 	"github.com/khorevaa/r2gitsync/plugin"
 	p "github.com/khorevaa/r2gitsync/plugins"
+	"github.com/v8platform/designer/repository"
 	"io/ioutil"
 	"os"
 	"path"
@@ -44,12 +45,7 @@ type configApp struct {
 	Workspace        string
 	disableIncrement bool
 	workdir          string
-	Storage          struct {
-		Path      string
-		User      string
-		Password  string
-		Extension string
-	}
+	Repository       *repository.Repository
 }
 
 func NewApp(version string) *Application {
