@@ -18,3 +18,5 @@ out/
 test_sync/
 # Dependency directories (remove the comment below to include it)
 # vendor/
+tests/fixtures/ver
+tests/fixtures/cache
