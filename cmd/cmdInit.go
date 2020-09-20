@@ -8,41 +8,39 @@ import (
 // Sample use: vault creds reddit.com
 func (app *Application) CmdInit2(cmd *cli.Cmd) {
 
-	cmd.Spec = "PATH WORKDIR [ -U=<storage-user> ] [ -P=<storage-pwd> ] [ -E=<extension> ]"
-
+	cmd.Spec = "[ -U=<storage-user> ] [ -P=<storage-pwd> ] [ -E=<extension> ] PATH WORKDIR"
 	cmd.LongDesc = `Инициализация структуры нового хранилища git. Подготовка к синхронизации`
+
+	flags.StringOpt("U storage-user",
+		"Администратор",
+		"пользователь хранилища конфигурации").
+		Env("GITSYNC_STORAGE_USER").
+		Ptr(&app.config.Storage.User).Apply(cmd, app.ctx)
+
+	flags.StringOpt("P storage-pwd",
+		"",
+		"пароль пользователя хранилища конфигурации").
+		Env("GITSYNC_STORAGE_PASSWORD $GITSYNC_STORAGE_PWD").
+		Ptr(&app.config.Storage.Password).Apply(cmd, app.ctx)
+
+	flags.StringOpt(" E ext extension",
+		"",
+		" имя расширения для работы с хранилищем расширения").
+		Env("GITSYNC_EXTENSION").
+		Ptr(&app.config.Storage.Extension).Apply(cmd, app.ctx)
 
 	flags.StringArg("PATH",
 		"",
 		"Путь к хранилищу конфигурации 1С.").
 		Env("GITSYNC_STORAGE_USER").
-		Ptr(&config.Storage.Path).Apply(cmd, app.ctx)
+		Ptr(&app.config.Storage.Path).Apply(cmd, app.ctx)
 
 	flags.StringArg("WORKDIR",
-		"",
-		" Адрес локального репозитория GIT.\n" +
+		".",
+		" Адрес локального репозитория GIT.\n"+
 			"Каталог исходников внутри локальной копии git-репозитория. По умолчанию текущий каталог").
 		Env("GITSYNC_WORKDIR").
-		Ptr(&config.workdir).Apply(cmd, app.ctx)
-
-	flags.StringOpt("U storage-user",
-		"Администратор",
-		"пользователь хранилища конфигурации (env $GITSYNC_STORAGE_USER) (по умолчанию Администратор)").
-		Env("GITSYNC_STORAGE_USER").
-		Ptr(&config.Storage.User).Apply(cmd, app.ctx)
-
-	flags.StringOpt("E ext extension",
-		"",
-		"пароль пользователя хранилища конфигурации (env $GITSYNC_STORAGE_PASSWORD, $GITSYNC_STORAGE_PWD)").
-		Env("GITSYNC_STORAGE_PASSWORD $GITSYNC_STORAGE_PWD").
-		Ptr(&config.Storage.User).Apply(cmd, app.ctx)
-
-	flags.StringOpt("P storage-pwd",
-		"",
-		" имя расширения для работы с хранилищем расширения (env $GITSYNC_EXTENSION)").
-		Env("GITSYNC_EXTENSION").
-		Ptr(&config.Storage.User).Apply(cmd, app.ctx)
-	//
+		Ptr(&app.config.workdir).Apply(cmd, app.ctx)
 
 	cmd.Action = func() {
 		initProject()
@@ -63,4 +61,3 @@ func CreateFileVersion() {
 func createFileAutors() {
 	// Create file Version
 }
-

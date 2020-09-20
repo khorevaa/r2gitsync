@@ -43,19 +43,18 @@ type configApp struct {
 	TempDir          string
 	Workspace        string
 	disableIncrement bool
-	workdir			 string
-	Storage struct {
-		Path 			string
-		User            string
-		Password        string
-		Extension		string
+	workdir          string
+	Storage          struct {
+		Path      string
+		User      string
+		Password  string
+		Extension string
 	}
 }
 
-var config = &configApp{}
-
 func NewApp(version string) *Application {
 
+	var config = &configApp{}
 	app := &Application{
 		config: config,
 	}
