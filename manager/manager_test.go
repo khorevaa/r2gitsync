@@ -43,10 +43,12 @@ func (t *managerTestSuite) BeforeTest(suite, testName string) {
 
 }
 
-func (t *managerTestSuite) TearDownTest() {
-
+func (t *managerTestSuite) TearDownSuite() {
 	os.RemoveAll(t.RepositoryPath)
 	os.RemoveAll(t.WorkdirPath)
+}
+
+func (t *managerTestSuite) TearDownTest() {
 
 }
 func (t *managerTestSuite) SetupSuite() {

@@ -9,6 +9,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/jawher/mow.cli v1.2.0
 	github.com/lithammer/shortuuid/v3 v3.0.4
+	github.com/loctools/go-l10n v0.0.0-20191031185225-4f8f121cf651 // indirect
 	github.com/mattn/go-colorable v0.1.7 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d
 	github.com/mitchellh/go-homedir v1.1.0
