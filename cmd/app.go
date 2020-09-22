@@ -8,6 +8,7 @@ import (
 	"github.com/khorevaa/r2gitsync/log"
 	"github.com/khorevaa/r2gitsync/plugin"
 	p "github.com/khorevaa/r2gitsync/plugins"
+	"github.com/v8platform/designer/repository"
 	"io/ioutil"
 	"os"
 	"path"
@@ -43,12 +44,13 @@ type configApp struct {
 	TempDir          string
 	Workspace        string
 	disableIncrement bool
+	workdir          string
+	Repository       *repository.Repository
 }
 
 func NewApp(version string) *Application {
 
-	config := &configApp{}
-
+	var config = &configApp{}
 	app := &Application{
 		config: config,
 	}
@@ -119,17 +121,7 @@ func NewApp(version string) *Application {
 }
 
 func (app *Application) cmdInit(cmd *cli.Cmd) {
-
-	cmd.LongDesc = `Данный режим работает по HTTP (REST API) с базой данных.
-		Возможности:
-		* самостоятельно получает список информационных баз к обновления;
-		* поддержание нескольких потоков обновления
-		* переодический/разовый опрос необходимости обновления
-		* отправка журнала обновления на url.`
-
-	cmd.Action = func() {
-		//fmt.Printf("display account info for %s\n", *account)
-	}
+	app.CmdInit2(cmd)
 }
 
 func loadPlugins() {
