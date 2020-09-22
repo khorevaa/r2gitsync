@@ -20,6 +20,7 @@ type Options struct {
 	disableIncrement bool
 	plugins          *subscription.SubscribeManager // TODO добавить менеджер плагинов
 	logger           log.Logger
+	ForceInit        bool
 }
 
 type ib struct {
@@ -86,6 +87,16 @@ func WithDisableIncrement(disable bool) Option {
 	return func(o *Options) {
 
 		o.disableIncrement = disable
+
+	}
+
+}
+
+func WithForceInit(force bool) Option {
+
+	return func(o *Options) {
+
+		o.ForceInit = force
 
 	}
 

@@ -22,6 +22,12 @@ func Sync(r SyncRepository, opts ...Option) error {
 
 }
 
+func Init(r SyncRepository, opts ...Option) error {
+
+	return r.Init(opts...)
+
+}
+
 type SyncRepository struct {
 	repository.Repository
 	Name     string
@@ -93,7 +99,7 @@ func (r *SyncRepository) WriteVersionFile(CurrentVersion int64) error {
 
 }
 
-func (r *SyncRepository) sync(opts *Options) (err error) {
+func (r *SyncRepository) init(opts *Options) (err error) {
 
 	r.configure(opts)
 	r.prepareTasker(opts)
@@ -104,6 +110,17 @@ func (r *SyncRepository) sync(opts *Options) (err error) {
 	}
 
 	r.endpoint = r.newEndpoint(opts)
+
+	return nil
+
+}
+
+func (r *SyncRepository) sync(opts *Options) (err error) {
+
+	err = r.init(opts)
+	if err != nil {
+		return err
+	}
 
 	r.log.Infow("Start sync with repository",
 		zap.String("name", r.Name),

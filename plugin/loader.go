@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
 	"regexp"
 
 	pm "plugin"
@@ -47,7 +47,7 @@ func (pl *PluginsLoader) LoadPlugins(force bool) error {
 	}
 
 	for _, cmdPlugin := range plugins {
-		pluginFile, err := pm.Open(path.Join(pl.dir, cmdPlugin.Name()))
+		pluginFile, err := pm.Open(filepath.Join(pl.dir, cmdPlugin.Name()))
 		if err != nil {
 			fmt.Printf("failed to open pluginFile %s: %v\n", cmdPlugin.Name(), err)
 			continue
@@ -73,7 +73,7 @@ func listFiles(dir, pattern string) ([]os.FileInfo, error) {
 		return nil, err
 	}
 
-	filteredFiles := []os.FileInfo{}
+	var filteredFiles []os.FileInfo
 	for _, file := range files {
 		if file.IsDir() {
 			continue

@@ -11,7 +11,6 @@ import (
 	"go.uber.org/zap"
 	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -97,7 +96,7 @@ func (t tasker) GetRepositoryAuthors(v8end types.V8Endpoint, dir string, filenam
 
 	authors := make(map[string]types.RepositoryAuthor)
 
-	file := path.Join(dir, filename)
+	file := filepath.Join(dir, filename)
 	if ok, _ := Exists(file); !ok {
 
 		return authors, nil
@@ -148,7 +147,7 @@ func (t tasker) DumpConfigToFiles(endpoint types.V8Endpoint, dir string, tempdir
 	var configDumpInfoFile = ""
 
 	if update {
-		configDumpInfoFile = path.Join(dir, ConfigDumpInfoFileName)
+		configDumpInfoFile = filepath.Join(dir, ConfigDumpInfoFileName)
 
 		if ok, _ := Exists(configDumpInfoFile); !ok {
 			update = false
@@ -227,7 +226,7 @@ func (t tasker) ReadVersionFile(end types.V8Endpoint, dir string, filename strin
 		CurrentVersion int64 `xml:"VERSION"`
 	}
 
-	fileVesrion := path.Join(dir, filename)
+	fileVesrion := filepath.Join(dir, filename)
 
 	// Open our xmlFile
 	xmlFile, err := os.Open(fileVesrion)
