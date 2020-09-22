@@ -6,22 +6,16 @@ import (
 	"github.com/khorevaa/r2gitsync/cmd/flags"
 	"github.com/khorevaa/r2gitsync/context"
 	"github.com/khorevaa/r2gitsync/log"
-	"github.com/khorevaa/r2gitsync/plugin"
-	p "github.com/khorevaa/r2gitsync/plugins"
-	"io/ioutil"
-	"os"
-	"path"
-	"strings"
+	"path/filepath"
 )
 
 const (
-	disabledPluginsFileName = "disabled-plugins"
-	appDirName              = ".r2gitsync"
+	appDirName = ".r2gitsync"
 )
 
 var (
-	appDirPwd     = path.Join(pwd, appDirName)
-	pluginsDirPwd = path.Join(appDirPwd, "plugins")
+	appDirPwd     = filepath.Join(pwd, appDirName)
+	pluginsDirPwd = filepath.Join(appDirPwd, "plugins")
 )
 
 type Application struct {
@@ -44,17 +38,23 @@ type configApp struct {
 	Workspace        string
 	disableIncrement bool
 	DomainEmail      string
+	Plugins          struct {
+		GlobalDir string
+		LocalDir  string
+	}
 }
 
 func NewApp(version string) *Application {
 
 	config := &configApp{}
 
+	initPluginsDirs(config)
+	loadPlugins(config)
+	loadDisabledPlugins(config)
+
 	app := &Application{
 		config: config,
 	}
-	loadPlugins()
-	disablePlugins()
 
 	app.Cli = cli.App("r2gitsync", "Синхронизация 1С Хранилища с git")
 	app.ctx = context.NewContext()
@@ -82,7 +82,7 @@ func NewApp(version string) *Application {
 	flags.StringOpt("t tempdir", "", "путь к каталогу временных файлов").
 		Env("GITSYNC_TEMP GITSYNC_TEMPDIR").
 		Ptr(&config.TempDir).Apply(app, app.ctx)
-	flags.BoolOpt("debug", false, "Bывод отладочной информации").
+	flags.BoolOpt("debug", false, "вывод отладочной информации").
 		Env(VersobeEnv).
 		Ptr(&config.Debug).Apply(app, app.ctx)
 
@@ -109,70 +109,43 @@ func NewApp(version string) *Application {
 	app.Command("set-version sv", "Устанавливает необходимую версию в файл VERSION", app.cmdSetVersion)
 	app.Command("plugins p", "Управление плагинами", func(pluginsCmd *cli.Cmd) {
 		pluginsCmd.Command("list ls", "Вывод списка плагинов", app.cmdPluginsList)
-		pluginsCmd.Command("enable e", "Активизация установленных плагинов", app.cmdPlugins)
-		pluginsCmd.Command("disable d", "Деактивизация установленных плагинов", app.cmdPlugins)
-		pluginsCmd.Command("install i", "Установка новых плагинов", app.cmdPlugins)
-		pluginsCmd.Command("clear c", "Очистка установленных плагинов", app.cmdPlugins)
-		pluginsCmd.Command("init", "Инициализация предустановленных плагинов", app.cmdPlugins)
+		pluginsCmd.Command("enable e", "Активизация установленных плагинов", app.cmdPluginsEnable)
+		pluginsCmd.Command("disable d", "Деактивизация установленных плагинов", app.cmdPluginsDisable)
+		pluginsCmd.Command("install i", "Установка новых плагинов", app.cmdPluginsInstall)
+		pluginsCmd.Command("clear c", "Очистка установленных плагинов", app.cmdPluginsClear)
 	})
 
 	return app
 }
 
-func loadPlugins() {
+func initPluginsDirs(config *configApp) {
 
-	pluginsDir := getEnv(PluginsDirEnv)
+	appDataDir := getAppDataDir("r2gitsync")
+	config.Plugins.GlobalDir = filepath.Join(appDataDir, "plugins")
 
-	if len(pluginsDir) == 0 {
-		appDataDir := getAppDataDir("r2gitsync")
-		pluginsDir = path.Join(appDataDir, "plugins")
+	localDir := getEnv(PluginsDirEnv)
+
+	if len(localDir) == 0 {
+		localDir = pluginsDirPwd
 	}
 
-	if ok, _ := IsNoExist(pluginsDir); ok {
-		return
-	}
-
-	err := plugin.LoadPlugins(pluginsDir)
-	failOnErr(err)
-
-	plugin.Register(p.Plugins...)
+	config.Plugins.LocalDir = localDir
 
 }
 
-func getEnv(envs ...string) string {
+func loadPlugins(config *configApp) {
 
-	for _, env := range envs {
-
-		keys := strings.Fields(env)
-
-		for _, key := range keys {
-			value := strings.TrimSpace(os.Getenv(key))
-
-			if len(value) > 0 {
-				return value
-			}
-		}
-
-	}
-
-	return ""
+	loadInternalPlugins()
+	loadGlobalPlugins(config.Plugins.GlobalDir)
+	loadLocalPlugins(config.Plugins.LocalDir)
 
 }
 
-func disablePlugins() {
+func loadDisabledPlugins(config *configApp) {
 
-	pl := getEnv("R2GITSYNC_DISABLE_PLUGINS")
-	plugin.Disable(strings.Split(pl, ",")...)
-
-	filename := path.Join(appDirPwd, disabledPluginsFileName)
-	if ok, _ := Exists(filename); ok {
-		content, err := ioutil.ReadFile(filename)
-		if err != nil {
-			failOnErr(err)
-		}
-		lines := strings.Split(string(content), "\n")
-		plugin.Disable(lines...)
-
-	}
+	loadGlobalDisabledPlugins(config.Plugins.GlobalDir)
+	loadLocalDisabledPlugins(config.Plugins.LocalDir)
+	loadLocalEnabledPlugins(config.Plugins.LocalDir)
+	loadDisabledPluginsEnv()
 
 }
