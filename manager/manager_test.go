@@ -14,7 +14,6 @@ import (
 	"github.com/v8platform/designer/tests"
 	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
 	"testing"
 )
@@ -84,8 +83,8 @@ func (t *managerTestSuite) preRepository() {
 
 	t.RepositoryPath, _ = ioutil.TempDir("", "1c_repo")
 
-	srcRepositoryFile := path.Join(pwd, "..", "tests", "fixtures", "1cv8ddb.1CD")
-	dstRepoFile := path.Join(t.RepositoryPath, "1cv8ddb.1CD")
+	srcRepositoryFile := filepath.Join(pwd, "..", "tests", "fixtures", "1cv8ddb.1CD")
+	dstRepoFile := filepath.Join(t.RepositoryPath, "1cv8ddb.1CD")
 
 	err := flow.CopyFile(srcRepositoryFile, dstRepoFile)
 	t.r().NoError(err)
