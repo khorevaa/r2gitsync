@@ -70,6 +70,10 @@ func (app *Application) cmdPluginsEnable(cmd *cli.Cmd) {
 		Ptr(&all).
 		Apply(cmd, app.ctx)
 
+	flags.BoolOpt("save", false, "сохранить включенность плагина").
+		Ptr(&all).
+		Apply(cmd, app.ctx)
+
 	flags.BoolOpt("g global", false, "использовать глобальное хранилище плагинов").
 		Ptr(&global).
 		Apply(cmd, app.ctx)
