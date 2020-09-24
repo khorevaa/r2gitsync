@@ -42,7 +42,7 @@ func (o *Options) Options() []runner.Option {
 	return []runner.Option{
 		v8.WithPath(o.v8Path),
 		v8.WithVersion(o.v8version),
-		v8.WithCommonValues([]string{"/DisableStartupDialogs", "/DisableStartupDialogs"}),
+		v8.WithCommonValues([]string{"/DisableStartupDialogs", "/DisableStartupMessages"}),
 	}
 
 }

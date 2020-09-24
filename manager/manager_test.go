@@ -184,7 +184,7 @@ func TestFeatures(t *testing.T) {
 
 	opts := godog.Options{
 		Format: "pretty",
-		Paths:  []string{"features/sync.feature"},
+		Paths:  []string{"features/sync-ext.feature"},
 		//ShowStepDefinitions: true,
 		//StopOnFailure: true,
 		Strict: true,

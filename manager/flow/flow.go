@@ -47,7 +47,7 @@ func WithSubscribes(log log.Logger, sm *subscription.SubscribeManager) Flow {
 	return newTasker(log).WithSubscribes(sm)
 }
 
-func Run(where runner.Infobase, what runner.Command, opts ...interface{}) error {
+func Run(where runner.Infobase, what runner.Command, opts []interface{}) error {
 
 	err := v8.Run(where, what, opts...,
 	//	v8.WithTempDir(opts.tempDir), // TODO Сделать для запуска временный катиалог

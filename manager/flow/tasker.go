@@ -72,7 +72,7 @@ func (t tasker) GetRepositoryVersions(v8end types.V8Endpoint, dir string, nBegin
 		GroupByComment().
 		WithRepository(*v8end.Repository())
 
-	err = Run(*v8end.Infobase(), RepositoryReportOptions, v8end.Options()...)
+	err = Run(*v8end.Infobase(), RepositoryReportOptions, v8end.Options())
 
 	if err != nil {
 		return
@@ -133,7 +133,7 @@ func (t tasker) UpdateCfg(v8end types.V8Endpoint, workDir string, number int64) 
 		Extension: v8end.Extention(),
 	}.WithRepository(*v8end.Repository())
 
-	err = Run(*v8end.Infobase(), RepositoryUpdateCfgOptions, v8end.Options()...)
+	err = Run(*v8end.Infobase(), RepositoryUpdateCfgOptions, v8end.Options())
 
 	return
 }

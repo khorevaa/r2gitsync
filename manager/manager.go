@@ -8,6 +8,7 @@ import (
 	"github.com/khorevaa/r2gitsync/manager/types"
 	"github.com/lithammer/shortuuid/v3"
 	"github.com/v8platform/designer/repository"
+	"github.com/v8platform/runner"
 	v8 "github.com/v8platform/v8"
 	"go.uber.org/zap"
 	"io/ioutil"
@@ -314,7 +315,7 @@ func (r *SyncRepository) configureInfobase(opts *Options) error {
 
 		CreateFileInfobase := v8.CreateFileInfobase(opts.infobase.Path())
 
-		err := flow.Run(opts.infobase, CreateFileInfobase, opts)
+		err := flow.Run(opts.infobase, CreateFileInfobase, toInterface(opts.Options()))
 
 		if err != nil {
 			return err
@@ -328,7 +329,7 @@ func (r *SyncRepository) configureInfobase(opts *Options) error {
 			}
 
 			LoadExtensionCfg := v8.LoadExtensionCfg(tempExtension, r.Extension)
-			err = flow.Run(opts.infobase, LoadExtensionCfg, opts)
+			err = flow.Run(opts.infobase, LoadExtensionCfg, toInterface(opts.Options()))
 
 			if err != nil {
 				return err
@@ -381,4 +382,18 @@ func restoreTempExtension() (string, error) {
 		return "", err
 	}
 	return tempFile.Name(), nil
+}
+
+func toInterface(options []runner.Option) []interface{} {
+
+	var opts []interface{}
+
+	for _, o := range options {
+
+		opts = append(opts, o)
+
+	}
+
+	return opts
+
 }
