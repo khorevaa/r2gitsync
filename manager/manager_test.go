@@ -367,8 +367,8 @@ func (s *managerTestSuite) doSync() error {
 		Workdir: s.WorkdirPath,
 	}
 
-	logger := log.NewLogger()
-	logger.SetDebug()
+	//logger := log.NewLogger()
+	//logger.SetDebug()
 
 	err := repo.Sync(
 		//WithLogger(logger), // TODO FIX
@@ -391,12 +391,12 @@ func (s *managerTestSuite) doSyncExt(extension string) error {
 		Extension: extension,
 		Workdir:   s.WorkdirPath,
 	}
-
-	logger := log.NewLogger()
-	logger.SetDebug()
+	//
+	//logger := log.NewLogger()
+	//logger.SetDebug()
 
 	err := repo.Sync(
-		WithLogger(logger), // TODO FIX
+		//WithLogger(logger), // TODO FIX
 		WithV8version(s.v8Version),
 	)
 

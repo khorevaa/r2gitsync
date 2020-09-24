@@ -81,7 +81,7 @@ func (r *SyncRepository) GetRepositoryHistory() (err error) {
 
 func (r *SyncRepository) GetRepositoryAuthors() (err error) {
 
-	r.Authors, _ = r.flow.GetRepositoryAuthors(r.endpoint, r.Workdir, AUTHORS_FILE)
+	r.Authors, err = r.flow.GetRepositoryAuthors(r.endpoint, r.Workdir, AUTHORS_FILE)
 
 	return
 
@@ -279,7 +279,7 @@ func (r *SyncRepository) configure(opts *Options) {
 		r.log = opts.logger.Named("manager")
 	}
 	if r.log == nil {
-		r.log = log.NewLogger().Named("manager")
+		r.log = log.NullLogger.Named("manager")
 	}
 
 	if len(r.Name) == 0 {

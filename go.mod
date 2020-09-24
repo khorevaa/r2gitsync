@@ -4,14 +4,11 @@ go 1.14
 
 require (
 	github.com/cucumber/godog v0.10.0
-	github.com/go-bdd/gobdd v1.1.1
-	github.com/go-bindata/go-bindata v3.1.2+incompatible // indirect
 	github.com/go-git/go-billy/v5 v5.0.0
 	github.com/go-git/go-git/v5 v5.1.0
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/jawher/mow.cli v1.2.0
 	github.com/lithammer/shortuuid/v3 v3.0.4
-	github.com/loctools/go-l10n v0.0.0-20191031185225-4f8f121cf651 // indirect
 	github.com/mattn/go-colorable v0.1.7 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d
 	github.com/mitchellh/go-homedir v1.1.0

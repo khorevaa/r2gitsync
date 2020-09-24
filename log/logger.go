@@ -5,8 +5,77 @@ import (
 )
 
 var _ Logger = (*logger)(nil)
+var _ Logger = (*nullLogger)(nil)
+
+var NullLogger = nullLogger{}
 
 //var _ Logger = (*zap.SugaredLogger)(nil)
+
+type nullLogger struct{}
+
+func (n nullLogger) Debug(args ...interface{}) {
+
+}
+
+func (n nullLogger) Debuga(msg string, fields ...zap.Field) {
+
+}
+
+func (n nullLogger) Debugf(template string, args ...interface{}) {
+
+}
+
+func (n nullLogger) Debugw(msg string, keysAndValues ...interface{}) {
+
+}
+
+func (n nullLogger) Error(args ...interface{}) {
+
+}
+
+func (n nullLogger) Errorf(template string, args ...interface{}) {
+
+}
+
+func (n nullLogger) Errorw(msg string, keysAndValues ...interface{}) {
+
+}
+
+func (n nullLogger) Warn(args ...interface{}) {
+
+}
+
+func (n nullLogger) Warnf(template string, args ...interface{}) {
+
+}
+
+func (n nullLogger) Warnw(msg string, keysAndValues ...interface{}) {
+
+}
+
+func (n nullLogger) Info(args ...interface{}) {
+
+}
+
+func (n nullLogger) Infof(template string, args ...interface{}) {
+
+}
+
+func (n nullLogger) Infow(msg string, keysAndValues ...interface{}) {
+
+}
+
+func (n nullLogger) Named(name string) Logger {
+	return n
+}
+
+func (n nullLogger) With(fields ...interface{}) Logger {
+	return n
+}
+
+func (n nullLogger) SetDebug() {
+
+}
 
 type logger struct {
 	*zap.Logger
