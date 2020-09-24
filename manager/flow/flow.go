@@ -20,7 +20,7 @@ type Flow interface {
 	FinishSyncProcess(v8end types.V8Endpoint, dir string, err *error)
 
 	UpdateCfg(v8end types.V8Endpoint, workDir string, number int64) (err error)
-	DumpConfigToFiles(v8end types.V8Endpoint, dir string, temp string, number int64, update bool) error
+	DumpConfigToFiles(v8end types.V8Endpoint, dir string, temp string, number int64, update bool) (bool, error)
 
 	ClearWorkDir(v8end types.V8Endpoint, dir string, tempDir string) error
 	MoveToWorkDir(v8end types.V8Endpoint, dir string, tempDir string) error

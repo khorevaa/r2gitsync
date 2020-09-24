@@ -1,0 +1,36 @@
+package features
+
+import (
+	"github.com/cucumber/godog"
+	"github.com/cucumber/messages-go/v10"
+)
+
+type simpleFeatrue struct {
+}
+
+func (a *simpleFeatrue) iSendrequestTo(method, endpoint string) error {
+	return godog.ErrPending
+}
+
+func (a *simpleFeatrue) theResponseCodeShouldBe(code int) error {
+	return godog.ErrPending
+}
+
+func (a *simpleFeatrue) theResponseShouldMatchJSON(body *godog.DocString) error {
+	return godog.ErrPending
+}
+
+func InitializeScenario(s *godog.ScenarioContext {
+
+
+	simple := &simpleFeatrue{}
+
+	s.Step(`^Я очищаю параметры команды "([^"]*)" в контексте$`, simple.StepDefinitioninition1)
+	s.Step(`^Вывод команды "([^"]*)" содержит$`, simple.StepDefinitioninition12)
+	s.Step(`^я включаю отладку лога с именем "([^"]*)"$`, StepDefinitioninition2)
+	s.Step(`^Я выполняю команду "([^"]*)" с параметрами "([^"]*)"$`, StepDefinitioninition3)
+	s.Step(`^Я сообщаю вывод команды "([^"]*)"$`, StepDefinitioninition4)
+	s.Step(`^я вижу в консоли строку подобно "([^"]*)"$`, StepDefinitioninition5)
+	s.Step(`^Вывод команды "([^"]*)" не содержит "([^"]*)"$`, StepDefinitioninition6)
+	s.Step(`^Код возврата команды "([^"]*)" равен (\d+)$`, StepDefinitioninition7)
+}

@@ -56,7 +56,18 @@ func CommitFiles(dir string, author types.RepositoryAuthor, when time.Time, comm
 		return err
 	}
 
-	_ = w.AddGlob(dir)
+	err = w.RemoveGlob(".")
+
+	if err != nil {
+		return err
+	}
+
+	//pattern := "**/!(*.git)*.*"
+	err = w.AddGlob(".")
+
+	if err != nil {
+		return err
+	}
 
 	c, err := w.Commit(comment, &git.CommitOptions{
 		All: true,

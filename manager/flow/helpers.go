@@ -162,6 +162,25 @@ func IsNoExist(name string) (bool, error) {
 	return !ok, err
 }
 
+func checkChangesFile(filename string) (bool, error) {
+	// Open our xmlFile
+	file, err := os.Open(filename)
+	// if we os.Open returns an error then handle it
+	if err != nil {
+		return false, err
+	}
+
+	// defer the closing of our xmlFile so that we can parse it later on
+	defer file.Close()
+
+	// read our opened xmlFile as a byte array.
+	byteValue, _ := ioutil.ReadAll(file)
+
+	fullDump := bytes.Contains(byteValue, []byte("FullDump"))
+
+	return !fullDump, nil
+}
+
 func clearDir(dir string, skipFiles ...string) error {
 
 	files, err := ioutil.ReadDir(dir)
@@ -176,7 +195,17 @@ func clearDir(dir string, skipFiles ...string) error {
 			continue
 		}
 
-		os.Remove(f.Name())
+		if f.IsDir() {
+			err := clearDir(filepath.Join(dir, file), skipFiles...)
+			if err != nil {
+				return err
+			}
+		}
+
+		err := os.Remove(filepath.Join(dir, file))
+		if err != nil {
+			return err
+		}
 		//fmt.Println(f.Name())
 	}
 

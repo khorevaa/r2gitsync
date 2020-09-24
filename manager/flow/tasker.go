@@ -142,15 +142,46 @@ func (t tasker) FinishSyncVersion(endpoint types.V8Endpoint, workdir string, tem
 	return
 }
 
-func (t tasker) DumpConfigToFiles(endpoint types.V8Endpoint, dir string, tempdir string, number int64, update bool) error {
+func (t tasker) DumpConfigToFiles(endpoint types.V8Endpoint, dir string, tempdir string, number int64, doUpdate bool) (bool, error) {
 
 	var configDumpInfoFile = ""
 
-	if update {
+	if doUpdate {
 		configDumpInfoFile = filepath.Join(dir, ConfigDumpInfoFileName)
 
 		if ok, _ := Exists(configDumpInfoFile); !ok {
-			update = false
+			doUpdate = false
+			configDumpInfoFile = ""
+		}
+	}
+
+	if doUpdate {
+
+		tempfile, _ := ioutil.TempFile("", ".txt")
+
+		changesFile := tempfile.Name()
+
+		tempfile.Close()
+
+		getChangesForConfigDumpOptions := designer.GetChangesForConfigDumpOptions{
+			Dir:                      tempdir,
+			Force:                    true,
+			GetChanges:               changesFile,
+			Extension:                endpoint.Extention(),
+			ConfigDumpInfoForChanges: configDumpInfoFile,
+		}
+
+		err := Run(*endpoint.Infobase(), getChangesForConfigDumpOptions, endpoint.Options())
+
+		if err != nil {
+			return false, err
+		}
+
+		doUpdate, err = checkChangesFile(changesFile)
+		if err != nil {
+			return false, err
+		}
+		if !doUpdate {
 			configDumpInfoFile = ""
 		}
 	}
@@ -158,7 +189,7 @@ func (t tasker) DumpConfigToFiles(endpoint types.V8Endpoint, dir string, tempdir
 	DumpConfigToFilesOptions := designer.DumpConfigToFilesOptions{
 		Dir:                      tempdir,
 		Force:                    true,
-		Update:                   update,
+		Update:                   doUpdate,
 		Extension:                endpoint.Extention(),
 		ConfigDumpInfoForChanges: configDumpInfoFile,
 	}
@@ -166,9 +197,9 @@ func (t tasker) DumpConfigToFiles(endpoint types.V8Endpoint, dir string, tempdir
 	err := Run(*endpoint.Infobase(), DumpConfigToFilesOptions, endpoint.Options())
 
 	if err != nil {
-		return err
+		return false, err
 	}
-	return nil
+	return doUpdate, err
 
 }
 

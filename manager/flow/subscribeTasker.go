@@ -31,14 +31,14 @@ func (t subscribeTasker) FinishSyncProcess(v8end types.V8Endpoint, dir string, e
 	t.pm.SyncProcess.Finish(v8end, dir, err)
 }
 
-func (t subscribeTasker) DumpConfigToFiles(v8end types.V8Endpoint, dir string, temp string, number int64, update bool) error {
+func (t subscribeTasker) DumpConfigToFiles(v8end types.V8Endpoint, dir string, temp string, number int64, update bool) (bool, error) {
 
 	h := t.pm.DumpConfigToFiles
 
 	err := h.Before(v8end, dir, temp, number, &update)
 
 	if err != nil {
-		return err
+		return update, err
 	}
 
 	stdHandler := true
@@ -46,16 +46,16 @@ func (t subscribeTasker) DumpConfigToFiles(v8end types.V8Endpoint, dir string, t
 	err = h.On(v8end, dir, temp, number, &update, &stdHandler)
 
 	if err != nil {
-		return err
+		return update, err
 	}
 
 	if stdHandler {
-		err = t.tasker.DumpConfigToFiles(v8end, dir, temp, number, update)
+		update, err = t.tasker.DumpConfigToFiles(v8end, dir, temp, number, update)
 	}
 
 	err = h.After(v8end, dir, temp, number, update)
 
-	return err
+	return update, err
 }
 
 func (t subscribeTasker) ClearWorkDir(v8end types.V8Endpoint, dir string, temp string) error {

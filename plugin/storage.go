@@ -309,9 +309,9 @@ func getPluginsFromEnv(env string) (pl []string, err error) {
 func getPluginsFromFile(file string) (pl []string, err error) {
 
 	if ok, _ := Exists(file); ok {
-		content, err := ioutil.ReadFile(file)
-		if err != nil {
-			return
+		content, err2 := ioutil.ReadFile(file)
+		if err2 != nil {
+			return pl, err2
 		}
 		lines := strings.Split(string(content), "\n")
 

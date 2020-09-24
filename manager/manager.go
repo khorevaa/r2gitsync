@@ -230,16 +230,18 @@ func (r *SyncRepository) syncVersionFiles(rVersion types.RepositoryVersion, opts
 		return err
 	}
 
-	err = flowTask.DumpConfigToFiles(r.endpoint, r.Workdir, tempDir, rVersion.Number(), r.Increment)
+	update, err := flowTask.DumpConfigToFiles(r.endpoint, r.Workdir, tempDir, rVersion.Number(), r.Increment)
 
 	if err != nil {
 		return err
 	}
 
-	err = flowTask.ClearWorkDir(r.endpoint, r.Workdir, tempDir)
+	if !update {
+		err = flowTask.ClearWorkDir(r.endpoint, r.Workdir, tempDir)
 
-	if err != nil {
-		return err
+		if err != nil {
+			return err
+		}
 	}
 
 	err = flowTask.MoveToWorkDir(r.endpoint, r.Workdir, tempDir)
