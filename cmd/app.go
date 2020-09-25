@@ -22,6 +22,8 @@ type Application struct {
 	*cli.Cli
 	config *configApp
 	ctx    context.Context
+
+	PanicOnErr bool
 }
 
 type configApp struct {
@@ -44,14 +46,17 @@ type configApp struct {
 	}
 }
 
-func NewApp(version string) *Application {
+func NewApp(version string, initPlugins bool) *Application {
 
 	config := &configApp{}
 
-	initPluginsDirs(config)
-	loadPlugins(config)
-	loadDisabledPlugins(config)
+	if initPlugins {
 
+		initPluginsDirs(config)
+		loadPlugins(config)
+		loadDisabledPlugins(config)
+
+	}
 	app := &Application{
 		config: config,
 	}
@@ -70,7 +75,7 @@ func NewApp(version string) *Application {
 	flags.StringOpt("v8-path v8path", "", "путь к исполняемому файлу платформы 1С (Например, /opt/1C/v8.3/x86_64/1cv8)").
 		Env(V8PathEnv).
 		Ptr(&config.v8path).Apply(app, app.ctx)
-	flags.StringOpt("U ib-author ib-usr db-author", "", "пользователь информационной базы").
+	flags.StringOpt("U ib-user ib-usr", "", "пользователь информационной базы").
 		Env("GITSYNC_IB_USR GITSYNC_IB_USER GITSYNC_DB_USER").
 		Ptr(&config.Infobase.User).Apply(app, app.ctx)
 	flags.StringOpt("P ib-pwd db-pwd", "", "пароль пользователя информационной базы").
@@ -99,7 +104,10 @@ func NewApp(version string) *Application {
 
 	}
 
-	app.After = func() {}
+	app.After = func() {
+		log.Debug("after app")
+
+	}
 
 	app.ErrorHandling = flag.ExitOnError
 

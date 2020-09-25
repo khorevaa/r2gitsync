@@ -26,6 +26,7 @@ type Logger interface {
 	Infow(msg string, keysAndValues ...interface{})
 	Named(name string) Logger
 	With(fields ...interface{}) Logger
+	Panic(args ...interface{})
 	SetDebug()
 }
 
@@ -129,10 +130,20 @@ func With(fields ...interface{}) Logger {
 	return defaultLogger.With(fields...)
 }
 
+// Panic uses fmt.Sprint to construct and log a message, then panics.
+func Panic(args ...interface{}) {
+	defaultLogger.sLog.Panic(args...)
+}
+
 // Sync flushes any buffered log entries.
 // Processes should normally take care to call Sync before exiting.
 // This call is a wrapper around [logger.Sync](https://godoc.org/go.uber.org/zap#logger.Sync)
 func Sync() error {
 	return defaultLogger.Sync()
 
+}
+
+func Named(name string) Logger {
+
+	return defaultLogger.Named(name)
 }

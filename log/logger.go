@@ -13,6 +13,9 @@ var NullLogger = nullLogger{}
 
 type nullLogger struct{}
 
+func (n nullLogger) Panic(args ...interface{}) {
+}
+
 func (n nullLogger) Debug(args ...interface{}) {
 
 }
@@ -144,6 +147,11 @@ func (log *logger) Infof(template string, args ...interface{}) {
 
 func (log *logger) Infow(msg string, keysAndValues ...interface{}) {
 	log.sLog.Infow(msg, keysAndValues...)
+}
+
+// Panic uses fmt.Sprint to construct and log a message, then panics.
+func (log *logger) Panic(args ...interface{}) {
+	log.sLog.Panic(args...)
 }
 
 func (log *logger) With(args ...interface{}) Logger {

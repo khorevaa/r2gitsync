@@ -21,6 +21,7 @@ type Context interface {
 	Duration(name string) time.Duration
 	Bool(name string) bool
 	Int(name string) int
+	String(name string) string
 }
 
 func NewContext() Context {

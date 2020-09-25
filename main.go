@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	cli "github.com/jawher/mow.cli"
 	"github.com/khorevaa/r2gitsync/cmd"
+	"github.com/khorevaa/r2gitsync/log"
 	"os"
 )
 
@@ -16,9 +18,17 @@ var (
 
 func main() {
 
-	App := cmd.NewApp(buildVersion())
-	_ = App.Run(os.Args)
+	App := cmd.NewApp(buildVersion(), true)
+	err := App.Run(os.Args)
+	failOnErr(err)
 
+}
+
+func failOnErr(err error) {
+	if err != nil {
+		log.Errorf("Ошибка выполненния программы: %v \n", err.Error())
+		cli.Exit(1)
+	}
 }
 
 func buildVersion() string {

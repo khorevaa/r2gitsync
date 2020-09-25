@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"errors"
 	cli "github.com/jawher/mow.cli"
 	"github.com/khorevaa/r2gitsync/cmd/flags"
+	"github.com/khorevaa/r2gitsync/log"
 	"github.com/khorevaa/r2gitsync/manager"
 	"github.com/khorevaa/r2gitsync/plugin"
 	"github.com/khorevaa/r2gitsync/plugin/subscription"
@@ -47,7 +49,7 @@ func (app *Application) cmdSync(cmd *cli.Cmd) {
 
 	WorkdirArg.Ptr(&repo.Workdir).Apply(cmd, app.ctx)
 
-	cmd.Spec = "[OPTIONS] PATH [WORKDIR]"
+	cmd.Spec = "[OPTIONS] [PATH] [WORKDIR]"
 
 	var sm *subscription.SubscribeManager
 	cmd.Before = func() {
@@ -56,6 +58,12 @@ func (app *Application) cmdSync(cmd *cli.Cmd) {
 	}
 
 	cmd.Action = func() {
+
+		if len(repo.Repository.Path) == 0 {
+
+			app.failOnErr(errors.New("путь к репозиторию должен быть установлен"))
+
+		}
 
 		err := manager.Sync(repo,
 			manager.WithInfobaseConfig(app.config.Infobase),
@@ -66,9 +74,10 @@ func (app *Application) cmdSync(cmd *cli.Cmd) {
 			manager.WithPlugins(sm),
 			manager.WithDisableIncrement(app.config.disableIncrement),
 			manager.WithDomainEmail(app.config.DomainEmail),
+			manager.WithLogger(log.Named("cmd")),
 		)
 
-		failOnErr(err)
+		app.failOnErr(err)
 
 	}
 

@@ -65,7 +65,7 @@ func (app *Application) cmdInit(cmd *cli.Cmd) {
 			manager.WithForceInit(force),
 		)
 
-		failOnErr(err)
+		app.failOnErr(err)
 
 	}
 

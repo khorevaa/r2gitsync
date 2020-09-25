@@ -51,6 +51,9 @@ func (t subscribeTasker) DumpConfigToFiles(v8end types.V8Endpoint, dir string, t
 
 	if stdHandler {
 		update, err = t.tasker.DumpConfigToFiles(v8end, dir, temp, number, update)
+		if err != nil {
+			return update, err
+		}
 	}
 
 	err = h.After(v8end, dir, temp, number, update)
@@ -77,6 +80,9 @@ func (t subscribeTasker) ClearWorkDir(v8end types.V8Endpoint, dir string, temp s
 
 	if stdHandler {
 		err = t.tasker.ClearWorkDir(v8end, dir, temp)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = h.After(v8end, dir, temp)
@@ -102,6 +108,9 @@ func (t subscribeTasker) MoveToWorkDir(v8end types.V8Endpoint, dir string, temp 
 
 	if stdHandler {
 		err = t.tasker.MoveToWorkDir(v8end, dir, temp)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = h.After(v8end, dir, temp)
@@ -129,6 +138,9 @@ func (t subscribeTasker) WriteVersionFile(v8end types.V8Endpoint, dir string, nu
 
 	if stdHandler {
 		err = t.tasker.WriteVersionFile(v8end, dir, number, filename)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = h.After(v8end, dir, number, filename)
@@ -156,6 +168,9 @@ func (t subscribeTasker) ReadVersionFile(v8end types.V8Endpoint, dir string, fil
 
 	if stdHandler {
 		number, err = t.tasker.ReadVersionFile(v8end, dir, filename)
+		if err != nil {
+			return 0, err
+		}
 	}
 
 	err = h.After(v8end, dir, filename, &number)
@@ -187,6 +202,10 @@ func (t subscribeTasker) CommitFiles(v8end types.V8Endpoint, dir string, author 
 
 	if stdHandler {
 		err = t.tasker.CommitFiles(v8end, dir, author, when, comment)
+		if err != nil {
+			return err
+		}
+
 	}
 
 	err = h.After(v8end, dir, author, when, comment)
@@ -213,6 +232,9 @@ func (t subscribeTasker) GetRepositoryVersions(v8end types.V8Endpoint, dir strin
 
 	if stdHandler {
 		rv, err = t.tasker.GetRepositoryVersions(v8end, dir, NBegin)
+		if err != nil {
+			return
+		}
 	}
 
 	err = h.After(v8end, dir, NBegin, &rv)
@@ -251,6 +273,9 @@ func (t subscribeTasker) GetRepositoryAuthors(v8end types.V8Endpoint, dir string
 
 	if stdHandler {
 		ra, err = t.tasker.GetRepositoryAuthors(v8end, dir, filenme)
+		if err != nil {
+			return
+		}
 	}
 
 	err = h.After(v8end, dir, &ra)
@@ -278,6 +303,9 @@ func (t subscribeTasker) UpdateCfg(v8end types.V8Endpoint, workDir string, numbe
 
 	if stdHandler {
 		err = t.tasker.UpdateCfg(v8end, workDir, number)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = UpdateCfg.After(v8end, workDir, number)

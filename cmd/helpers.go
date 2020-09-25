@@ -25,6 +25,16 @@ func failOnErr(err error) {
 	}
 }
 
+func (app *Application) failOnErr(err error) {
+	if err != nil {
+		log.Errorf("Ошибка выполненния программы: %v \n", err.Error())
+		if app.PanicOnErr {
+			panic(err)
+		}
+		cli.Exit(1)
+	}
+}
+
 func Exists(name string) (bool, error) {
 	_, err := os.Stat(name)
 	if os.IsNotExist(err) {

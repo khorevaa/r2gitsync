@@ -10,12 +10,15 @@ import (
 type Option func(*Options)
 
 type Options struct {
-	tempDir          string
-	v8Path           string
-	v8version        string
-	licTryCount      int
-	domainEmail      string
-	infobase         v8.Infobase
+	tempDir     string
+	v8Path      string
+	v8version   string
+	licTryCount int
+	domainEmail string
+	infobase    v8.Infobase
+	auth        struct {
+		user, password string
+	}
 	infobaseCreated  bool
 	disableIncrement bool
 	plugins          *subscription.SubscribeManager // TODO добавить менеджер плагинов
@@ -43,6 +46,7 @@ func (o *Options) Options() []runner.Option {
 		v8.WithPath(o.v8Path),
 		v8.WithVersion(o.v8version),
 		v8.WithCommonValues([]string{"/DisableStartupDialogs", "/DisableStartupMessages"}),
+		v8.WithCredentials(o.auth.user, o.auth.password),
 	}
 
 }
@@ -62,7 +66,9 @@ func WithInfobase(connString, user, password string) Option {
 			return
 		}
 
-		o.infobase = syncInfobase(connString, user, password)
+		o.infobase = getSyncInfobase(connString)
+		o.auth.user = user
+		o.auth.password = password
 		o.infobaseCreated = true
 	}
 
