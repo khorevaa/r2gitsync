@@ -114,6 +114,10 @@ func Plugins() []RegisteredPlugin {
 	return defaultManager.Plugins()
 }
 
+func Clear() {
+	defaultManager = newManager()
+}
+
 // Register registers a global plugins
 func Register(names ...Symbol) error {
 

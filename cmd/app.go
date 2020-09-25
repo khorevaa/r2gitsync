@@ -23,7 +23,8 @@ type Application struct {
 	config *configApp
 	ctx    context.Context
 
-	PanicOnErr bool
+	PanicOnErr  bool
+	initPlugins bool
 }
 
 type configApp struct {

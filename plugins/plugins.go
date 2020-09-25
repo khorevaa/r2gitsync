@@ -25,7 +25,4 @@ func init() {
 
 var Plugins = []plugin.Symbol{
 	limit.NewPlugin,
-	plugin.NewPlugin("test", "1.0.0+f8sd8fa", "test plugins", func() plugin.Plugin {
-		return &limit.LimitPlugin{}
-	}, plugin.WithModule("init", "sync")),
 }

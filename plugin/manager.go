@@ -1,7 +1,6 @@
 package plugin
 
 import (
-	"fmt"
 	"github.com/hashicorp/go-multierror"
 	"github.com/khorevaa/r2gitsync/cmd/flags"
 	"github.com/khorevaa/r2gitsync/context"
@@ -75,9 +74,9 @@ func (m *manager) Register(sym Symbol) error {
 	m.Lock()
 	defer m.Unlock()
 
-	if _, ok := m.registered[sym.Name()]; ok {
-		return fmt.Errorf("plugin with name %s already registered", sym.Name())
-	}
+	//if _, ok := m.registered[sym.Name()]; ok {
+	//	return fmt.Errorf("plugin with name %s already registered", sym.Name())
+	//}
 
 	m.registered[sym.Name()] = RegisteredPlugin{
 		sym,
