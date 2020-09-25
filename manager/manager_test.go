@@ -9,6 +9,7 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/cache"
 	"github.com/go-git/go-git/v5/storage/filesystem"
+	"github.com/khorevaa/r2gitsync/internal/bdd"
 	"github.com/khorevaa/r2gitsync/log"
 	"github.com/khorevaa/r2gitsync/manager/flow"
 	"github.com/stretchr/testify/require"
@@ -180,29 +181,13 @@ func (s *managerTestSuite) TestSyncExtension() {
 
 }
 
-func TestFeatures(t *testing.T) {
+func (s *managerTestSuite) TestFeatures() {
 
-	opts := godog.Options{
-		Format: "pretty",
-		Paths:  []string{"features/sync-ext.feature"},
-		//ShowStepDefinitions: true,
-		//StopOnFailure: true,
-		Strict: true,
-		//Concurrency: 1,
+	err := bdd.Run([]string{"features"},
+		InitializeTestSuite,
+		InitializeScenario)
 
-	}
-
-	// godog v0.10.0 (latest)
-	status := godog.TestSuite{
-		Name:                 "godogs",
-		TestSuiteInitializer: InitializeTestSuite,
-		ScenarioInitializer:  InitializeScenario,
-		Options:              &opts,
-	}.Run()
-
-	if status > 0 {
-		t.Fail()
-	}
+	s.r().NoError(err)
 
 }
 
