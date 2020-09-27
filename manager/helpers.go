@@ -27,7 +27,6 @@ func getSyncInfobase(connString string) v8.Infobase {
 	if len(connString) == 0 {
 		return v8.NewTempIB()
 	}
-	// TODO Сделать получение базы для выполнения из connetionStr
 	return syncInfobase{
 		connString: connString,
 	}

@@ -1,13 +1,10 @@
-package plugin
+package config
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	pm "plugin"
 	"strings"
-	"sync"
 )
 
 const (
@@ -16,7 +13,7 @@ const (
 	envSepKey               = ","
 )
 
-type PluginsConfig interface {
+type Config interface {
 	Disable(name ...string)
 	Enable(name ...string)
 
@@ -28,9 +25,8 @@ type PluginsConfig interface {
 }
 
 type FilePluginsConfig struct {
-	Dir      string
-	Filename string
-
+	Dir        string
+	Filename   string
 	IdxEnable  map[string]bool
 	IdxDisable map[string]bool
 }
@@ -140,6 +136,14 @@ func (s *FilePluginsConfig) changeEnable(name string, enable bool) {
 
 }
 
+func Exists(name string) (bool, error) {
+	_, err := os.Stat(name)
+	if os.IsNotExist(err) {
+		return false, err
+	}
+	return true, nil
+}
+
 func (s *FilePluginsConfig) loadPluginsState() {
 
 	fileEnable := filepath.Join(s.Dir, enabledPluginsFileName)
@@ -170,142 +174,6 @@ func (s *FilePluginsConfig) loadPluginsState() {
 
 }
 
-type PluginStorage interface {
-	Load() error
-	Install(filename string) error
-	Delete(name string) error
-	List() []StoragePlugin
-	Clear() error
-	Registry(m *manager) error
-}
-
-type StoragePlugin struct {
-	Symbol
-	File string
-	hash string
-}
-
-type FilePluginStorage struct {
-	mu  sync.Mutex
-	Dir string
-	Idx map[string]StoragePlugin
-}
-
-func NewFilePluginStorage(dir string) *FilePluginStorage {
-
-	return &FilePluginStorage{
-		Dir: dir,
-		Idx: make(map[string]StoragePlugin),
-	}
-}
-
-func (s *FilePluginStorage) Install(filename string) error {
-
-	return nil
-
-}
-
-func (s *FilePluginStorage) Delete(name string) error {
-
-	return nil
-
-}
-
-func (s *FilePluginStorage) Registry(mng *manager) error {
-
-	for _, storagePlugin := range s.Idx {
-		_ = mng.Register(storagePlugin)
-	}
-
-	return nil
-}
-
-func (s *FilePluginStorage) List() (ls []StoragePlugin) {
-
-	for _, storagePlugin := range s.Idx {
-		ls = append(ls, storagePlugin)
-	}
-
-	return
-}
-
-func (s *FilePluginStorage) Load() error {
-
-	if len(s.Dir) == 0 {
-		return nil
-	}
-	if _, err := os.Stat(s.Dir); err != nil {
-		return err
-	}
-
-	plugins, err := listFiles(s.Dir, `*.so`)
-	if err != nil {
-		return err
-	}
-
-	for _, cmdPlugin := range plugins {
-		plFile := filepath.Join(s.Dir, cmdPlugin.Name())
-		pluginFile, err := pm.Open(plFile)
-		if err != nil {
-			fmt.Printf("failed to open pluginFile %s: %v\n", cmdPlugin.Name(), err)
-			continue
-		}
-		pluginSymbol, err := pluginFile.Lookup(pluginSymbolName)
-		if err != nil {
-			fmt.Printf("pluginFile %s does not export symbol \"%s\"\n",
-				cmdPlugin.Name(), pluginSymbolName)
-			continue
-		}
-
-		pl := StoragePlugin{
-			Symbol: pluginSymbol.(Symbol),
-			File:   plFile,
-			hash:   "", // TODO Расчет хеша файла
-		}
-
-		s.Idx[pl.Name()] = pl
-	}
-
-	return nil
-}
-
-func (s *FilePluginStorage) Clear() error {
-
-	return clearDir(s.Dir)
-}
-
-func getEnv(envs ...string) string {
-
-	for _, env := range envs {
-
-		keys := strings.Fields(env)
-
-		for _, key := range keys {
-			value := strings.TrimSpace(os.Getenv(key))
-
-			if len(value) > 0 {
-				return value
-			}
-		}
-
-	}
-
-	return ""
-
-}
-
-func getPluginsFromEnv(env string) (pl []string, err error) {
-
-	value := getEnv(env)
-
-	if value == "" {
-		return
-	}
-
-	pl = strings.Split(value, envSepKey)
-	return
-}
-
 func getPluginsFromFile(file string) (pl []string, err error) {
 
 	if ok, _ := Exists(file); ok {
@@ -325,36 +193,4 @@ func getPluginsFromFile(file string) (pl []string, err error) {
 	}
 
 	return
-}
-
-func Exists(name string) (bool, error) {
-	_, err := os.Stat(name)
-	if os.IsNotExist(err) {
-		return false, err
-	}
-	return true, nil
-}
-
-func IsNoExist(name string) (bool, error) {
-
-	ok, err := Exists(name)
-	return !ok, err
-}
-
-func clearDir(dir string) error {
-
-	files, err := ioutil.ReadDir(dir)
-	if err != nil {
-		return err
-	}
-	for _, f := range files {
-
-		err = os.Remove(f.Name())
-		if err != nil {
-			return err
-		}
-		//fmt.Println(f.Name())
-	}
-
-	return nil
 }

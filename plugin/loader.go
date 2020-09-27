@@ -10,7 +10,7 @@ import (
 	pm "plugin"
 )
 
-const pluginSymbolName = "NewPlugin"
+const SymbolName = "NewPlugin"
 
 type PluginsLoader struct {
 	plugins []Symbol
@@ -52,10 +52,10 @@ func (pl *PluginsLoader) LoadPlugins(force bool) error {
 			fmt.Printf("failed to open pluginFile %s: %v\n", cmdPlugin.Name(), err)
 			continue
 		}
-		pluginSymbol, err := pluginFile.Lookup(pluginSymbolName)
+		pluginSymbol, err := pluginFile.Lookup(SymbolName)
 		if err != nil {
 			fmt.Printf("pluginFile %s does not export symbol \"%s\"\n",
-				cmdPlugin.Name(), pluginSymbolName)
+				cmdPlugin.Name(), SymbolName)
 			continue
 		}
 		pl.plugins = append(pl.plugins, pluginSymbol.(Symbol))
