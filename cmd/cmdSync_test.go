@@ -7,9 +7,9 @@ import (
 	"github.com/khorevaa/r2gitsync/manager/flow"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	v8 "github.com/v8platform/api"
 	"github.com/v8platform/designer"
 	"github.com/v8platform/find"
-	v8 "github.com/v8platform/v8"
 	"testing"
 )
 

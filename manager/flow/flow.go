@@ -4,9 +4,9 @@ import (
 	"github.com/khorevaa/r2gitsync/log"
 	"github.com/khorevaa/r2gitsync/manager/types"
 	"github.com/khorevaa/r2gitsync/plugin/subscription"
+	v8 "github.com/v8platform/api"
 	"github.com/v8platform/errors"
 	"github.com/v8platform/runner"
-	v8 "github.com/v8platform/v8"
 	"time"
 )
 

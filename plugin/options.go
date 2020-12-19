@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"github.com/khorevaa/r2gitsync/cmd/flags"
+	"github.com/khorevaa/r2gitsync/plugin/metadata"
 	"strings"
 )
 
@@ -92,4 +93,63 @@ func newPlugin(name, version, desc string, init InitFn, opts ...Option) Symbol {
 // NewPlugin makes it easy to create a new plugin
 func NewPlugin(name, version, desc string, init InitFn, opts ...Option) Symbol {
 	return newPlugin(name, version, desc, init, opts...)
+}
+
+type pluginsPackage struct {
+	name    string
+	version string
+	plugins []metadata.PluginSymbol
+}
+
+func (p *pluginsPackage) Name() string {
+	return p.name
+}
+
+func (p *pluginsPackage) Version() string {
+	return p.version
+}
+
+func (p *pluginsPackage) Plugins() []metadata.PluginSymbol {
+	return p.plugins
+}
+
+type PkgOption func(pkg *pluginsPackage)
+
+func WithPlugin(sym Symbol) PkgOption {
+
+	return func(pkg *pluginsPackage) {
+		if sym != nil {
+			pkg.plugins = append(pkg.plugins, sym)
+		}
+	}
+
+}
+
+func WithNewPlugin(name, version, desc string, init InitFn, opts ...Option) PkgOption {
+	sym := newPlugin(name, version, desc, init, opts...)
+
+	return func(pkg *pluginsPackage) {
+		pkg.plugins = append(pkg.plugins, sym)
+	}
+
+}
+
+// NewPlugin makes it easy to create a new plugin
+func NewPkg(name, version string, opts ...PkgOption) metadata.PkgSymbol {
+	return newPluginsPackage(name, version, opts...)
+}
+
+func newPluginsPackage(name, version string, opts ...PkgOption) metadata.PkgSymbol {
+
+	p := pluginsPackage{
+		name:    name,
+		version: version,
+		plugins: []Symbol{},
+	}
+
+	for _, o := range opts {
+		o(&p)
+	}
+
+	return &p
 }

@@ -8,8 +8,7 @@ import (
 	"time"
 )
 
-// Plugin is the interface for plugins to micro. It differs from go-micro in that it's for
-// the micro API, Web, Sidecar, CLI. It's a method of building middleware for the HTTP side.
+// PluginSymbol is the interface for plugins
 type PluginSymbol interface {
 
 	// Global Flags
@@ -26,6 +25,7 @@ type PluginSymbol interface {
 	Init() Plugin
 }
 
+//Plugin основной интерфейс плагинов
 type Plugin interface {
 	Subscribe(ctx context.Context) Subscriber
 }

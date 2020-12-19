@@ -76,15 +76,15 @@ func (s *FilePluginStorage) Registry(mng plugin.Manager) error {
 	}
 	var pl []plugin.Symbol
 
-	for _, metadata := range s.PkgIdx {
+	for _, pkgMetadata := range s.PkgIdx {
 
-		err := metadata.Check()
+		err := pkgMetadata.Check()
 
 		if err != nil {
 			continue
 		}
 
-		pkgPlugins, _ := loadPkgPlugins(metadata.)
+		pkgPlugins, _ := loadPkgPlugins(pkgMetadata.)
 
 		pl = append(pl, pkgPlugins...)
 
@@ -100,7 +100,8 @@ func (s *FilePluginStorage) Registry(mng plugin.Manager) error {
 func (s *FilePluginStorage) openDb() (*pudge.Db, error) {
 
 	cfg := &pudge.Config{
-		SyncInterval: 30} // every second fsync
+		SyncInterval: 30,
+	} // every second fsync
 	db, err := pudge.Open(s.database, cfg)
 	if err != nil {
 		return nil, err

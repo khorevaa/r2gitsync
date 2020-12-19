@@ -1,15 +1,14 @@
 package manager
 
 import (
-	"github.com/v8platform/designer/repository"
-	"github.com/v8platform/runner"
-	v8 "github.com/v8platform/v8"
+	v8 "github.com/v8platform/api"
+	"github.com/v8platform/designer"
 )
 
 type v8Endpoint struct {
 	infobase   *v8.Infobase
-	repository *repository.Repository
-	options    []runner.Option
+	repository *designer.Repository
+	options    []interface{}
 
 	extention string
 }
@@ -20,23 +19,14 @@ func (end *v8Endpoint) Infobase() *v8.Infobase {
 
 }
 
-func (end *v8Endpoint) Repository() *repository.Repository {
+func (end *v8Endpoint) Repository() *designer.Repository {
 
 	return end.repository
-
 }
 
 func (end *v8Endpoint) Options() []interface{} {
 
-	var opts []interface{}
-
-	for _, o := range end.options {
-
-		opts = append(opts, o)
-
-	}
-
-	return opts
+	return end.options
 
 }
 

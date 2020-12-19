@@ -2,7 +2,6 @@ package manager
 
 import (
 	"encoding/xml"
-	"errors"
 	"fmt"
 	"github.com/cucumber/godog"
 	"github.com/go-git/go-billy/v5/osfs"
@@ -14,7 +13,8 @@ import (
 	"github.com/khorevaa/r2gitsync/manager/flow"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"github.com/v8platform/designer/repository"
+	v8 "github.com/v8platform/api"
+	"github.com/v8platform/designer"
 	"github.com/v8platform/designer/tests"
 	"io/ioutil"
 	"os"
@@ -68,8 +68,9 @@ func (s *managerTestSuite) prepare() {
 	// Создать git репо
 	// Создать файл AUTHORS
 	// СОздать файл VERSION
+	srcRepositoryFile := filepath.Join(pwd, "..", "tests", "fixtures", "storage")
 
-	s.preRepository()
+	s.preRepository(srcRepositoryFile)
 	s.preWorkdir()
 	s.preVersion()
 
@@ -86,14 +87,13 @@ func (s *managerTestSuite) preVersion() {
 
 }
 
-func (s *managerTestSuite) preRepository() {
+func (s *managerTestSuite) preRepository(srcRepositoryFile string) {
 
 	s.RepositoryPath, _ = ioutil.TempDir("", "1c_repo")
 
-	srcRepositoryFile := filepath.Join(pwd, "..", "tests", "fixtures", "1cv8ddb.1CD")
 	dstRepoFile := filepath.Join(s.RepositoryPath, "1cv8ddb.1CD")
 
-	err := flow.CopyFile(srcRepositoryFile, dstRepoFile)
+	err := flow.CopyDir(srcRepositoryFile, s.RepositoryPath)
 	s.r().NoError(err)
 	fileBaseCreated, err := Exists(dstRepoFile)
 	s.r().True(fileBaseCreated, "Файл базы хранилища должен быть создан")
@@ -144,7 +144,7 @@ func (s *managerTestSuite) TestSimpleSync() {
 
 	repo := SyncRepository{
 		Name: "TestRepo",
-		Repository: repository.Repository{
+		Repository: designer.Repository{
 			Path: s.RepositoryPath,
 		},
 		Workdir: s.WorkdirPath,
@@ -153,37 +153,44 @@ func (s *managerTestSuite) TestSimpleSync() {
 	logger := log.NewLogger()
 	logger.SetDebug()
 
-	err := repo.Sync(
-		WithLogger(logger), // TODO FIX
-	)
+	err := repo.Sync(Options{
+		MinVersion: 0,
+		TempDir:    v8.NewTempDir("", "tests_"),
+		Logger:     logger,
+	})
 	s.r().NoError(err)
 
 }
 
 func (s *managerTestSuite) TestSyncExtension() {
 
+	srcRepositoryFile := filepath.Join(pwd, "..", "tests", "fixtures", "extension_storage")
+
+	s.preRepository(srcRepositoryFile)
+
 	repo := SyncRepository{
 		Name: "TestExtension",
-		Repository: repository.Repository{
-			Path: s.RepositoryPath,
+		Repository: designer.Repository{
+			Path:      s.RepositoryPath,
+			Extension: "MyExtension",
 		},
-		Workdir:   s.WorkdirPath,
-		Extension: "MyExtension",
+		Workdir: s.WorkdirPath,
 	}
 
 	logger := log.NewLogger()
 	logger.SetDebug()
 
-	err := repo.Sync(
-		WithLogger(logger), // TODO FIX
-	)
+	err := repo.Sync(Options{
+		TempDir: v8.NewTempDir("", "tests_"),
+		Logger:  logger,
+	})
 	s.r().NoError(err)
 
 }
 
 func (s *managerTestSuite) TestFeatures() {
 
-	err := bdd.Run([]string{"features"},
+	err := bdd.Run([]string{"features/sync.feature"},
 		InitializeTestSuite,
 		InitializeScenario)
 
@@ -269,10 +276,10 @@ func (s *managerTestSuite) copyTestRepoFromContext(name string) error {
 
 	s.RepositoryPath = s.FromContext(name)
 
-	srcRepositoryFile := filepath.Join(pwd, "..", "tests", "fixtures", "1cv8ddb.1CD")
-	dstRepoFile := filepath.Join(s.RepositoryPath, "1cv8ddb.1CD")
+	srcRepository := filepath.Join(pwd, "..", "tests", "fixtures", "1cv8ddb.1CD")
+	//dstRepoFile := filepath.Join(s.RepositoryPath, "1cv8ddb.1CD")
 
-	err := flow.CopyFile(srcRepositoryFile, dstRepoFile)
+	err := flow.CopyDir(srcRepository, s.RepositoryPath)
 	return err
 
 }
@@ -291,7 +298,12 @@ func (s *managerTestSuite) CopyDirToDirFromContext(dir, name string) error {
 
 func (s *managerTestSuite) setAuth(name string, pass string) error {
 
-	s.SycnRepo.Auth(name, pass)
+	if len(name) == 0 {
+		return nil
+	}
+
+	s.SycnRepo.User = name
+	s.SycnRepo.Password = pass
 	return nil
 
 }
@@ -308,10 +320,10 @@ func (s *managerTestSuite) versionFileContain(ver int) error {
 	type versionReader struct {
 		CurrentVersion int `xml:"VERSION"`
 	}
-	fileVesrion := filepath.Join(s.WorkdirPath, VERSION_FILE)
+	fileVersion := filepath.Join(s.WorkdirPath, VERSION_FILE)
 
 	// Open our xmlFile
-	xmlFile, err := os.Open(fileVesrion)
+	xmlFile, err := os.Open(fileVersion)
 	// if we os.Open returns an error then handle it
 	if err != nil {
 		return err
@@ -333,7 +345,7 @@ func (s *managerTestSuite) versionFileContain(ver int) error {
 	}
 
 	if r.CurrentVersion != ver {
-		return errors.New("файл не содержит нужной версии")
+		return fmt.Errorf("файл не содержит нужной версии: %s", string(byteValue))
 	}
 
 	return nil
@@ -344,7 +356,7 @@ func (s *managerTestSuite) doSync() error {
 
 	repo := SyncRepository{
 		Name: "TestRepo",
-		Repository: repository.Repository{
+		Repository: designer.Repository{
 			Path:     s.RepositoryPath,
 			User:     s.SycnRepo.User,
 			Password: s.SycnRepo.Password,
@@ -352,13 +364,14 @@ func (s *managerTestSuite) doSync() error {
 		Workdir: s.WorkdirPath,
 	}
 
-	//logger := log.NewLogger()
-	//logger.SetDebug()
+	logger := log.NewLogger()
+	logger.SetDebug()
 
 	err := repo.Sync(
-		//WithLogger(logger), // TODO FIX
-		WithV8version(s.v8Version),
-	)
+		Options{
+			TempDir: v8.NewTempDir("", "tests_"),
+			Logger:  logger,
+		})
 
 	return err
 
@@ -368,21 +381,23 @@ func (s *managerTestSuite) doSyncExt(extension string) error {
 
 	repo := SyncRepository{
 		Name: "TestRepo",
-		Repository: repository.Repository{
-			Path:     s.RepositoryPath,
-			User:     s.SycnRepo.User,
-			Password: s.SycnRepo.Password,
+		Repository: designer.Repository{
+			Path:      s.RepositoryPath,
+			User:      s.SycnRepo.User,
+			Password:  s.SycnRepo.Password,
+			Extension: extension,
 		},
-		Extension: extension,
-		Workdir:   s.WorkdirPath,
+
+		Workdir: s.WorkdirPath,
 	}
-	//
-	//logger := log.NewLogger()
-	//logger.SetDebug()
+	logger := log.NewLogger()
+	logger.SetDebug()
 
 	err := repo.Sync(
-		//WithLogger(logger), // TODO FIX
-		WithV8version(s.v8Version),
+		Options{
+			TempDir: v8.NewTempDir("", "tests_"),
+			//Logger:           logger,
+		},
 	)
 
 	return err

@@ -7,7 +7,6 @@ import (
 	"github.com/khorevaa/r2gitsync/manager/types"
 	"github.com/khorevaa/r2gitsync/plugin/subscription"
 	"github.com/v8platform/designer"
-	"github.com/v8platform/designer/repository"
 	"go.uber.org/zap"
 	"io/ioutil"
 	"os"
@@ -64,15 +63,9 @@ func (t tasker) GetRepositoryVersions(v8end types.V8Endpoint, dir string, nBegin
 
 	defer os.Remove(report)
 
-	RepositoryReportOptions := repository.RepositoryReportOptions{
-		File:      report,
-		Extension: v8end.Extention(),
-		NBegin:    nBegin,
-	}.
-		GroupByComment().
-		WithRepository(*v8end.Repository())
+	getReport := v8end.Repository().Report(report, nBegin).GroupByComment()
 
-	err = Run(*v8end.Infobase(), RepositoryReportOptions, v8end.Options())
+	err = Run(v8end.Infobase(), getReport, v8end.Options())
 
 	if err != nil {
 		return
@@ -127,13 +120,9 @@ func (t tasker) GetRepositoryAuthors(v8end types.V8Endpoint, dir string, filenam
 
 func (t tasker) UpdateCfg(v8end types.V8Endpoint, workDir string, number int64) (err error) {
 
-	RepositoryUpdateCfgOptions := repository.RepositoryUpdateCfgOptions{
-		Version:   number,
-		Force:     true,
-		Extension: v8end.Extention(),
-	}.WithRepository(*v8end.Repository())
+	updateCfg := v8end.Repository().UpdateCfg(number, true)
 
-	err = Run(*v8end.Infobase(), RepositoryUpdateCfgOptions, v8end.Options())
+	err = Run(*v8end.Infobase(), updateCfg, v8end.Options())
 
 	return
 }

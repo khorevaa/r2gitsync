@@ -5,6 +5,7 @@ import (
 	"github.com/khorevaa/r2gitsync/cmd/flags"
 	"github.com/khorevaa/r2gitsync/context"
 	"github.com/khorevaa/r2gitsync/log"
+	"github.com/khorevaa/r2gitsync/plugin/metadata"
 	"github.com/khorevaa/r2gitsync/plugin/subscription"
 	. "github.com/khorevaa/r2gitsync/plugin/types"
 	"github.com/pkg/errors"
@@ -27,11 +28,11 @@ type Symbol interface {
 	Version() string
 	ShortVersion() string
 	Name() string
-	Init() Plugin
+	Init() metadata.Plugin
 }
 
 type Plugin interface {
-	Subscribe(ctx context.Context) Subscriber
+	metadata.Plugin
 }
 
 // Manager is the plugin manager which stores plugins and allows them to be retrieved.
