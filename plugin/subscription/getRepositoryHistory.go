@@ -32,16 +32,16 @@ type GetRepositoryHistoryHandler interface {
 	SubscribeHandler
 	Subscribe(sub GetRepositoryHistorySubscriber)
 
-	Before(v8end V8Endpoint, dir string, NBegin int64) error
-	On(v8end V8Endpoint, dir string, NBegin int64, stdHandler *bool) ([]types.RepositoryVersion, error)
-	After(v8end V8Endpoint, dir string, NBegin int64, rv *[]types.RepositoryVersion) error
+	Before(v8end V8Endpoint, dir string, NBegin int) error
+	On(v8end V8Endpoint, dir string, NBegin int, stdHandler *bool) ([]types.RepositoryVersion, error)
+	After(v8end V8Endpoint, dir string, NBegin int, rv *types.RepositoryVersionsList) error
 
-	//Start(v8end V8Endpoint, workdir string, temp string, number int64) error
-	//On(v8end V8Endpoint, workdir string, temp string, number int64, standartHandler *bool) error
-	//Finish(v8end V8Endpoint, workdir string, temp string, number int64) error
+	//Start(v8end V8Endpoint, workdir string, temp string, number int) error
+	//On(v8end V8Endpoint, workdir string, temp string, number int, standartHandler *bool) error
+	//Finish(v8end V8Endpoint, workdir string, temp string, number int) error
 }
 
-func (h *getRepositoryHistoryHandler) Before(v8end V8Endpoint, dir string, NBegin int64) error {
+func (h *getRepositoryHistoryHandler) Before(v8end V8Endpoint, dir string, NBegin int) error {
 
 	for _, fn := range h.before {
 
@@ -55,7 +55,7 @@ func (h *getRepositoryHistoryHandler) Before(v8end V8Endpoint, dir string, NBegi
 	return nil
 }
 
-func (h *getRepositoryHistoryHandler) On(v8end V8Endpoint, dir string, NBegin int64, stdHandler *bool) ([]types.RepositoryVersion, error) {
+func (h *getRepositoryHistoryHandler) On(v8end V8Endpoint, dir string, NBegin int, stdHandler *bool) ([]types.RepositoryVersion, error) {
 
 	for _, fn := range h.on {
 
@@ -69,7 +69,7 @@ func (h *getRepositoryHistoryHandler) On(v8end V8Endpoint, dir string, NBegin in
 	return []types.RepositoryVersion{}, nil
 }
 
-func (h *getRepositoryHistoryHandler) After(v8end V8Endpoint, dir string, NBegin int64, rv *[]types.RepositoryVersion) error {
+func (h *getRepositoryHistoryHandler) After(v8end V8Endpoint, dir string, NBegin int, rv *types.RepositoryVersionsList) error {
 
 	for _, fn := range h.after {
 
@@ -100,10 +100,10 @@ func (h *configureRepositoryVersionsHandler) Subscribe(sub ConfigureRepositoryVe
 type ConfigureRepositoryVersionsHandler interface {
 	SubscribeHandler
 	Subscribe(sub ConfigureRepositoryVersionsSubscriber)
-	On(v8end V8Endpoint, versions *[]types.RepositoryVersion, NCurrent, NNext, NMax *int64) error
+	On(v8end V8Endpoint, versions *types.RepositoryVersionsList, NCurrent, NNext, NMax *int) error
 }
 
-func (h *configureRepositoryVersionsHandler) On(v8end V8Endpoint, versions *[]types.RepositoryVersion, NCurrent, NNext, NMax *int64) error {
+func (h *configureRepositoryVersionsHandler) On(v8end V8Endpoint, versions *types.RepositoryVersionsList, NCurrent, NNext, NMax *int) error {
 
 	for _, fn := range h.on {
 

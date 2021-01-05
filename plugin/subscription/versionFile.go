@@ -12,8 +12,8 @@ type ReadVersionFileHandler interface {
 	Subscribe(sub ReadVersionFileSubscriber)
 
 	Before(v8end V8Endpoint, workdir, filename string) error
-	On(v8end V8Endpoint, workdir, filename string, stdHandler *bool) (int64, error)
-	After(v8end V8Endpoint, workdir, filename string, number *int64) error
+	On(v8end V8Endpoint, workdir, filename string, stdHandler *bool) (int, error)
+	After(v8end V8Endpoint, workdir, filename string, number *int) error
 }
 
 type readVersionFileHandler struct {
@@ -51,7 +51,7 @@ func (h *readVersionFileHandler) Before(v8end V8Endpoint, workdir, filename stri
 	return nil
 }
 
-func (h *readVersionFileHandler) On(v8end V8Endpoint, workdir, filename string, stdHandler *bool) (int64, error) {
+func (h *readVersionFileHandler) On(v8end V8Endpoint, workdir, filename string, stdHandler *bool) (int, error) {
 
 	for _, fn := range h.on {
 
@@ -65,7 +65,7 @@ func (h *readVersionFileHandler) On(v8end V8Endpoint, workdir, filename string, 
 	return 0, nil
 }
 
-func (h *readVersionFileHandler) After(v8end V8Endpoint, workdir, filename string, number *int64) error {
+func (h *readVersionFileHandler) After(v8end V8Endpoint, workdir, filename string, number *int) error {
 
 	for _, fn := range h.after {
 
@@ -86,9 +86,9 @@ type WriteVersionFileHandler interface {
 
 	Subscribe(sub WriteVersionFileSubscriber)
 
-	Before(v8end V8Endpoint, workdir string, number int64, filename string) error
-	On(v8end V8Endpoint, workdir string, number int64, filename string, stdHandler *bool) error
-	After(v8end V8Endpoint, workdir string, number int64, filename string) error
+	Before(v8end V8Endpoint, workdir string, number int, filename string) error
+	On(v8end V8Endpoint, workdir string, number int, filename string, stdHandler *bool) error
+	After(v8end V8Endpoint, workdir string, number int, filename string) error
 }
 
 type writeVersionFileHandler struct {
@@ -112,7 +112,7 @@ func (h *writeVersionFileHandler) Subscribe(sub WriteVersionFileSubscriber) {
 	}
 }
 
-func (h *writeVersionFileHandler) Before(v8end V8Endpoint, workdir string, number int64, filename string) error {
+func (h *writeVersionFileHandler) Before(v8end V8Endpoint, workdir string, number int, filename string) error {
 
 	for _, fn := range h.before {
 
@@ -126,7 +126,7 @@ func (h *writeVersionFileHandler) Before(v8end V8Endpoint, workdir string, numbe
 	return nil
 }
 
-func (h *writeVersionFileHandler) On(v8end V8Endpoint, workdir string, number int64, filename string, stdHandler *bool) error {
+func (h *writeVersionFileHandler) On(v8end V8Endpoint, workdir string, number int, filename string, stdHandler *bool) error {
 
 	for _, fn := range h.on {
 
@@ -140,7 +140,7 @@ func (h *writeVersionFileHandler) On(v8end V8Endpoint, workdir string, number in
 	return nil
 }
 
-func (h *writeVersionFileHandler) After(v8end V8Endpoint, workdir string, number int64, filename string) error {
+func (h *writeVersionFileHandler) After(v8end V8Endpoint, workdir string, number int, filename string) error {
 
 	for _, fn := range h.after {
 

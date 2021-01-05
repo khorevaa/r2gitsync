@@ -2,7 +2,6 @@ package metadata
 
 import (
 	"crypto"
-	"github.com/khorevaa/r2gitsync/plugin"
 	pm "plugin"
 )
 
@@ -56,7 +55,7 @@ func (m PkgMetadata) LoadFile() (pm.Symbol, error) {
 		return pSymbol, nil
 	}
 
-	pSymbol, err = pluginFile.Lookup(plugin.SymbolName)
+	pSymbol, err = pluginFile.Lookup(PluginSymbolName)
 
 	return pSymbol, err
 }

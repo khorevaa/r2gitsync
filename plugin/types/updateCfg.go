@@ -7,7 +7,7 @@ type UpdateCfgSubscriber struct {
 }
 
 type (
-	BeforeUpdateCfgFn func(v8end V8Endpoint, workdir string, version int64) error
-	OnUpdateCfgFn     func(v8end V8Endpoint, workdir string, version int64, stdHandler *bool) error
+	BeforeUpdateCfgFn func(v8end V8Endpoint, workdir string, version int) error
+	OnUpdateCfgFn     func(v8end V8Endpoint, workdir string, version int, stdHandler *bool) error
 	AfterUpdateCfgFn  BeforeUpdateCfgFn
 )

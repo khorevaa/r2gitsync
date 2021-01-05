@@ -19,10 +19,14 @@ type RepositoryAuthor interface {
 	Desc() string
 }
 
+type RepositoryAuthorsList map[string]RepositoryAuthor
+
+type RepositoryVersionsList []RepositoryVersion
+
 type RepositoryVersion interface {
 	Version() string
 	Author() string
 	Date() time.Time
 	Comment() string
-	Number() int64
+	Number() int
 }

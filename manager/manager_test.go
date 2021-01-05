@@ -10,7 +10,6 @@ import (
 	"github.com/go-git/go-git/v5/storage/filesystem"
 	"github.com/khorevaa/r2gitsync/internal/bdd"
 	"github.com/khorevaa/r2gitsync/log"
-	"github.com/khorevaa/r2gitsync/manager/flow"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	v8 "github.com/v8platform/api"
@@ -93,7 +92,7 @@ func (s *managerTestSuite) preRepository(srcRepositoryFile string) {
 
 	dstRepoFile := filepath.Join(s.RepositoryPath, "1cv8ddb.1CD")
 
-	err := flow.CopyDir(srcRepositoryFile, s.RepositoryPath)
+	err := CopyDir(srcRepositoryFile, s.RepositoryPath)
 	s.r().NoError(err)
 	fileBaseCreated, err := Exists(dstRepoFile)
 	s.r().True(fileBaseCreated, "Файл базы хранилища должен быть создан")
@@ -130,14 +129,6 @@ func NewTempIB() tests.TempInfobase {
 	}
 
 	return ib
-}
-
-func Exists(name string) (bool, error) {
-	_, err := os.Stat(name)
-	if os.IsNotExist(err) {
-		return false, err
-	}
-	return true, nil
 }
 
 func (s *managerTestSuite) TestSimpleSync() {
@@ -279,7 +270,7 @@ func (s *managerTestSuite) copyTestRepoFromContext(name string) error {
 	srcRepository := filepath.Join(pwd, "..", "tests", "fixtures", "1cv8ddb.1CD")
 	//dstRepoFile := filepath.Join(s.RepositoryPath, "1cv8ddb.1CD")
 
-	err := flow.CopyDir(srcRepository, s.RepositoryPath)
+	err := CopyDir(srcRepository, s.RepositoryPath)
 	return err
 
 }
@@ -291,7 +282,7 @@ func (s *managerTestSuite) CopyDirToDirFromContext(dir, name string) error {
 	srcRepositoryDir := filepath.Join(pwd, "..", dir)
 	dstRepoDir := filepath.Join(s.RepositoryPath)
 
-	err := flow.CopyDir(srcRepositoryDir, dstRepoDir)
+	err := CopyDir(srcRepositoryDir, dstRepoDir)
 	return err
 
 }
@@ -426,4 +417,44 @@ func InitializeScenario(ctx *godog.ScenarioContext) {
 		//os.RemoveAll(feature.RepositoryPath)
 		//os.RemoveAll(feature.WorkdirPath)
 	})
+}
+
+func TestSync(t *testing.T) {
+
+	if testing.Short() {
+		t.Skip("Integrated tests slipped")
+	}
+
+	type args struct {
+		r       SyncRepository
+		options Options
+	}
+
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			"simple",
+			args{
+				r: SyncRepository{
+					Name:    "simple",
+					Workdir: os.TempDir(),
+					Repository: designer.Repository{
+						Path: "",
+					},
+				},
+				options: Options{},
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := Sync(tt.args.r, tt.args.options); (err != nil) != tt.wantErr {
+				t.Errorf("Sync() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
 }

@@ -1,16 +1,5 @@
 package manager
 
-func (r *SyncRepository) Init(opts ...Option) error {
-
-	options := &Options{}
-
-	for _, o := range opts {
-		o(options)
-	}
-
-	return r.initWorkdir(options)
-}
-
 func (r *SyncRepository) initWorkdir(opts *Options) (err error) {
 
 	//if !opts.ForceInit {

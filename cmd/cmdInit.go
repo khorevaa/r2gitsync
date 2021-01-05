@@ -3,16 +3,15 @@ package cmd
 import (
 	cli "github.com/jawher/mow.cli"
 	"github.com/khorevaa/r2gitsync/cmd/flags"
+	"github.com/khorevaa/r2gitsync/log"
 	"github.com/khorevaa/r2gitsync/manager"
 	"github.com/khorevaa/r2gitsync/plugin"
-	"github.com/khorevaa/r2gitsync/plugin/subscription"
 )
 
 // Sample use: vault creds reddit.com
 func (app *Application) cmdInit(cmd *cli.Cmd) {
 
 	var force bool
-	var sm *subscription.SubscribeManager
 
 	cmd.LongDesc = `Инициализация структуры нового хранилища git. Подготовка к синхронизации`
 
@@ -46,24 +45,26 @@ func (app *Application) cmdInit(cmd *cli.Cmd) {
 
 	cmd.Spec = "[OPTIONS] PATH [WORKDIR]"
 
+	var syncOptions *manager.Options
 	cmd.Before = func() {
 
-		sm, _ = plugin.Subscribe("init", app.ctx)
-	}
+		sm, err := plugin.Subscribe("init", app.ctx)
 
+		if err != nil {
+			app.failOnErr(err)
+		}
+
+		logger := log.Named("cmd")
+		newOptions := *app.config.Options
+		syncOptions = &newOptions
+		syncOptions.Logger = logger
+		syncOptions.Plugins = sm
+		syncOptions.LicTryCount = 5
+
+	}
 	cmd.Action = func() {
 
-		err := manager.Init(repo,
-			manager.WithInfobaseConfig(app.config.Infobase),
-			manager.WithTempDir(app.config.TempDir),
-			manager.WithV8Path(app.config.v8path),
-			manager.WithV8version(app.config.V8version),
-			manager.WithLicTryCount(5),
-			manager.WithPlugins(sm),
-			manager.WithDisableIncrement(app.config.disableIncrement),
-			manager.WithDomainEmail(app.config.DomainEmail),
-			manager.WithForceInit(force),
-		)
+		err := manager.Init(repo, *syncOptions)
 
 		app.failOnErr(err)
 

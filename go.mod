@@ -9,6 +9,7 @@ require (
 	github.com/go-git/go-git/v5 v5.1.0
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/jawher/mow.cli v1.2.0
+	github.com/kamilsk/retry/v5 v5.0.0-rc6
 	github.com/lithammer/shortuuid/v3 v3.0.4
 	github.com/mattn/go-colorable v0.1.8 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d

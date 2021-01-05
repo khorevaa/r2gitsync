@@ -51,8 +51,8 @@ type SyncVersionHandler interface {
 	SubscribeHandler
 	Subscribe(sub SyncVersionSubscriber)
 
-	Start(v8end V8Endpoint, dir, temp string, number int64)
-	Finish(v8end V8Endpoint, dir, temp string, number int64, err *error)
+	Start(v8end V8Endpoint, dir, temp string, number int)
+	Finish(v8end V8Endpoint, dir, temp string, number int, err *error)
 }
 
 var _ SyncVersionHandler = (*syncversionHandler)(nil)
@@ -73,7 +73,7 @@ func (h *syncversionHandler) Subscribe(sub SyncVersionSubscriber) {
 	}
 }
 
-func (h *syncversionHandler) Start(v8end V8Endpoint, dir, temp string, number int64) {
+func (h *syncversionHandler) Start(v8end V8Endpoint, dir, temp string, number int) {
 
 	for _, fn := range h.start {
 
@@ -81,7 +81,7 @@ func (h *syncversionHandler) Start(v8end V8Endpoint, dir, temp string, number in
 	}
 }
 
-func (h *syncversionHandler) Finish(v8end V8Endpoint, dir, temp string, number int64, err *error) {
+func (h *syncversionHandler) Finish(v8end V8Endpoint, dir, temp string, number int, err *error) {
 
 	for _, fn := range h.finish {
 

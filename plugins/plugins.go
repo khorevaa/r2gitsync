@@ -2,7 +2,6 @@ package plugins
 
 import (
 	"github.com/khorevaa/r2gitsync/plugin"
-	"github.com/khorevaa/r2gitsync/plugins/limit"
 )
 
 func init() {
@@ -24,5 +23,5 @@ func init() {
 }
 
 var Plugins = []plugin.Symbol{
-	limit.NewPlugin,
+	//limit.NewPlugin,
 }

@@ -1,6 +1,6 @@
 package types
 
-//DumpConfigToFiles(v8end V8Endpoint, update bool, dir string, dir2 string, number int64) error
+//DumpConfigToFiles(v8end V8Endpoint, update bool, dir string, dir2 string, number int) error
 
 type DumpConfigToFilesSubscriber struct {
 	On     OnDumpConfigFn
@@ -9,7 +9,7 @@ type DumpConfigToFilesSubscriber struct {
 }
 
 type (
-	BeforeDumpConfigFn func(v8end V8Endpoint, workdir string, temp string, number int64, update *bool) error
-	OnDumpConfigFn     func(v8end V8Endpoint, workdir string, temp string, number int64, update *bool, stdHandler *bool) error
-	AfterDumpConfigFn  func(v8end V8Endpoint, workdir string, temp string, number int64, update bool) error
+	BeforeDumpConfigFn func(v8end V8Endpoint, workdir string, temp string, number int, update *bool) error
+	OnDumpConfigFn     func(v8end V8Endpoint, workdir string, temp string, number int, update *bool, stdHandler *bool) error
+	AfterDumpConfigFn  func(v8end V8Endpoint, workdir string, temp string, number int, update bool) error
 )

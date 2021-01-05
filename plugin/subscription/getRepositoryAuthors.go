@@ -13,7 +13,7 @@ type GetRepositoryAuthorsHandler interface {
 
 	Before(v8end V8Endpoint, workdir string, filename string) error
 	On(v8end V8Endpoint, workdir string, filename string, stdHandler *bool) (map[string]types.RepositoryAuthor, error)
-	After(v8end V8Endpoint, workdir string, authors *map[string]types.RepositoryAuthor) error
+	After(v8end V8Endpoint, workdir string, authors *types.RepositoryAuthorsList) error
 }
 
 type getRepositoryAuthorsHandler struct {
@@ -65,7 +65,7 @@ func (h *getRepositoryAuthorsHandler) On(v8end V8Endpoint, workdir string, filen
 	return map[string]types.RepositoryAuthor{}, nil
 }
 
-func (h *getRepositoryAuthorsHandler) After(v8end V8Endpoint, workdir string, authors *map[string]types.RepositoryAuthor) error {
+func (h *getRepositoryAuthorsHandler) After(v8end V8Endpoint, workdir string, authors *types.RepositoryAuthorsList) error {
 
 	for _, fn := range h.after {
 

@@ -1,4 +1,4 @@
-package flow
+package manager
 
 import (
 	"bytes"
@@ -9,8 +9,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"regexp"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -20,7 +18,7 @@ type repositoryVersion struct {
 	author  string
 	date    time.Time
 	comment string
-	number  int64
+	number  int
 }
 
 func (r repositoryVersion) Version() string {
@@ -39,7 +37,7 @@ func (r repositoryVersion) Comment() string {
 	return r.comment
 }
 
-func (r repositoryVersion) Number() int64 {
+func (r repositoryVersion) Number() int {
 	return r.number
 }
 
@@ -68,67 +66,6 @@ func NewAuthor(name, email string) types.RepositoryAuthor {
 		email: email,
 	}
 
-}
-
-func parseRepositoryReport(file string) (versions []types.RepositoryVersion, err error) {
-
-	err, bytes := readFile(file, nil)
-	if err != nil {
-		return
-	}
-
-	report := string(*bytes)
-	// Двойные кавычки в комментарии мешают, по этому мы заменяем из на одинарные
-	report = strings.Replace(report, "\"\"", "'", -1)
-
-	tmpArray := [][]string{}
-	reg := regexp.MustCompile(`[{]"#","([^"]+)["][\}]`)
-	matches := reg.FindAllStringSubmatch(report, -1)
-	for _, s := range matches {
-		if s[1] == "Версия:" {
-			tmpArray = append(tmpArray, []string{})
-		}
-
-		if len(tmpArray) > 0 {
-			tmpArray[len(tmpArray)-1] = append(tmpArray[len(tmpArray)-1], s[1])
-		}
-	}
-
-	for _, array := range tmpArray {
-		versionInfo := repositoryVersion{}
-		for id, s := range array {
-			switch s {
-			case "Версия:":
-				if ver, err := strconv.Atoi(array[id+1]); err == nil {
-					versionInfo.number = int64(ver)
-				}
-			case "Версия конфигурации:":
-				versionInfo.version = array[id+1]
-			case "Пользователь:":
-				versionInfo.author = array[id+1]
-			case "Комментарий:":
-				// Комментария может не быть, по этому вот такой костыльчик
-				if array[id+1] != "Изменены:" {
-					versionInfo.comment = strings.Replace(array[id+1], "\n", " ", -1)
-					versionInfo.comment = strings.Replace(array[id+1], "\r", "", -1)
-				}
-			case "Дата создания:":
-				if t, err := time.Parse("02.01.2006", array[id+1]); err == nil {
-					versionInfo.date = t
-				}
-			case "Время создания:":
-				if !versionInfo.date.IsZero() {
-					str := versionInfo.date.Format("02.01.2006") + " " + array[id+1]
-					if t, err := time.Parse("02.01.2006 15:04:05", str); err == nil {
-						versionInfo.date = t
-					}
-				}
-			}
-		}
-		versions = append(versions, versionInfo)
-	}
-
-	return
 }
 
 func readFile(filePath string, Decoder *encoding.Decoder) (error, *[]byte) {
@@ -160,25 +97,6 @@ func IsNoExist(name string) (bool, error) {
 
 	ok, err := Exists(name)
 	return !ok, err
-}
-
-func checkChangesFile(filename string) (bool, error) {
-	// Open our xmlFile
-	file, err := os.Open(filename)
-	// if we os.Open returns an error then handle it
-	if err != nil {
-		return false, err
-	}
-
-	// defer the closing of our xmlFile so that we can parse it later on
-	defer file.Close()
-
-	// read our opened xmlFile as a byte array.
-	byteValue, _ := ioutil.ReadAll(file)
-
-	fullDump := bytes.Contains(byteValue, []byte("FullDump"))
-
-	return !fullDump, nil
 }
 
 func clearDir(dir string, skipFiles ...string) error {
@@ -340,4 +258,20 @@ func decodeAuthor(b []byte) (string, string) {
 
 	return Name, Email
 
+}
+
+func restoreTempExtension() (string, error) {
+	tempFile, err := ioutil.TempFile("", ".cfe")
+	defer tempFile.Close()
+	if err != nil {
+		return "", err
+	}
+
+	bytes, err := Asset("tempExtension.cfe")
+	_, err = tempFile.Write(bytes)
+
+	if err != nil {
+		return "", err
+	}
+	return tempFile.Name(), nil
 }

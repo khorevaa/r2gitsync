@@ -7,7 +7,6 @@ import (
 	"github.com/khorevaa/r2gitsync/log"
 	"github.com/khorevaa/r2gitsync/manager"
 	"github.com/khorevaa/r2gitsync/plugin"
-	"github.com/khorevaa/r2gitsync/plugin/subscription"
 )
 
 // Sample use: vault creds reddit.com
@@ -29,7 +28,7 @@ func (app *Application) cmdSync(cmd *cli.Cmd) {
 
 	flags.BoolOpt("disable-increment", false, "отключает инкрементальную выгрузку").
 		Env("GITSYNC_DISABLE_INCREMENT").
-		Ptr(&app.config.disableIncrement).
+		Ptr(&app.config.Options.DisableIncrement).
 		Apply(cmd, app.ctx)
 
 	flags.StringOpt("extension e ext", "", "имя расширения для работы с хранилищем расширения").
@@ -42,6 +41,28 @@ func (app *Application) cmdSync(cmd *cli.Cmd) {
 		Ptr(&repo.Repository.Path).
 		Apply(cmd, app.ctx)
 
+	flags.IntOpt(
+		"l limit",
+		0,
+		"выгрузить не более <Количества> версий от текущей выгруженной").
+		Env("GITSYNC_LIMIT").
+		Ptr(&app.config.Options.LimitVersions).
+		Apply(cmd, app.ctx)
+	flags.IntOpt(
+		"min-version",
+		0,
+		"<номер> минимальной версии для выгрузки").
+		Env("GITSYNC_MIN_VERSION").
+		Ptr(&app.config.Options.MinVersion).
+		Apply(cmd, app.ctx)
+	flags.IntOpt(
+		"max-version",
+		0,
+		"<номер> максимальной версии для выгрузки").
+		Env("GITSYNC_MAX_VERSION").
+		Ptr(&app.config.Options.MaxVersion).
+		Apply(cmd, app.ctx)
+
 	//flags.StringArg("PATH", "", "Путь к хранилищу конфигурации 1С.").
 	//	Env("R2GITSYNC_STORAGE_PATH", "GITSYNC_STORAGE_PATH").
 	//	Ptr(&repo.Repository.Path).
@@ -51,10 +72,23 @@ func (app *Application) cmdSync(cmd *cli.Cmd) {
 
 	cmd.Spec = "[OPTIONS] [PATH] [WORKDIR]"
 
-	var sm *subscription.SubscribeManager
+	var syncOptions *manager.Options
 	cmd.Before = func() {
 
-		sm, _ = plugin.Subscribe("sync", app.ctx)
+		sm, err := plugin.Subscribe("sync", app.ctx)
+
+		if err != nil {
+			app.failOnErr(err)
+		}
+
+		logger := log.Named("cmd")
+		logger.Debug("New logger inited")
+		newOptions := *app.config.Options
+		syncOptions = &newOptions
+		syncOptions.Logger = logger
+		syncOptions.Plugins = sm
+		syncOptions.LicTryCount = 5
+
 	}
 
 	cmd.Action = func() {
@@ -65,17 +99,7 @@ func (app *Application) cmdSync(cmd *cli.Cmd) {
 
 		}
 
-		err := manager.Sync(repo,
-			manager.WithInfobaseConfig(app.config.Infobase),
-			manager.WithTempDir(app.config.TempDir),
-			manager.WithV8Path(app.config.v8path),
-			manager.WithV8version(app.config.V8version),
-			manager.WithLicTryCount(5),
-			manager.WithPlugins(sm),
-			manager.WithDisableIncrement(app.config.disableIncrement),
-			manager.WithDomainEmail(app.config.DomainEmail),
-			manager.WithLogger(log.Named("cmd")),
-		)
+		err := manager.Sync(repo, *syncOptions)
 
 		app.failOnErr(err)
 

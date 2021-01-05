@@ -14,10 +14,10 @@ type ConfigureRepositoryVersionsSubscriber struct {
 	On OnConfigureRepositoryVersionsFn
 }
 
-type OnConfigureRepositoryVersionsFn func(v8end V8Endpoint, versions *[]types.RepositoryVersion, NCurrent, NNext, NMax *int64) error
+type OnConfigureRepositoryVersionsFn func(v8end V8Endpoint, versions *types.RepositoryVersionsList, NCurrent, NNext, NMax *int) error
 
 type (
-	BeforeGetRepositoryHistoryFn func(v8end V8Endpoint, dir string, NBegin int64) error
-	OnGetRepositoryHistoryFn     func(v8end V8Endpoint, dir string, NBegin int64, stdHandler *bool) ([]types.RepositoryVersion, error)
-	AfterGetRepositoryHistoryFn  func(v8end V8Endpoint, dir string, NBegin int64, rv *[]types.RepositoryVersion) error
+	BeforeGetRepositoryHistoryFn func(v8end V8Endpoint, dir string, NBegin int) error
+	OnGetRepositoryHistoryFn     func(v8end V8Endpoint, dir string, NBegin int, stdHandler *bool) ([]types.RepositoryVersion, error)
+	AfterGetRepositoryHistoryFn  func(v8end V8Endpoint, dir string, NBegin int, rv *types.RepositoryVersionsList) error
 )

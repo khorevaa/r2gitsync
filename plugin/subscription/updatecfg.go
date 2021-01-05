@@ -7,15 +7,23 @@ var _ UpdateCfgHandler = (*updateCfgHandler)(nil)
 type UpdateCfgHandler interface {
 	SubscribeHandler
 	Subscribe(sub UpdateCfgSubscriber)
-	Before(v8end V8Endpoint, workdir string, number int64) error
-	On(v8end V8Endpoint, workdir string, number int64, standartHandler *bool) error
-	After(v8end V8Endpoint, workdir string, number int64) error
+	Before(v8end V8Endpoint, workdir string, number int) error
+	On(v8end V8Endpoint, workdir string, number int, standartHandler *bool) error
+	After(v8end V8Endpoint, workdir string, number int) error
+
+	BeforeFn(v8end V8Endpoint, workdir string, number int) func() error
 }
 
 type updateCfgHandler struct {
 	before []BeforeUpdateCfgFn
 	on     []OnUpdateCfgFn
 	after  []AfterUpdateCfgFn
+}
+
+func (h *updateCfgHandler) BeforeFn(v8end V8Endpoint, workdir string, number int) func() error {
+	return func() error {
+		return h.Before(v8end, workdir, number)
+	}
 }
 
 func (h *updateCfgHandler) Subscribe(sub UpdateCfgSubscriber) {
@@ -33,7 +41,7 @@ func (h *updateCfgHandler) Subscribe(sub UpdateCfgSubscriber) {
 	}
 }
 
-func (h *updateCfgHandler) Before(v8end V8Endpoint, workdir string, version int64) error {
+func (h *updateCfgHandler) Before(v8end V8Endpoint, workdir string, version int) error {
 
 	for _, fn := range h.before {
 
@@ -47,7 +55,7 @@ func (h *updateCfgHandler) Before(v8end V8Endpoint, workdir string, version int6
 	return nil
 }
 
-func (h *updateCfgHandler) On(v8end V8Endpoint, workdir string, version int64, standartHandler *bool) error {
+func (h *updateCfgHandler) On(v8end V8Endpoint, workdir string, version int, standartHandler *bool) error {
 
 	for _, fn := range h.on {
 
@@ -61,7 +69,7 @@ func (h *updateCfgHandler) On(v8end V8Endpoint, workdir string, version int64, s
 	return nil
 }
 
-func (h *updateCfgHandler) After(v8end V8Endpoint, workdir string, version int64) error {
+func (h *updateCfgHandler) After(v8end V8Endpoint, workdir string, version int) error {
 
 	for _, fn := range h.after {
 

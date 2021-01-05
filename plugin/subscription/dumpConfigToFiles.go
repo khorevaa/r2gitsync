@@ -29,12 +29,12 @@ type DumpConfigToFilesHandler interface {
 	SubscribeHandler
 
 	Subscribe(sub DumpConfigToFilesSubscriber)
-	Before(v8end V8Endpoint, workdir string, temp string, number int64, update *bool) error
-	On(v8end V8Endpoint, workdir string, temp string, number int64, update *bool, stdHandler *bool) error
-	After(v8end V8Endpoint, workdir string, temp string, number int64, update bool) error
+	Before(v8end V8Endpoint, workdir string, temp string, number int, update *bool) error
+	On(v8end V8Endpoint, workdir string, temp string, number int, update *bool, stdHandler *bool) error
+	After(v8end V8Endpoint, workdir string, temp string, number int, update bool) error
 }
 
-func (h *dumpConfigToFilesHandler) Before(v8end V8Endpoint, workdir string, temp string, version int64, update *bool) error {
+func (h *dumpConfigToFilesHandler) Before(v8end V8Endpoint, workdir string, temp string, version int, update *bool) error {
 
 	for _, fn := range h.before {
 
@@ -48,7 +48,7 @@ func (h *dumpConfigToFilesHandler) Before(v8end V8Endpoint, workdir string, temp
 	return nil
 }
 
-func (h *dumpConfigToFilesHandler) On(v8end V8Endpoint, workdir string, temp string, version int64, update *bool, stdHandler *bool) error {
+func (h *dumpConfigToFilesHandler) On(v8end V8Endpoint, workdir string, temp string, version int, update *bool, stdHandler *bool) error {
 
 	for _, fn := range h.on {
 
@@ -62,7 +62,7 @@ func (h *dumpConfigToFilesHandler) On(v8end V8Endpoint, workdir string, temp str
 	return nil
 }
 
-func (h *dumpConfigToFilesHandler) After(v8end V8Endpoint, workdir string, temp string, version int64, update bool) error {
+func (h *dumpConfigToFilesHandler) After(v8end V8Endpoint, workdir string, temp string, version int, update bool) error {
 
 	for _, fn := range h.after {
 

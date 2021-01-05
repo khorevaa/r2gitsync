@@ -9,11 +9,12 @@ import (
 type Option func(*Options)
 
 type Options struct {
-	MinVersion       int64
 	TempDir          string
 	DisableIncrement bool
-	MaxVersion       int64
-	LimitVersions    int64
+
+	MinVersion       int
+	MaxVersion       int
+	LimitVersions    int
 	Logger           log.Logger
 	InfobaseConnect  string
 	InfobaseUser     string
@@ -25,6 +26,8 @@ type Options struct {
 	V8version string
 
 	Plugins *subscription.SubscribeManager
+
+	LicTryCount int
 }
 
 func (o *Options) Infobase() (*v8.Infobase, error) {
@@ -35,7 +38,7 @@ func (o *Options) Infobase() (*v8.Infobase, error) {
 
 func (o *Options) Options() []interface{} {
 
-	if o.opts == nil {
+	if len(o.opts) == 0 {
 		o.opts = []interface{}{
 			v8.WithPath(o.V8Path),
 			v8.WithVersion(o.V8version),

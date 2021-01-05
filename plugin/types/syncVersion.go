@@ -9,6 +9,6 @@ type (
 		Finish FinishSyncVersionFn
 	}
 
-	StartSyncVersionFn  func(v8end V8Endpoint, workdir string, tempdir string, number int64)
-	FinishSyncVersionFn func(v8end V8Endpoint, workdir string, tempdir string, number int64, err *error)
+	StartSyncVersionFn  func(v8end V8Endpoint, workdir string, tempdir string, number int)
+	FinishSyncVersionFn func(v8end V8Endpoint, workdir string, tempdir string, number int, err *error)
 )

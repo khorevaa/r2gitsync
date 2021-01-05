@@ -48,7 +48,7 @@ func (p *plugin) Modules() []string {
 	return p.modules
 }
 
-func (p *plugin) Init() Plugin {
+func (p *plugin) Init() metadata.Plugin {
 	return p.init()
 }
 
@@ -144,7 +144,7 @@ func newPluginsPackage(name, version string, opts ...PkgOption) metadata.PkgSymb
 	p := pluginsPackage{
 		name:    name,
 		version: version,
-		plugins: []Symbol{},
+		plugins: []metadata.PluginSymbol{},
 	}
 
 	for _, o := range opts {
