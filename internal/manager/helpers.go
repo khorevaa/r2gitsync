@@ -69,7 +69,7 @@ func NewAuthor(name, email string) types.RepositoryAuthor {
 }
 
 func readFile(filePath string, Decoder *encoding.Decoder) (error, *[]byte) {
-	//dec := charmap.Windows1251.NewDecoder()
+	// dec := charmap.Windows1251.NewDecoder()
 
 	if fileB, err := ioutil.ReadFile(filePath); err == nil {
 		// Разные кодировки = разные длины символов.
@@ -124,7 +124,7 @@ func clearDir(dir string, skipFiles ...string) error {
 		if err != nil {
 			return err
 		}
-		//fmt.Println(f.Name())
+		// fmt.Println(f.Name())
 	}
 
 	return nil
@@ -197,10 +197,10 @@ func CopyDir(src string, dst string) (err error) {
 		return fmt.Errorf("source is not a directory")
 	}
 
-	//_, err = os.Stat(dst)
-	//if err != nil && !os.IsNotExist(err) {
+	// _, err = os.Stat(dst)
+	// if err != nil && !os.IsNotExist(err) {
 	//	return
-	//}
+	// }
 
 	if ok, _ := Exists(dst); !ok {
 
@@ -208,7 +208,7 @@ func CopyDir(src string, dst string) (err error) {
 		if err != nil {
 			return
 		}
-		//return fmt.Errorf("destination already exists")
+		// return fmt.Errorf("destination already exists")
 	}
 
 	entries, err := ioutil.ReadDir(src)
@@ -267,8 +267,7 @@ func restoreTempExtension() (string, error) {
 		return "", err
 	}
 
-	bytes, err := Asset("tempExtension.cfe")
-	_, err = tempFile.Write(bytes)
+	_, err = tempFile.Write(tempExtension)
 
 	if err != nil {
 		return "", err

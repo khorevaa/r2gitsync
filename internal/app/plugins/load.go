@@ -1,7 +1,8 @@
-package app
+package plugins
 
 import (
 	"github.com/khorevaa/r2gitsync/internal/plugins"
+	"github.com/khorevaa/r2gitsync/internal/utils"
 	"github.com/khorevaa/r2gitsync/pkg/plugin"
 	"io/ioutil"
 	"os"
@@ -9,36 +10,75 @@ import (
 	"strings"
 )
 
+func initPluginsDirs(config *configApp) {
+
+	appDataDir := utils.GetAppDataDir("r2gitsync")
+	config.Plugins.GlobalDir = filepath.Join(appDataDir, "plugins")
+
+	localDir := getEnv(PluginsDirEnv)
+
+	if len(localDir) == 0 {
+		localDir = pluginsDirPwd
+	}
+
+	config.Plugins.LocalDir = localDir
+
+}
+
+func LoadPlugins(config *configApp) error {
+
+	if err := loadInternalPlugins(); err != nil {
+		return err
+	}
+	if err := loadGlobalPlugins(config.Plugins.GlobalDir); err != nil {
+		return err
+	}
+	if err := loadLocalPlugins(config.Plugins.LocalDir); err != nil {
+		return err
+	}
+
+}
+
+func LoadDisabledPlugins(config *configApp) {
+
+	loadGlobalDisabledPlugins(config.Plugins.GlobalDir)
+	loadLocalDisabledPlugins(config.Plugins.LocalDir)
+	loadLocalEnabledPlugins(config.Plugins.LocalDir)
+	loadDisabledPluginsEnv()
+
+}
+
 const (
 	disabledPluginsFileName = "disabled-plugins"
 	enabledPluginsFileName  = "enabled-plugins"
 )
 
-func loadGlobalPlugins(dir string) {
+func loadGlobalPlugins(dir string) error {
 
 	if ok, _ := IsNoExist(dir); ok {
-		return
+		return nil
 	}
 	err := plugin.LoadPlugins(dir)
-	failOnErr(err)
+
+	return err
 
 }
 
-func loadLocalPlugins(dir string) {
+func loadLocalPlugins(dir string) error {
 
 	if ok, _ := IsNoExist(dir); ok {
-		return
+		return nil
 	}
 
 	err := plugin.LoadPlugins(dir)
-	failOnErr(err)
+	return err
 
 }
 
-func loadInternalPlugins() {
+func loadInternalPlugins() error {
 
 	err := plugin.Register(plugins.Plugins...)
-	failOnErr(err)
+	return err
 
 }
 
@@ -85,7 +125,7 @@ func getPluginsFromFile(file string) (pl []string) {
 	if ok, _ := Exists(file); ok {
 		content, err := ioutil.ReadFile(file)
 		if err != nil {
-			failOnErr(err)
+			FailOnErr(err)
 		}
 		lines := strings.Split(string(content), "\n")
 

@@ -1,4 +1,4 @@
-package app
+package utils
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 	"runtime"
 )
 
-func getAppDataDir(appName string) string {
+func GetAppDataDir(appName string) string {
 	homeDir, err := homedir.Dir()
 
 	dotName := fmt.Sprintf(".%s", appName)

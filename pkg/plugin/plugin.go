@@ -9,6 +9,7 @@ import (
 	"github.com/khorevaa/r2gitsync/pkg/plugin/subscription"
 	. "github.com/khorevaa/r2gitsync/pkg/plugin/types"
 	"github.com/pkg/errors"
+	"github.com/urfave/cli/v2"
 	"sort"
 	"strings"
 )
@@ -50,7 +51,7 @@ type RegisteredPluginList map[string]RegisteredPlugin
 
 func (pl RegisteredPluginList) Items() (arr []RegisteredPlugin) {
 
-	//arr = make([]RegisteredPlugin, len(pl))
+	// arr = make([]RegisteredPlugin, len(pl))
 
 	for _, registeredPlugin := range pl {
 		arr = append(arr, registeredPlugin)
@@ -149,9 +150,15 @@ func Disable(names ...string) {
 	}
 }
 
-func RegistryFlags(modName string, cmd command, ctx context.Context) {
+// func RegistryFlags(modName string, cmd command, ctx context.Context) {
+//
+// 	defaultManager.RegisterFlags(modName, cmd, ctx)
+//
+// }
+func RegistryFlags(modName string) []cli.Flag {
 
-	defaultManager.RegisterFlags(modName, cmd, ctx)
+	// TODO
+	return []cli.Flag{}
 
 }
 
