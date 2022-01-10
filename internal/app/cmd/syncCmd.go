@@ -2,17 +2,14 @@ package cmd
 
 import (
 	"fmt"
-	manager2 "github.com/khorevaa/r2gitsync/internal/manager"
 	"github.com/khorevaa/r2gitsync/pkg/plugin"
 	"github.com/khorevaa/r2gitsync/pkg/plugin/subscription"
 	"github.com/urfave/cli/v2"
+	"log"
 	"strings"
 )
 
 type syncCmd struct {
-	MinVersion       int
-	MaxVersion       int
-	LimitVersions    int
 	InfobaseConnect  string
 	InfobaseUser     string
 	InfobasePassword string
@@ -29,13 +26,13 @@ type syncCmd struct {
 	sm *subscription.SubscribeManager
 }
 
-func (c *syncCmd) Cmd() *cli.Command {
+func (c *syncCmd) Cmd(manager plugin.Manager) *cli.Command {
 	cmd := &cli.Command{
 		Name:      "sync",
 		Aliases:   []string{"s"},
 		Usage:     "Выполнение синхронизации Хранилища 1С с git репозиторием",
 		ArgsUsage: "WORKDIR PATH",
-		Flags:     append(c.Flags(), plugin.RegistryFlags("sync")...),
+		Flags:     append(c.Flags(), manager.Flags("sync")...),
 		Action:    c.run,
 		Before: func(ctx *cli.Context) error {
 			if !ctx.Args().Present() {
@@ -55,9 +52,9 @@ func (c *syncCmd) Cmd() *cli.Command {
 			default:
 				return fmt.Errorf("WRONG USAGE: Requires a PATH argument")
 			}
-			var err error
 
-			if c.sm, err = plugin.Subscribe("sync", ctx); err != nil {
+			var err error
+			if c.sm, err = manager.Subscriber("sync"); err != nil {
 				return err
 			}
 
@@ -88,47 +85,21 @@ func (c *syncCmd) Flags() []cli.Flag {
 		&cli.BoolFlag{
 			Destination: &c.DisableIncrement,
 			Name:        "disable-increment",
-			Aliases:     []string{"p"},
 			Usage:       "отключает инкрементальную выгрузку",
 			EnvVars:     strings.Fields("GITSYNC_DISABLE_INCREMENT"),
 		},
 		&cli.StringFlag{
 			Destination: &c.Extension,
 			Name:        "extension",
-			Aliases:     []string{"e ext"},
+			Aliases:     strings.Fields("e ext"),
 			Usage:       "имя расширения для работы с хранилищем расширения",
 			EnvVars:     strings.Fields("R2GITSYNC_EXTENSION GITSYNC_EXTENSION"),
-		},
-		&cli.IntFlag{
-			Destination: &c.LimitVersions,
-			Name:        "limit",
-			Aliases:     []string{"l"},
-			Usage:       "выгрузить не более <Количества> версий от текущей выгруженной",
-			EnvVars:     strings.Fields("GITSYNC_LIMIT"),
-		},
-		&cli.IntFlag{
-			Destination: &c.MinVersion,
-			Name:        "min-version",
-			Usage:       "<номер> минимальной версии для выгрузки",
-			EnvVars:     strings.Fields("GITSYNC_MIN_VERSION"),
-		},
-		&cli.IntFlag{
-			Destination: &c.MaxVersion,
-			Name:        "max-version",
-			Usage:       "<номер> максимальной версии для выгрузки",
-			EnvVars:     strings.Fields("GITSYNC_MAX_VERSION"),
 		},
 	}
 }
 
 func (c *syncCmd) run(ctx *cli.Context) error {
 
-	newOptions := *app.config.Options
-	syncOptions = &newOptions
-	syncOptions.Plugins = c.sm
-	syncOptions.LicTryCount = 5
-
-	err := manager2.Sync(repo, *syncOptions)
-
+	log.Println(c.sm.ConfigureRepositoryVersions)
 	return nil
 }

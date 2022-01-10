@@ -1,174 +1,39 @@
 package plugin
 
 import (
-	"github.com/hashicorp/go-multierror"
-	"github.com/khorevaa/r2gitsync/internal/app/flags"
-	"github.com/khorevaa/r2gitsync/internal/log"
-	"github.com/khorevaa/r2gitsync/pkg/context"
+	"github.com/elastic/go-ucfg"
 	"github.com/khorevaa/r2gitsync/pkg/plugin/metadata"
-	"github.com/khorevaa/r2gitsync/pkg/plugin/subscription"
 	. "github.com/khorevaa/r2gitsync/pkg/plugin/types"
-	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
-	"sort"
-	"strings"
+	"sync"
 )
 
-// Plugin is the interface for plugins to micro. It differs from go-micro in that it's for
-// the micro API, Web, Sidecar, CLI. It's a method of building middleware for the HTTP side.
-type Symbol interface {
+// plugins список загруженных плагинов
+var plugins = map[string]Symbol{}
 
-	// Global Flags
-	Flags() []flags.Flag
-	// Sub-modules
-	Modules() []string
+// muPlugins для избежания дедлоков
+var muPlugins = &sync.Mutex{}
 
-	// Name of the plugin
-	String() string
-	Desc() string
-	Version() string
-	ShortVersion() string
-	Name() string
-	Init() metadata.Plugin
+type Symbol struct {
+	Name    string
+	Version string
+	Desc    string
+	New     func(cfg *ucfg.Config) (Plugin, error)
+	Modules []string
+	Flags   []cli.Flag
 }
 
 type Plugin interface {
 	metadata.Plugin
 }
 
-// Manager is the plugin manager which stores plugins and allows them to be retrieved.
-// This is used by all the components of micro.
-type Manager interface {
-	Plugins() []RegisteredPlugin
-	Register(plugin Symbol) error
-	IsRegistered(name string) bool
-	RegisterFlags(command string, cmd command, ctx context.Context)
-	Enable(name string)
-	Disable(name string)
-}
-
-type RegisteredPluginList map[string]RegisteredPlugin
-
-func (pl RegisteredPluginList) Items() (arr []RegisteredPlugin) {
-
-	// arr = make([]RegisteredPlugin, len(pl))
-
-	for _, registeredPlugin := range pl {
-		arr = append(arr, registeredPlugin)
-	}
-
-	sort.Slice(arr, func(i, j int) bool {
-		return arr[i].Name() < arr[j].Name()
-	})
-
-	return
-}
-
-func (pl RegisteredPluginList) Find(id string) RegisteredPlugin {
-
-	return pl[id]
-}
-
-func (pl RegisteredPluginList) ByModule(moduleName string) []RegisteredPlugin {
-
-	var arr []RegisteredPlugin
-
-	for _, registeredPlugin := range pl {
-		for _, mod := range registeredPlugin.Modules() {
-			if strings.EqualFold(mod, moduleName) {
-				arr = append(arr, registeredPlugin)
-			}
-		}
-	}
-
-	return arr
-}
-
-func (pl RegisteredPluginList) changeEnable(name string, enable bool) {
-
-	rp, ok := pl[name]
-	rp.Enable = enable
-	if ok {
-		pl[name] = rp
-	}
-
-}
-
-func (pl RegisteredPluginList) Enable(name string) {
-
-	pl.changeEnable(name, true)
-
-}
-
-func (pl RegisteredPluginList) Disable(name string) {
-
-	pl.changeEnable(name, false)
-
-}
-
-type RegisteredPlugin struct {
-	Symbol
-	Enable bool
-}
-
-// Plugins lists the global plugins
-func Plugins() []RegisteredPlugin {
-	return defaultManager.Plugins()
-}
-
-func Clear() {
-	defaultManager = newManager()
-}
-
 // Register registers a global plugins
-func Register(names ...Symbol) error {
-
-	mErr := &multierror.Error{}
-
-	for _, name := range names {
-		err := defaultManager.Register(name)
-		log.Debugw("Register plugin", "name", name.Name(), "version", name.Version())
-		mErr = multierror.Append(mErr, errors.Wrapf(err, "plugin <%s>", name))
+func Register(symbols ...Symbol) {
+	muPlugins.Lock()
+	defer muPlugins.Unlock()
+	for _, pl := range symbols {
+		plugins[pl.Name] = pl
 	}
-
-	return mErr.ErrorOrNil()
-}
-
-// Enable a global plugins
-func Enable(names ...string) {
-
-	for _, name := range names {
-		defaultManager.Enable(name)
-	}
-}
-
-// Disable a global plugins
-func Disable(names ...string) {
-
-	for _, name := range names {
-		defaultManager.Disable(name)
-	}
-}
-
-// func RegistryFlags(modName string, cmd command, ctx context.Context) {
-//
-// 	defaultManager.RegisterFlags(modName, cmd, ctx)
-//
-// }
-func RegistryFlags(modName string) []cli.Flag {
-
-	// TODO
-	return []cli.Flag{}
-
-}
-
-func Subscribe(modName string, ctx context.Context) (*subscription.SubscribeManager, error) {
-	return defaultManager.Subscribe(modName, ctx)
-}
-
-// NewManager creates a new plugin manager
-func NewManager() Manager {
-	return newManager()
 }
 
 func Subscription(handlers ...interface{}) Subscriber {
@@ -188,6 +53,7 @@ func LoadPlugins(dir string) error {
 		return err
 	}
 
-	return Register(loader.Plugins()...)
+	Register(loader.Plugins()...)
 
+	return nil
 }

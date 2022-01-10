@@ -2,7 +2,6 @@ package manager
 
 import (
 	"fmt"
-	log2 "github.com/khorevaa/r2gitsync/internal/log"
 	"github.com/lithammer/shortuuid/v3"
 	v8 "github.com/v8platform/api"
 	"github.com/v8platform/designer"
@@ -27,14 +26,14 @@ type SyncRepository struct {
 
 func (r *SyncRepository) Sync(options Options) error {
 
-	jobLogger := log2.Logger(log2.NullLogger)
+	// jobLogger := log2.Logger(log2.NullLogger)
+	//
+	// if options.Logger != nil {
+	// 	options.Logger.Debug("use options logger")
+	// 	jobLogger = options.Logger.Named("manager")
+	// }
 
-	if options.Logger != nil {
-		options.Logger.Debug("use options logger")
-		jobLogger = options.Logger.Named("manager")
-	}
-
-	ib, err := r.getInfobase(jobLogger, options)
+	ib, err := r.getInfobase(options)
 	if err != nil {
 		return err
 	}
@@ -55,11 +54,11 @@ func (r *SyncRepository) Sync(options Options) error {
 		minVersion:   options.MinVersion,
 		maxVersion:   options.MaxVersion,
 		limitVersion: options.LimitVersions,
-		flow:         Flow{options.Plugins, jobLogger},
+		flow:         Flow{SubscribeManager: options.Plugins},
 		options:      options.Options(),
-		log:          jobLogger,
-		domainEmail:  options.DomainEmail,
-		skipFiles:    []string{VERSION_FILE, AUTHORS_FILE, ".git"},
+		// log:          jobLogger,
+		domainEmail: options.DomainEmail,
+		skipFiles:   []string{VERSION_FILE, AUTHORS_FILE, ".git"},
 	}
 
 	return job.Run()
@@ -68,14 +67,14 @@ func (r *SyncRepository) Sync(options Options) error {
 
 func (r *SyncRepository) Init(options Options) error {
 
-	jobLogger := log2.Logger(log2.NullLogger)
+	// jobLogger := log2.Logger(log2.NullLogger)
+	//
+	// if options.Logger != nil {
+	// 	options.Logger.Debug("use options logger")
+	// 	jobLogger = options.Logger.Named("manager")
+	// }
 
-	if options.Logger != nil {
-		options.Logger.Debug("use options logger")
-		jobLogger = options.Logger.Named("manager")
-	}
-
-	ib, err := r.getInfobase(jobLogger, options)
+	ib, err := r.getInfobase(options)
 	if err != nil {
 		return err
 	}
@@ -96,23 +95,23 @@ func (r *SyncRepository) Init(options Options) error {
 		minVersion:   options.MinVersion,
 		maxVersion:   options.MaxVersion,
 		limitVersion: options.LimitVersions,
-		flow:         Flow{options.Plugins, jobLogger},
+		flow:         Flow{SubscribeManager: options.Plugins},
 		options:      options.Options(),
-		log:          jobLogger,
-		domainEmail:  options.DomainEmail,
-		skipFiles:    []string{VERSION_FILE, AUTHORS_FILE, ".git"},
+		// log:          jobLogger,
+		domainEmail: options.DomainEmail,
+		skipFiles:   []string{VERSION_FILE, AUTHORS_FILE, ".git"},
 	}
 
 	return job.Run()
 }
 
-func (r *SyncRepository) getInfobase(logger log2.Logger, opts Options) (*v8.Infobase, error) {
+func (r *SyncRepository) getInfobase(opts Options) (*v8.Infobase, error) {
 
 	if len(opts.InfobaseConnect) > 0 {
 		return opts.Infobase()
 	}
 
-	logger.Debug("Creating temp infobase")
+	// logger.Debug("Creating temp infobase")
 
 	CreateFileInfobase := v8.CreateFileInfobase(v8.NewTempDir(opts.TempDir, "temp_ib"))
 
@@ -135,7 +134,7 @@ func (r *SyncRepository) getInfobase(logger log2.Logger, opts Options) (*v8.Info
 		if err != nil {
 			return nil, err
 		}
-		logger.Debug("Empty extension loaded into infobase")
+		// logger.Debug("Empty extension loaded into infobase")
 	}
 
 	return ib, nil

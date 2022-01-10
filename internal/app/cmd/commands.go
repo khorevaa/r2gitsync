@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/khorevaa/r2gitsync/pkg/plugin"
 	"github.com/urfave/cli/v2"
 )
 
@@ -12,5 +13,5 @@ var Commands = []Command{
 }
 
 type Command interface {
-	Cmd() *cli.Command
+	Cmd(manager plugin.Manager) *cli.Command
 }

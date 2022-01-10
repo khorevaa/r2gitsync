@@ -1,7 +1,6 @@
 package manager
 
 import (
-	"github.com/khorevaa/r2gitsync/internal/log"
 	"github.com/khorevaa/r2gitsync/pkg/plugin/subscription"
 	"github.com/v8platform/api"
 )
@@ -14,9 +13,8 @@ type Options struct {
 
 	MinVersion       int
 	MaxVersion       int
-	LimitVersions   int
-	Logger          log.Logger
-	InfobaseConnect string
+	LimitVersions    int
+	InfobaseConnect  string
 	InfobaseUser     string
 	InfobasePassword string
 	DomainEmail      string

@@ -3,14 +3,12 @@ package manager
 import (
 	"fmt"
 	"github.com/hashicorp/go-multierror"
-	"github.com/khorevaa/r2gitsync/internal/log"
 	"github.com/khorevaa/r2gitsync/internal/manager/types"
 	v8 "github.com/v8platform/api"
 	"github.com/v8platform/designer"
-	"go.uber.org/zap"
 	"io/ioutil"
+	"log"
 	"os"
-	"time"
 )
 
 type syncJob struct {
@@ -27,9 +25,9 @@ type syncJob struct {
 	minVersion     int
 	maxVersion     int
 
-	flow     Flow
-	log      log.Logger
-	endpoint types.V8Endpoint
+	flow        Flow
+	log         log.Logger
+	endpoint    types.V8Endpoint
 	domainEmail string
 
 	limitVersion int
@@ -46,17 +44,17 @@ func (j *syncJob) Run() error {
 
 func (j *syncJob) start() (err error) {
 
-	j.log.Infow("Start sync with repository",
-		zap.String("name", j.name),
-		zap.String("path", j.repo.Path),
-	)
-
-	j.log.Infow("Using infobase for sync",
-		zap.String("path", j.infobase.Connect.String()))
-
-	if j.increment {
-		j.log.Infow("Using increment dump config to files")
-	}
+	// j.log.Infow("Start sync with repository",
+	// 	zap.String("name", j.name),
+	// 	zap.String("path", j.repo.Path),
+	// )
+	//
+	// j.log.Infow("Using infobase for sync",
+	// 	zap.String("path", j.infobase.Connect.String()))
+	//
+	// if j.increment {
+	// 	j.log.Infow("Using increment dump config to files")
+	// }
 
 	j.endpoint = &v8Endpoint{
 		infobase:   j.infobase,
@@ -88,18 +86,18 @@ func (j *syncJob) start() (err error) {
 	}
 
 	if len(j.versions) == 0 {
-		j.log.Warn("No versions to sync")
+		// j.log.Warn("No versions to sync")
 		return nil
 	}
 
 	nextVersion := j.versions[0].Number()
 	err = taskFlow.ConfigureRepositoryVersions(j.endpoint, &j.versions, &j.currentVersion, &nextVersion, &j.maxVersion)
 
-	j.log.Infow("Sync version number",
-		zap.Int("currentVersion", j.currentVersion),
-		zap.Int("maxVersion", j.maxVersion),
-		zap.Int("nextVersion", nextVersion),
-	)
+	// j.log.Infow("Sync version number",
+	// 	zap.Int("currentVersion", j.currentVersion),
+	// 	zap.Int("maxVersion", j.maxVersion),
+	// 	zap.Int("nextVersion", nextVersion),
+	// )
 
 	if err != nil {
 		return err
@@ -138,9 +136,9 @@ func (j *syncJob) syncVersionFiles(rVersion types.RepositoryVersion) (err error)
 
 	flowTask := j.flow
 
-	j.log.Infow(fmt.Sprintf("Start process sources for version %d", rVersion.Number()),
-		zap.Int("number", rVersion.Number()))
-	startTime := time.Now()
+	// j.log.Infow(fmt.Sprintf("Start process sources for version %d", rVersion.Number()),
+	// 	zap.Int("number", rVersion.Number()))
+	// startTime := time.Now()
 
 	flowTask.StartSyncVersion(j.endpoint, j.workdir, tempDir, rVersion.Number())
 
@@ -150,10 +148,10 @@ func (j *syncJob) syncVersionFiles(rVersion types.RepositoryVersion) (err error)
 
 		_ = os.RemoveAll(tempDir)
 
-		j.log.Infow(fmt.Sprintf("Finished process sources for version %d", rVersion.Number()),
-			zap.Int("number", rVersion.Number()),
-			zap.Float64("duration", time.Since(startTime).Seconds()),
-			zap.Error(err))
+		// j.log.Infow(fmt.Sprintf("Finished process sources for version %d", rVersion.Number()),
+		// 	zap.Int("number", rVersion.Number()),
+		// 	zap.Float64("duration", time.Since(startTime).Seconds()),
+		// 	zap.Error(err))
 	}()
 
 	err = flowTask.UpdateCfg(j.endpoint, j.workdir, rVersion.Number())

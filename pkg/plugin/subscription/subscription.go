@@ -1,7 +1,6 @@
 package subscription
 
 import (
-	"github.com/khorevaa/r2gitsync/pkg/context"
 	. "github.com/khorevaa/r2gitsync/pkg/plugin/types"
 	"sync"
 )
@@ -24,20 +23,7 @@ type SubscribeManager struct {
 	count                       int
 }
 
-func (sm *SubscribeManager) Subscribe(p Plugin, ctx context.Context) error {
-
-	sm.mu.Lock()
-	defer sm.mu.Unlock()
-
-	sub := p.Subscribe(ctx)
-
-	sm.subscribe(sub)
-
-	return nil
-
-}
-
-func (sm *SubscribeManager) subscribe(sub Subscriber) {
+func (sm *SubscribeManager) Subscribe(sub Subscriber) {
 
 	handlers := sub.Handlers()
 

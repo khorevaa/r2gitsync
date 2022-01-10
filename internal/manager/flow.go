@@ -1,7 +1,6 @@
 package manager
 
 import (
-	"github.com/khorevaa/r2gitsync/internal/log"
 	"github.com/khorevaa/r2gitsync/internal/manager/types"
 	"github.com/khorevaa/r2gitsync/pkg/plugin/subscription"
 	"time"
@@ -11,7 +10,7 @@ const ConfigDumpInfoFileName = "ConfigDumpInfo.xml"
 
 type Flow struct {
 	SubscribeManager *subscription.SubscribeManager
-	Logger           log.Logger
+	// Logger           log.Logger
 }
 
 func (t Flow) StartSyncVersion(v8end types.V8Endpoint, workdir string, tempdir string, number int) {

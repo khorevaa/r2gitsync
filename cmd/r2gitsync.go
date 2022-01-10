@@ -2,8 +2,11 @@ package main
 
 import (
 	"fmt"
+	"github.com/elastic/go-ucfg"
+	"github.com/khorevaa/r2gitsync/internal/app"
 	"github.com/khorevaa/r2gitsync/internal/app/cmd"
-	"github.com/khorevaa/r2gitsync/internal/config"
+	_ "github.com/khorevaa/r2gitsync/internal/plugins"
+	"github.com/khorevaa/r2gitsync/pkg/plugin"
 	"github.com/urfave/cli/v2"
 	"strings"
 
@@ -12,13 +15,11 @@ import (
 )
 
 const (
-	VerboseEnv         = "GITSYNC_VERBOSE R2GITSYNC_VERBOSE"
-	V8VersionEnv       = "GITSYNC_V8_VERSION GITSYNC_V8VERSION"
-	V8PathEnv          = "GITSYNC_V8_PATH"
-	WorkDirEnv         = "R2GITSYNC_WORKDIR GITSYNC_WORKDIR"
-	PluginsDirEnv      = "GITSYNC_PLUGINS_PATH GITSYNC_PLUGINS_DIR GITSYNC_PL_DIR"
-	DisabledPluginsEnv = "R2GITSYNC_DISABLED_PLUGINS"
-	EnabledPluginsEnv  = "R2GITSYNC_ENABLED_PLUGINS"
+	VerboseEnv    = "GITSYNC_VERBOSE R2GITSYNC_VERBOSE"
+	V8VersionEnv  = "GITSYNC_V8_VERSION GITSYNC_V8VERSION"
+	V8PathEnv     = "GITSYNC_V8_PATH"
+	WorkDirEnv    = "R2GITSYNC_WORKDIR GITSYNC_WORKDIR"
+	PluginsDirEnv = "GITSYNC_PLUGINS_PATH GITSYNC_PLUGINS_DIR GITSYNC_PL_DIR"
 )
 
 // nolint: gochecknoglobals
@@ -33,7 +34,7 @@ var log = logos.New("github.com/khorevaa/r2gitsync").Sugar()
 
 func main() {
 
-	globalConfig := &config.Config{}
+	manager := plugin.NewPluginManager(map[string]*ucfg.Config{})
 
 	app := &cli.App{
 		Name:    "r2gitsync",
@@ -48,12 +49,23 @@ func main() {
 				logos.SetLevel("github.com/khorevaa/r2gitsync", logos.DebugLevel)
 			}
 
+			globalConfig, err := app.LoadConfig(c.String("config"))
+			if err != nil {
+				return err
+			}
+
+			manager = plugin.NewPluginManager(globalConfig.Plugins)
+			c.App.Commands = []*cli.Command{}
+			for _, command := range cmd.Commands {
+				c.App.Commands = append(c.App.Commands, command.Cmd(manager))
+			}
+
 			return nil
 		},
 	}
 
 	for _, command := range cmd.Commands {
-		app.Commands = append(app.Commands, command.Cmd())
+		app.Commands = append(app.Commands, command.Cmd(manager))
 	}
 
 	err := app.Run(os.Args)
@@ -95,32 +107,31 @@ func setFlags() []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name:    "ib-user",
-			Aliases: []string{"U ib-usr"},
+			Aliases: strings.Fields("U ib-usr"),
 			EnvVars: strings.Fields("GITSYNC_IB_USR GITSYNC_IB_USER GITSYNC_DB_USER"),
 			Usage:   "пользователь информационной базы",
 		},
 		&cli.StringFlag{
 			Name:    "ib-password",
-			Aliases: []string{"P ib-pwd"},
+			Aliases: strings.Fields("P ib-pwd"),
 			EnvVars: strings.Fields("GITSYNC_IB_PASSWORD GITSYNC_IB_PWD GITSYNC_DB_PSW"),
 			Usage:   "пароль пользователя информационной базы",
 		},
 		&cli.StringFlag{
 			Name:    "ib-connection",
-			Aliases: []string{"C ib-connection ibconnection"},
+			Aliases: strings.Fields("C ibconnection"),
 			EnvVars: strings.Fields("GITSYNC_IB_CONNECTION GITSYNC_IBCONNECTION"),
 			Usage:   "путь подключения к информационной базе",
 		},
 		&cli.StringFlag{
 			Name:    "temp-dir",
-			Aliases: []string{"t tempdir"},
+			Aliases: strings.Fields("t tempdir"),
 			EnvVars: strings.Fields("GITSYNC_TEMP GITSYNC_TEMPDIR"),
 			Usage:   "путь к каталогу временных файлов",
 		},
 
 		&cli.StringFlag{
 			Name:    "config",
-			Aliases: []string{},
 			EnvVars: strings.Fields("GITSYNC_CONFIG"),
 			Usage:   "путь к файлу настройки приложения",
 		},
