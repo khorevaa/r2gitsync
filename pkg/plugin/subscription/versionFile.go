@@ -22,6 +22,10 @@ type readVersionFileHandler struct {
 	after  []AfterReadVersionFileFn
 }
 
+func (h *readVersionFileHandler) Count() int {
+	return len(h.on) + len(h.after) + len(h.before)
+}
+
 func (h *readVersionFileHandler) Subscribe(sub ReadVersionFileSubscriber) {
 
 	if sub.Before != nil {
@@ -95,6 +99,10 @@ type writeVersionFileHandler struct {
 	before []BeforeWriteVersionFileFn
 	on     []OnWriteVersionFileFn
 	after  []AfterWriteVersionFileFn
+}
+
+func (h *writeVersionFileHandler) Count() int {
+	return len(h.on) + len(h.after) + len(h.before)
 }
 
 func (h *writeVersionFileHandler) Subscribe(sub WriteVersionFileSubscriber) {

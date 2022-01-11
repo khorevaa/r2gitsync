@@ -22,6 +22,10 @@ type getRepositoryAuthorsHandler struct {
 	after  []AfterGetRepositoryAuthorsFn
 }
 
+func (h *getRepositoryAuthorsHandler) Count() int {
+	return len(h.on) + len(h.after) + len(h.before)
+}
+
 func (h *getRepositoryAuthorsHandler) Subscribe(sub GetRepositoryAuthorsSubscriber) {
 
 	if sub.Before != nil {

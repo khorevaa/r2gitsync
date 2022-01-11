@@ -1,9 +1,10 @@
 package subscription
 
 import (
+	"time"
+
 	"github.com/khorevaa/r2gitsync/internal/manager/types"
 	. "github.com/khorevaa/r2gitsync/pkg/plugin/types"
-	"time"
 )
 
 var _ CommitFilesHandler = (*commitFilesHandler)(nil)
@@ -22,6 +23,10 @@ type commitFilesHandler struct {
 	before []BeforeCommitFilesFn
 	on     []OnCommitFilesFn
 	after  []AfterCommitFilesFn
+}
+
+func (h *commitFilesHandler) Count() int {
+	return len(h.on) + len(h.after) + len(h.before)
 }
 
 func (h *commitFilesHandler) Subscribe(sub CommitFilesSubscriber) {

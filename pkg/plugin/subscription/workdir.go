@@ -22,6 +22,10 @@ type clearWorkdirHandler struct {
 	after  []AfterClearWorkdirFn
 }
 
+func (h *clearWorkdirHandler) Count() int {
+	return len(h.on) + len(h.after) + len(h.before)
+}
+
 func (h *clearWorkdirHandler) Subscribe(sub ClearWorkdirSubscriber) {
 
 	if sub.Before != nil {
@@ -95,6 +99,10 @@ type moveToWorkdirHandler struct {
 	before []BeforeMoveToWorkdirFn
 	on     []OnMoveToWorkdirFn
 	after  []AfterMoveToWorkdirFn
+}
+
+func (h *moveToWorkdirHandler) Count() int {
+	return len(h.on) + len(h.after) + len(h.before)
 }
 
 func (h *moveToWorkdirHandler) Subscribe(sub MoveToWorkdirSubscriber) {

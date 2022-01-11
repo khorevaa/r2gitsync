@@ -22,6 +22,10 @@ type updateCfgHandler struct {
 	after  []AfterUpdateCfgFn
 }
 
+func (h *updateCfgHandler) Count() int {
+	return len(h.on) + len(h.after) + len(h.before)
+}
+
 func (h *updateCfgHandler) BeforeFn(v8end V8Endpoint, workdir string, number int) func() error {
 	return func() error {
 		return h.Before(v8end, workdir, number)
@@ -57,11 +61,11 @@ func (h *updateCfgHandler) Before(v8end V8Endpoint, workdir string, version int)
 	return nil
 }
 
-func (h *updateCfgHandler) On(v8end V8Endpoint, workdir string, version int, standartHandler *bool) error {
+func (h *updateCfgHandler) On(v8end V8Endpoint, workdir string, version int, stdHandler *bool) error {
 
 	for _, fn := range h.on {
 
-		err := fn(v8end, workdir, version, standartHandler)
+		err := fn(v8end, workdir, version, stdHandler)
 
 		if err != nil {
 			return err

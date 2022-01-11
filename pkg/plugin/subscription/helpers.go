@@ -1,11 +1,11 @@
 package subscription
 
 import (
-	"github.com/khorevaa/r2gitsync/pkg/context"
 	. "github.com/khorevaa/r2gitsync/pkg/plugin/types"
 )
 
 type SubscribeHandler interface {
+	Count() int
 }
 
 func NewSubscribeManager() *SubscribeManager {
@@ -27,5 +27,5 @@ func NewSubscribeManager() *SubscribeManager {
 }
 
 type Plugin interface {
-	Subscribe(ctx context.Context) Subscriber
+	Subscribe() Subscriber
 }

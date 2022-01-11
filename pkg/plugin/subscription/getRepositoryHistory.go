@@ -13,6 +13,10 @@ type getRepositoryHistoryHandler struct {
 	after  []AfterGetRepositoryHistoryFn
 }
 
+func (h *getRepositoryHistoryHandler) Count() int {
+	return len(h.on) + len(h.after) + len(h.before)
+}
+
 func (h *getRepositoryHistoryHandler) Subscribe(sub GetRepositoryHistorySubscriber) {
 
 	if sub.Before != nil {
@@ -36,9 +40,9 @@ type GetRepositoryHistoryHandler interface {
 	On(v8end V8Endpoint, dir string, NBegin int, stdHandler *bool) ([]types.RepositoryVersion, error)
 	After(v8end V8Endpoint, dir string, NBegin int, rv *types.RepositoryVersionsList) error
 
-	//Start(v8end V8Endpoint, workdir string, temp string, number int) error
-	//On(v8end V8Endpoint, workdir string, temp string, number int, standartHandler *bool) error
-	//Finish(v8end V8Endpoint, workdir string, temp string, number int) error
+	// Start(v8end V8Endpoint, workdir string, temp string, number int) error
+	// On(v8end V8Endpoint, workdir string, temp string, number int, standartHandler *bool) error
+	// Finish(v8end V8Endpoint, workdir string, temp string, number int) error
 }
 
 func (h *getRepositoryHistoryHandler) Before(v8end V8Endpoint, dir string, NBegin int) error {
@@ -87,6 +91,10 @@ var _ ConfigureRepositoryVersionsHandler = (*configureRepositoryVersionsHandler)
 
 type configureRepositoryVersionsHandler struct {
 	on []OnConfigureRepositoryVersionsFn
+}
+
+func (h *configureRepositoryVersionsHandler) Count() int {
+	return len(h.on)
 }
 
 func (h *configureRepositoryVersionsHandler) Subscribe(sub ConfigureRepositoryVersionsSubscriber) {

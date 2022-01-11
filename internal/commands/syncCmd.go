@@ -1,12 +1,14 @@
-package cmd
+package commands
 
 import (
 	"fmt"
+	"strings"
+
+	"github.com/khorevaa/logos"
+
 	"github.com/khorevaa/r2gitsync/pkg/plugin"
 	"github.com/khorevaa/r2gitsync/pkg/plugin/subscription"
 	"github.com/urfave/cli/v2"
-	"log"
-	"strings"
 )
 
 type syncCmd struct {
@@ -67,6 +69,28 @@ func (c *syncCmd) Cmd(manager plugin.Manager) *cli.Command {
 func (c *syncCmd) Flags() []cli.Flag {
 	return []cli.Flag{
 		&cli.StringFlag{
+			Name:    "ib-user",
+			Aliases: strings.Fields("U ib-usr"),
+			EnvVars: strings.Fields("GITSYNC_IB_USR GITSYNC_IB_USER GITSYNC_DB_USER"),
+			Value:   "Администратор",
+			Usage:   "пользователь информационной базы",
+			// Destination: &cfg.Infobase.User,
+		},
+		&cli.StringFlag{
+			Name:    "ib-password",
+			Aliases: strings.Fields("P ib-pwd"),
+			EnvVars: strings.Fields("GITSYNC_IB_PASSWORD GITSYNC_IB_PWD GITSYNC_DB_PSW"),
+			Usage:   "пароль пользователя информационной базы",
+			// Destination: &cfg.Infobase.Password,
+		},
+		&cli.StringFlag{
+			Name:    "ib-connection",
+			Aliases: strings.Fields("C ibconnection"),
+			EnvVars: strings.Fields("GITSYNC_IB_CONNECTION GITSYNC_IBCONNECTION"),
+			Usage:   "путь подключения к информационной базе",
+			// Destination: &cfg.Infobase.ConnectionString,
+		},
+		&cli.StringFlag{
 			Destination: &c.StorageUser,
 			Name:        "storage-user",
 			Aliases:     []string{"u"},
@@ -100,6 +124,8 @@ func (c *syncCmd) Flags() []cli.Flag {
 
 func (c *syncCmd) run(ctx *cli.Context) error {
 
-	log.Println(c.sm.ConfigureRepositoryVersions)
+	log := logos.New("github.com/khorevaa/r2gitsync/internal/cmd/sync")
+
+	log.Info("run", logos.Any("sm", c.sm.ConfigureRepositoryVersions))
 	return nil
 }

@@ -19,6 +19,10 @@ type syncProcessHandler struct {
 	finish []FinishSyncProcessFn
 }
 
+func (h *syncProcessHandler) Count() int {
+	return len(h.start) + len(h.finish)
+}
+
 func (h *syncProcessHandler) Subscribe(sub SyncProcessSubscriber) {
 
 	if sub.Start != nil {
@@ -60,6 +64,10 @@ var _ SyncVersionHandler = (*syncversionHandler)(nil)
 type syncversionHandler struct {
 	start  []StartSyncVersionFn
 	finish []FinishSyncVersionFn
+}
+
+func (h *syncversionHandler) Count() int {
+	return len(h.start) + len(h.finish)
 }
 
 func (h *syncversionHandler) Subscribe(sub SyncVersionSubscriber) {

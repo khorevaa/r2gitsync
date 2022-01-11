@@ -1,8 +1,9 @@
 package subscription
 
 import (
-	. "github.com/khorevaa/r2gitsync/pkg/plugin/types"
 	"sync"
+
+	. "github.com/khorevaa/r2gitsync/pkg/plugin/types"
 )
 
 type SubscribeManager struct {
@@ -23,6 +24,20 @@ type SubscribeManager struct {
 	count                       int
 }
 
+func (sm *SubscribeManager) Count() int {
+	return sm.UpdateCfg.Count() +
+		sm.DumpConfigToFiles.Count() +
+		sm.GetRepositoryHistory.Count() +
+		sm.ConfigureRepositoryVersions.Count() +
+		sm.GetRepositoryAuthors.Count() +
+		sm.SyncVersion.Count() +
+		sm.SyncProcess.Count() +
+		sm.CommitFiles.Count() +
+		sm.ReadVersionFile.Count() +
+		sm.WriteVersionFile.Count() +
+		sm.ClearWorkdir.Count() +
+		sm.MoveToWorkdir.Count()
+}
 func (sm *SubscribeManager) Subscribe(sub Subscriber) {
 
 	handlers := sub.Handlers()
@@ -54,7 +69,6 @@ func (sm *SubscribeManager) Subscribe(sub Subscriber) {
 			sm.ClearWorkdir.Subscribe(h)
 		case MoveToWorkdirSubscriber:
 			sm.MoveToWorkdir.Subscribe(h)
-
 		}
 
 	}

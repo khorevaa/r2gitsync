@@ -8,5 +8,8 @@ import (
 func init() {
 
 	plugin.Register(limit.Symbol)
-
+	err := LoadPlugins()
+	if err != nil {
+		panic(err)
+	}
 }

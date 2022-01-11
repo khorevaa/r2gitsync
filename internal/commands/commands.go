@@ -1,4 +1,4 @@
-package cmd
+package commands
 
 import (
 	"github.com/khorevaa/r2gitsync/pkg/plugin"

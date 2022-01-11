@@ -12,6 +12,10 @@ type dumpConfigToFilesHandler struct {
 	after  []AfterDumpConfigFn
 }
 
+func (h *dumpConfigToFilesHandler) Count() int {
+	return len(h.on) + len(h.after) + len(h.before)
+}
+
 func (h *dumpConfigToFilesHandler) Subscribe(sub DumpConfigToFilesSubscriber) {
 
 	if sub.Before != nil {

@@ -2,16 +2,17 @@ package main
 
 import (
 	"fmt"
-	"github.com/elastic/go-ucfg"
-	"github.com/khorevaa/r2gitsync/internal/app"
-	"github.com/khorevaa/r2gitsync/internal/app/cmd"
+	"strings"
+
+	"github.com/khorevaa/r2gitsync/internal/commands"
+	"github.com/khorevaa/r2gitsync/internal/config"
 	_ "github.com/khorevaa/r2gitsync/internal/plugins"
 	"github.com/khorevaa/r2gitsync/pkg/plugin"
 	"github.com/urfave/cli/v2"
-	"strings"
+
+	"os"
 
 	"github.com/khorevaa/logos"
-	"os"
 )
 
 const (
@@ -34,29 +35,30 @@ var log = logos.New("github.com/khorevaa/r2gitsync").Sugar()
 
 func main() {
 
-	manager := plugin.NewPluginManager(map[string]*ucfg.Config{})
+	appConfig := config.DefaultConfig()
+
+	manager := plugin.NewPluginManager(appConfig.Plugins)
 
 	app := &cli.App{
 		Name:    "r2gitsync",
 		Usage:   "Приложение для синхронизация Хранилища 1С с git",
 		Version: buildVersion(),
-		Flags:   setFlags(),
+		Flags:   setFlags(appConfig),
 		Before: func(c *cli.Context) error {
+			var err error
 
-			debug := c.Bool("debug")
-
-			if debug {
-				logos.SetLevel("github.com/khorevaa/r2gitsync", logos.DebugLevel)
-			}
-
-			globalConfig, err := app.LoadConfig(c.String("config"))
-			if err != nil {
+			if appConfig, err = config.LoadConfig(appConfig, c.String("config")); err != nil {
 				return err
 			}
 
-			manager = plugin.NewPluginManager(globalConfig.Plugins)
+			if appConfig.Debug {
+				// TODO Не работает
+				logos.SetLevel("github.com/khorevaa/r2gitsync", logos.DebugLevel)
+			}
+
+			manager = plugin.NewPluginManager(appConfig.Plugins)
 			c.App.Commands = []*cli.Command{}
-			for _, command := range cmd.Commands {
+			for _, command := range commands.Commands {
 				c.App.Commands = append(c.App.Commands, command.Cmd(manager))
 			}
 
@@ -64,7 +66,7 @@ func main() {
 		},
 	}
 
-	for _, command := range cmd.Commands {
+	for _, command := range commands.Commands {
 		app.Commands = append(app.Commands, command.Cmd(manager))
 	}
 
@@ -90,44 +92,29 @@ func buildVersion() string {
 	return result
 }
 
-func setFlags() []cli.Flag {
+func setFlags(cfg *config.Config) []cli.Flag {
 
 	return []cli.Flag{
 		&cli.StringFlag{
-			Name:    "V8version",
-			Value:   "8.3",
-			EnvVars: strings.Fields(V8VersionEnv),
-			Usage:   "маска версии платформы 1С (8.3, 8.3.5, 8.3.6.2299 и т.п.)",
+			Name:        "V8version",
+			Value:       "8.3",
+			EnvVars:     strings.Fields(V8VersionEnv),
+			Usage:       "маска версии платформы 1С (8.3, 8.3.5, 8.3.6.2299 и т.п.)",
+			Destination: &cfg.V8version,
 		},
 		&cli.StringFlag{
-			Name:    "v8-path",
-			Aliases: []string{"v8path"},
-			EnvVars: strings.Fields(V8PathEnv),
-			Usage:   "путь к исполняемому файлу платформы 1С (Например, /opt/1C/v8.3/x86_64/1cv8)",
+			Name:        "v8-path",
+			Aliases:     []string{"v8path"},
+			EnvVars:     strings.Fields(V8PathEnv),
+			Usage:       "путь к исполняемому файлу платформы 1С (Например, /opt/1C/v8.3/x86_64/1cv8)",
+			Destination: &cfg.V8Path,
 		},
 		&cli.StringFlag{
-			Name:    "ib-user",
-			Aliases: strings.Fields("U ib-usr"),
-			EnvVars: strings.Fields("GITSYNC_IB_USR GITSYNC_IB_USER GITSYNC_DB_USER"),
-			Usage:   "пользователь информационной базы",
-		},
-		&cli.StringFlag{
-			Name:    "ib-password",
-			Aliases: strings.Fields("P ib-pwd"),
-			EnvVars: strings.Fields("GITSYNC_IB_PASSWORD GITSYNC_IB_PWD GITSYNC_DB_PSW"),
-			Usage:   "пароль пользователя информационной базы",
-		},
-		&cli.StringFlag{
-			Name:    "ib-connection",
-			Aliases: strings.Fields("C ibconnection"),
-			EnvVars: strings.Fields("GITSYNC_IB_CONNECTION GITSYNC_IBCONNECTION"),
-			Usage:   "путь подключения к информационной базе",
-		},
-		&cli.StringFlag{
-			Name:    "temp-dir",
-			Aliases: strings.Fields("t tempdir"),
-			EnvVars: strings.Fields("GITSYNC_TEMP GITSYNC_TEMPDIR"),
-			Usage:   "путь к каталогу временных файлов",
+			Name:        "temp-dir",
+			Aliases:     strings.Fields("t tempdir"),
+			EnvVars:     strings.Fields("GITSYNC_TEMP GITSYNC_TEMPDIR"),
+			Usage:       "путь к каталогу временных файлов",
+			Destination: &cfg.TempDir,
 		},
 
 		&cli.StringFlag{
@@ -137,9 +124,10 @@ func setFlags() []cli.Flag {
 		},
 
 		&cli.BoolFlag{
-			Name:    "debug",
-			EnvVars: strings.Fields(VerboseEnv),
-			Usage:   "Режим отладки приложения",
+			Name:        "debug",
+			EnvVars:     strings.Fields(VerboseEnv),
+			Usage:       "Режим отладки приложения",
+			Destination: &cfg.Debug,
 		},
 	}
 }
