@@ -5,10 +5,12 @@ type Storage struct {
 	ConnectionString string
 	Type             StorageType
 	Develop          bool
+	Extension        *uint
 	ParentId         *uint
+	Parent           *Storages
 
-	ProjectId   *uint
-	ProjectName string
+	ProjectId *uint
+	Project   Project
 
 	RemoteUrl  string
 	BranchName string

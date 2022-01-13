@@ -24,7 +24,8 @@ type Storage struct {
 	ConnectionString string
 	Type             dto.StorageType
 	Develop          bool
-	ParentId         *uint
+	Extension        *uint
+	ParentID         *uint
 	Parent           *Storage
 
 	ProjectCode string  // `gorm:"TYPE:string REFERENCES projects;index"`

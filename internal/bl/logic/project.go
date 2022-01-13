@@ -8,7 +8,7 @@ import (
 )
 
 type IProjectsLogic interface {
-	GetProjects(context context.Context) (dto.Projects, error)
+	GetProjects(ctx context.Context) (dto.Projects, error)
 }
 
 func NewProjectsLogic(di di.IAppDeps) IProjectsLogic {
@@ -19,7 +19,7 @@ type ProjectsLogic struct {
 	di di.IAppDeps
 }
 
-func (p ProjectsLogic) GetProjects(context context.Context) (dto.Projects, error) {
+func (p ProjectsLogic) GetProjects(ctx context.Context) (dto.Projects, error) {
 	// TODO implement me
 	panic("implement me")
 }
