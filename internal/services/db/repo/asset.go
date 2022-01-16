@@ -1,14 +1,11 @@
 package repo
 
-import "gorm.io/gorm"
-
 type Asset struct {
-	gorm.Model
+	UuidModel
 
-	OwnerID   int
+	OwnerID   string
 	OwnerType string
 
 	Filename string
 	Size     uint
-	MD5      []byte
 }

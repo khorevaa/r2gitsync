@@ -20,7 +20,7 @@ func NewStorageRepository(db *gorm.DB) IStorageRepository {
 }
 
 type Storage struct {
-	gorm.Model
+	UuidModel
 	ConnectionString string
 	Type             dto.StorageType
 	Develop          bool

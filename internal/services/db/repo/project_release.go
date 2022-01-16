@@ -8,7 +8,7 @@ import (
 
 type ProjectRelease struct {
 	gorm.Model
-	ProjectID  uint `gorm:"TYPE:integer REFERENCES projects;uniqueIndex:idx_project_id_version"`
+	ProjectID  string `gorm:"TYPE:uuid REFERENCES projects;uniqueIndex:idx_project_id_version"`
 	Project    Project
 	Version    string `gorm:"uniqueIndex:idx_project_id_version"`
 	ReleasedAt *time.Time

@@ -20,10 +20,11 @@ func NewProjectRepository(db *gorm.DB) IProjectRepository {
 }
 
 type Project struct {
-	gorm.Model
+	UuidModel
 	Code        string `gorm:"size:10;uniqueIndex"`
 	Name        string
 	Description string
+	Assets      []*Asset `gorm:"polymorphic:Owner;"`
 }
 
 type ProjectRepository struct {
