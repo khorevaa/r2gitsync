@@ -2,8 +2,10 @@ package dto
 
 import "time"
 
-type StorageVersion struct {
-	ID                   uint
+type StorageCommit struct {
+	Uuid                 string
+	StorageUuid          string
+	Number               uint
 	ConfigurationVersion string
 	Author               string
 	Description          string
@@ -12,4 +14,4 @@ type StorageVersion struct {
 	TagDesc              string
 }
 
-type StorageVersions []*StorageVersion
+type StorageCommits []*StorageCommit

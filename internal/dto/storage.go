@@ -1,5 +1,7 @@
 package dto
 
+type StorageType uint
+
 type Storage struct {
 	Id               string
 	ConnectionString string

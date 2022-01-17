@@ -7,29 +7,28 @@ import (
 	"gorm.io/gorm"
 )
 
-type IStorageRepository interface {
-	Fetch(ctx context.Context) (dto.Storages, error)
-	GetById(ctx context.Context, id uint) (*dto.Storage, error)
-	Store(ctx context.Context, dtm *dto.Storage) (*dto.Storage, error)
-	Update(ctx context.Context, id uint, dtm *dto.Storage) (*dto.Storage, error)
-	Delete(ctx context.Context, id uint) error
-}
-
-func NewStorageRepository(db *gorm.DB) IStorageRepository {
-	return &StorageRepository{db: db}
-}
-
 type Storage struct {
 	UuidModel
 	ConnectionString string
 	Type             dto.StorageType
 	Develop          bool
-	Extension        *uint
-	ParentID         *uint
+	Extension        *string
+	ParentUuid       *uint
 	Parent           *Storage
 
-	ProjectCode string  // `gorm:"TYPE:string REFERENCES projects;index"`
-	Project     Project `gorm:"foreignKey:ProjectCode; references:Code; constraint:OnUpdate:CASCADE,OnDelete:DELETE;"`
+	ProjectCode string `gorm:"TYPE:uuid REFERENCES projects;index;references:Code"`
+}
+
+type IStorageRepository interface {
+	Fetch(ctx context.Context) (dto.Storages, error)
+	GetByUuid(ctx context.Context, uuid string) (*dto.Storage, error)
+	Store(ctx context.Context, dtm *dto.Storage) (*dto.Storage, error)
+	Update(ctx context.Context, uuid string, dtm *dto.Storage) (*dto.Storage, error)
+	Delete(ctx context.Context, uuid string) error
+}
+
+func NewStorageRepository(db *gorm.DB) IStorageRepository {
+	return &StorageRepository{db: db}
 }
 
 type StorageRepository struct {
@@ -41,7 +40,7 @@ func (s StorageRepository) Fetch(ctx context.Context) (dto.Storages, error) {
 	panic("implement me")
 }
 
-func (s StorageRepository) GetById(ctx context.Context, id uint) (*dto.Storage, error) {
+func (s StorageRepository) GetByUuid(ctx context.Context, uuid string) (*dto.Storage, error) {
 	// TODO implement me
 	panic("implement me")
 }
@@ -51,12 +50,12 @@ func (s StorageRepository) Store(ctx context.Context, dtm *dto.Storage) (*dto.St
 	panic("implement me")
 }
 
-func (s StorageRepository) Update(ctx context.Context, id uint, dtm *dto.Storage) (*dto.Storage, error) {
+func (s StorageRepository) Update(ctx context.Context, uuid string, dtm *dto.Storage) (*dto.Storage, error) {
 	// TODO implement me
 	panic("implement me")
 }
 
-func (s StorageRepository) Delete(ctx context.Context, id uint) error {
+func (s StorageRepository) Delete(ctx context.Context, uuid string) error {
 	// TODO implement me
 	panic("implement me")
 }

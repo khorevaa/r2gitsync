@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/elastic/go-ucfg"
 	"github.com/elastic/go-ucfg/yaml"
@@ -38,7 +39,9 @@ type Config struct {
 	Infobase  *InfobaseConfig         `config:"infobase"`
 	Plugins   map[string]*ucfg.Config `config:"plugins"`
 
-	Debug bool `config:"debug"`
+	Debug            bool `config:"debug"`
+	TraceSQLCommands bool
+	SQLSlowThreshold time.Duration
 }
 
 type StorageConfig struct {
