@@ -35,6 +35,32 @@ func (f PluginFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, erro
 	return f(ctx, mv)
 }
 
+// The PluginVersionFunc type is an adapter to allow the use of ordinary
+// function as PluginVersion mutator.
+type PluginVersionFunc func(context.Context, *ent.PluginVersionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PluginVersionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	mv, ok := m.(*ent.PluginVersionMutation)
+	if !ok {
+		return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PluginVersionMutation", m)
+	}
+	return f(ctx, mv)
+}
+
+// The PluginVersionPropertyFunc type is an adapter to allow the use of ordinary
+// function as PluginVersionProperty mutator.
+type PluginVersionPropertyFunc func(context.Context, *ent.PluginVersionPropertyMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PluginVersionPropertyFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	mv, ok := m.(*ent.PluginVersionPropertyMutation)
+	if !ok {
+		return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PluginVersionPropertyMutation", m)
+	}
+	return f(ctx, mv)
+}
+
 // The ProjectFunc type is an adapter to allow the use of ordinary
 // function as Project mutator.
 type ProjectFunc func(context.Context, *ent.ProjectMutation) (ent.Value, error)
@@ -57,6 +83,45 @@ func (f StorageFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, err
 	mv, ok := m.(*ent.StorageMutation)
 	if !ok {
 		return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.StorageMutation", m)
+	}
+	return f(ctx, mv)
+}
+
+// The StorageCommitFunc type is an adapter to allow the use of ordinary
+// function as StorageCommit mutator.
+type StorageCommitFunc func(context.Context, *ent.StorageCommitMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f StorageCommitFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	mv, ok := m.(*ent.StorageCommitMutation)
+	if !ok {
+		return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.StorageCommitMutation", m)
+	}
+	return f(ctx, mv)
+}
+
+// The StoragePluginFunc type is an adapter to allow the use of ordinary
+// function as StoragePlugin mutator.
+type StoragePluginFunc func(context.Context, *ent.StoragePluginMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f StoragePluginFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	mv, ok := m.(*ent.StoragePluginMutation)
+	if !ok {
+		return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.StoragePluginMutation", m)
+	}
+	return f(ctx, mv)
+}
+
+// The StoragePluginPropertyFunc type is an adapter to allow the use of ordinary
+// function as StoragePluginProperty mutator.
+type StoragePluginPropertyFunc func(context.Context, *ent.StoragePluginPropertyMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f StoragePluginPropertyFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	mv, ok := m.(*ent.StoragePluginPropertyMutation)
+	if !ok {
+		return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.StoragePluginPropertyMutation", m)
 	}
 	return f(ctx, mv)
 }

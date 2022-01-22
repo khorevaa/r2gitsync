@@ -10,8 +10,13 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/khorevaa/r2gitsync/internal/services/db/ent/asset"
 	"github.com/khorevaa/r2gitsync/internal/services/db/ent/plugin"
+	"github.com/khorevaa/r2gitsync/internal/services/db/ent/pluginversion"
+	"github.com/khorevaa/r2gitsync/internal/services/db/ent/pluginversionproperty"
 	"github.com/khorevaa/r2gitsync/internal/services/db/ent/project"
 	"github.com/khorevaa/r2gitsync/internal/services/db/ent/storage"
+	"github.com/khorevaa/r2gitsync/internal/services/db/ent/storagecommit"
+	"github.com/khorevaa/r2gitsync/internal/services/db/ent/storageplugin"
+	"github.com/khorevaa/r2gitsync/internal/services/db/ent/storagepluginproperty"
 )
 
 // ent aliases to avoid import conflicts in user's code.
@@ -32,10 +37,15 @@ type OrderFunc func(*sql.Selector)
 // columnChecker returns a function indicates if the column exists in the given column.
 func columnChecker(table string) func(string) error {
 	checks := map[string]func(string) bool{
-		asset.Table:   asset.ValidColumn,
-		plugin.Table:  plugin.ValidColumn,
-		project.Table: project.ValidColumn,
-		storage.Table: storage.ValidColumn,
+		asset.Table:                 asset.ValidColumn,
+		plugin.Table:                plugin.ValidColumn,
+		pluginversion.Table:         pluginversion.ValidColumn,
+		pluginversionproperty.Table: pluginversionproperty.ValidColumn,
+		project.Table:               project.ValidColumn,
+		storage.Table:               storage.ValidColumn,
+		storagecommit.Table:         storagecommit.ValidColumn,
+		storageplugin.Table:         storageplugin.ValidColumn,
+		storagepluginproperty.Table: storagepluginproperty.ValidColumn,
 	}
 	check, ok := checks[table]
 	if !ok {

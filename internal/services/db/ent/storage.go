@@ -29,7 +29,7 @@ type Storage struct {
 	// Develop holds the value of the "develop" field.
 	Develop bool `json:"develop,omitempty"`
 	// Extension holds the value of the "extension" field.
-	Extension string `json:"extension,omitempty"`
+	Extension *string `json:"extension,omitempty"`
 	// Type holds the value of the "type" field.
 	Type storage.Type `json:"type,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -151,7 +151,8 @@ func (s *Storage) assignValues(columns []string, values []interface{}) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field extension", values[i])
 			} else if value.Valid {
-				s.Extension = value.String
+				s.Extension = new(string)
+				*s.Extension = value.String
 			}
 		case storage.FieldType:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -223,8 +224,10 @@ func (s *Storage) String() string {
 	builder.WriteString(s.ConnectionString)
 	builder.WriteString(", develop=")
 	builder.WriteString(fmt.Sprintf("%v", s.Develop))
-	builder.WriteString(", extension=")
-	builder.WriteString(s.Extension)
+	if v := s.Extension; v != nil {
+		builder.WriteString(", extension=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", type=")
 	builder.WriteString(fmt.Sprintf("%v", s.Type))
 	builder.WriteByte(')')

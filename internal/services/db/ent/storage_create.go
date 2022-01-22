@@ -320,7 +320,7 @@ func (sc *StorageCreate) createSpec() (*Storage, *sqlgraph.CreateSpec) {
 			Value:  value,
 			Column: storage.FieldExtension,
 		})
-		_node.Extension = value
+		_node.Extension = &value
 	}
 	if value, ok := sc.mutation.GetType(); ok {
 		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{

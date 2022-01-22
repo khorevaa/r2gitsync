@@ -12,8 +12,23 @@ type Asset func(*sql.Selector)
 // Plugin is the predicate function for plugin builders.
 type Plugin func(*sql.Selector)
 
+// PluginVersion is the predicate function for pluginversion builders.
+type PluginVersion func(*sql.Selector)
+
+// PluginVersionProperty is the predicate function for pluginversionproperty builders.
+type PluginVersionProperty func(*sql.Selector)
+
 // Project is the predicate function for project builders.
 type Project func(*sql.Selector)
 
 // Storage is the predicate function for storage builders.
 type Storage func(*sql.Selector)
+
+// StorageCommit is the predicate function for storagecommit builders.
+type StorageCommit func(*sql.Selector)
+
+// StoragePlugin is the predicate function for storageplugin builders.
+type StoragePlugin func(*sql.Selector)
+
+// StoragePluginProperty is the predicate function for storagepluginproperty builders.
+type StoragePluginProperty func(*sql.Selector)

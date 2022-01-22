@@ -16,10 +16,20 @@ type Tx struct {
 	Asset *AssetClient
 	// Plugin is the client for interacting with the Plugin builders.
 	Plugin *PluginClient
+	// PluginVersion is the client for interacting with the PluginVersion builders.
+	PluginVersion *PluginVersionClient
+	// PluginVersionProperty is the client for interacting with the PluginVersionProperty builders.
+	PluginVersionProperty *PluginVersionPropertyClient
 	// Project is the client for interacting with the Project builders.
 	Project *ProjectClient
 	// Storage is the client for interacting with the Storage builders.
 	Storage *StorageClient
+	// StorageCommit is the client for interacting with the StorageCommit builders.
+	StorageCommit *StorageCommitClient
+	// StoragePlugin is the client for interacting with the StoragePlugin builders.
+	StoragePlugin *StoragePluginClient
+	// StoragePluginProperty is the client for interacting with the StoragePluginProperty builders.
+	StoragePluginProperty *StoragePluginPropertyClient
 
 	// lazily loaded.
 	client     *Client
@@ -157,8 +167,13 @@ func (tx *Tx) Client() *Client {
 func (tx *Tx) init() {
 	tx.Asset = NewAssetClient(tx.config)
 	tx.Plugin = NewPluginClient(tx.config)
+	tx.PluginVersion = NewPluginVersionClient(tx.config)
+	tx.PluginVersionProperty = NewPluginVersionPropertyClient(tx.config)
 	tx.Project = NewProjectClient(tx.config)
 	tx.Storage = NewStorageClient(tx.config)
+	tx.StorageCommit = NewStorageCommitClient(tx.config)
+	tx.StoragePlugin = NewStoragePluginClient(tx.config)
+	tx.StoragePluginProperty = NewStoragePluginPropertyClient(tx.config)
 }
 
 // txDriver wraps the given dialect.Tx with a nop dialect.Driver implementation.

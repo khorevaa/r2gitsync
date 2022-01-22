@@ -61,6 +61,108 @@ var (
 			},
 		},
 	}
+	// PluginVersionsColumns holds the columns for the "plugin_versions" table.
+	PluginVersionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "version", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString, Size: 150},
+		{Name: "broken", Type: field.TypeBool},
+		{Name: "plugin_version_plugin", Type: field.TypeUUID, Nullable: true},
+	}
+	// PluginVersionsTable holds the schema information for the "plugin_versions" table.
+	PluginVersionsTable = &schema.Table{
+		Name:       "plugin_versions",
+		Columns:    PluginVersionsColumns,
+		PrimaryKey: []*schema.Column{PluginVersionsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "plugin_versions_plugins_plugin",
+				Columns:    []*schema.Column{PluginVersionsColumns[7]},
+				RefColumns: []*schema.Column{PluginsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "pluginversion_id",
+				Unique:  true,
+				Columns: []*schema.Column{PluginVersionsColumns[0]},
+			},
+			{
+				Name:    "pluginversion_deleted_at",
+				Unique:  false,
+				Columns: []*schema.Column{PluginVersionsColumns[3]},
+			},
+			{
+				Name:    "pluginversion_version_plugin_version_plugin",
+				Unique:  true,
+				Columns: []*schema.Column{PluginVersionsColumns[4], PluginVersionsColumns[7]},
+			},
+			{
+				Name:    "pluginversion_broken",
+				Unique:  false,
+				Columns: []*schema.Column{PluginVersionsColumns[6]},
+			},
+		},
+	}
+	// PluginVersionPropertiesColumns holds the columns for the "plugin_version_properties" table.
+	PluginVersionPropertiesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "name", Type: field.TypeString, Size: 50},
+		{Name: "default", Type: field.TypeString, Size: 150},
+		{Name: "required", Type: field.TypeBool},
+		{Name: "type", Type: field.TypeEnum, Enums: []string{"bool", "string", "int"}},
+		{Name: "plugin_version_property_plugin", Type: field.TypeUUID, Nullable: true},
+		{Name: "plugin_version_property_version", Type: field.TypeUUID, Nullable: true},
+	}
+	// PluginVersionPropertiesTable holds the schema information for the "plugin_version_properties" table.
+	PluginVersionPropertiesTable = &schema.Table{
+		Name:       "plugin_version_properties",
+		Columns:    PluginVersionPropertiesColumns,
+		PrimaryKey: []*schema.Column{PluginVersionPropertiesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "plugin_version_properties_plugins_plugin",
+				Columns:    []*schema.Column{PluginVersionPropertiesColumns[8]},
+				RefColumns: []*schema.Column{PluginsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "plugin_version_properties_plugin_versions_version",
+				Columns:    []*schema.Column{PluginVersionPropertiesColumns[9]},
+				RefColumns: []*schema.Column{PluginVersionsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "pluginversionproperty_id",
+				Unique:  true,
+				Columns: []*schema.Column{PluginVersionPropertiesColumns[0]},
+			},
+			{
+				Name:    "pluginversionproperty_deleted_at",
+				Unique:  false,
+				Columns: []*schema.Column{PluginVersionPropertiesColumns[3]},
+			},
+			{
+				Name:    "pluginversionproperty_name_plugin_version_property_plugin_plugin_version_property_version",
+				Unique:  true,
+				Columns: []*schema.Column{PluginVersionPropertiesColumns[4], PluginVersionPropertiesColumns[8], PluginVersionPropertiesColumns[9]},
+			},
+			{
+				Name:    "pluginversionproperty_required",
+				Unique:  false,
+				Columns: []*schema.Column{PluginVersionPropertiesColumns[6]},
+			},
+		},
+	}
 	// ProjectsColumns holds the columns for the "projects" table.
 	ProjectsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -151,18 +253,174 @@ var (
 			},
 		},
 	}
+	// StorageCommitsColumns holds the columns for the "storage_commits" table.
+	StorageCommitsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "number", Type: field.TypeUint},
+		{Name: "configuration_version", Type: field.TypeString},
+		{Name: "author", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString},
+		{Name: "tag", Type: field.TypeString},
+		{Name: "tag_description", Type: field.TypeString},
+		{Name: "commit_at", Type: field.TypeTime},
+		{Name: "storage_commit_storage", Type: field.TypeUUID, Nullable: true},
+	}
+	// StorageCommitsTable holds the schema information for the "storage_commits" table.
+	StorageCommitsTable = &schema.Table{
+		Name:       "storage_commits",
+		Columns:    StorageCommitsColumns,
+		PrimaryKey: []*schema.Column{StorageCommitsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "storage_commits_storages_storage",
+				Columns:    []*schema.Column{StorageCommitsColumns[11]},
+				RefColumns: []*schema.Column{StoragesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "storagecommit_id",
+				Unique:  true,
+				Columns: []*schema.Column{StorageCommitsColumns[0]},
+			},
+			{
+				Name:    "storagecommit_deleted_at",
+				Unique:  false,
+				Columns: []*schema.Column{StorageCommitsColumns[3]},
+			},
+			{
+				Name:    "storagecommit_number_storage_commit_storage",
+				Unique:  true,
+				Columns: []*schema.Column{StorageCommitsColumns[4], StorageCommitsColumns[11]},
+			},
+			{
+				Name:    "storagecommit_commit_at",
+				Unique:  false,
+				Columns: []*schema.Column{StorageCommitsColumns[10]},
+			},
+		},
+	}
+	// StoragePluginsColumns holds the columns for the "storage_plugins" table.
+	StoragePluginsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "disable", Type: field.TypeBool},
+		{Name: "storage_plugin_storage", Type: field.TypeUUID, Nullable: true},
+		{Name: "storage_plugin_plugin", Type: field.TypeUUID, Nullable: true},
+	}
+	// StoragePluginsTable holds the schema information for the "storage_plugins" table.
+	StoragePluginsTable = &schema.Table{
+		Name:       "storage_plugins",
+		Columns:    StoragePluginsColumns,
+		PrimaryKey: []*schema.Column{StoragePluginsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "storage_plugins_storages_storage",
+				Columns:    []*schema.Column{StoragePluginsColumns[5]},
+				RefColumns: []*schema.Column{StoragesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "storage_plugins_plugin_versions_plugin",
+				Columns:    []*schema.Column{StoragePluginsColumns[6]},
+				RefColumns: []*schema.Column{PluginVersionsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "storageplugin_id",
+				Unique:  true,
+				Columns: []*schema.Column{StoragePluginsColumns[0]},
+			},
+			{
+				Name:    "storageplugin_deleted_at",
+				Unique:  false,
+				Columns: []*schema.Column{StoragePluginsColumns[3]},
+			},
+			{
+				Name:    "storageplugin_storage_plugin_storage_storage_plugin_plugin",
+				Unique:  true,
+				Columns: []*schema.Column{StoragePluginsColumns[5], StoragePluginsColumns[6]},
+			},
+			{
+				Name:    "storageplugin_disable",
+				Unique:  false,
+				Columns: []*schema.Column{StoragePluginsColumns[4]},
+			},
+		},
+	}
+	// StoragePluginPropertiesColumns holds the columns for the "storage_plugin_properties" table.
+	StoragePluginPropertiesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "value", Type: field.TypeString},
+		{Name: "storage_plugin_properties", Type: field.TypeUUID, Nullable: true},
+	}
+	// StoragePluginPropertiesTable holds the schema information for the "storage_plugin_properties" table.
+	StoragePluginPropertiesTable = &schema.Table{
+		Name:       "storage_plugin_properties",
+		Columns:    StoragePluginPropertiesColumns,
+		PrimaryKey: []*schema.Column{StoragePluginPropertiesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "storage_plugin_properties_storage_plugins_properties",
+				Columns:    []*schema.Column{StoragePluginPropertiesColumns[6]},
+				RefColumns: []*schema.Column{StoragePluginsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "storagepluginproperty_id",
+				Unique:  true,
+				Columns: []*schema.Column{StoragePluginPropertiesColumns[0]},
+			},
+			{
+				Name:    "storagepluginproperty_deleted_at",
+				Unique:  false,
+				Columns: []*schema.Column{StoragePluginPropertiesColumns[3]},
+			},
+			{
+				Name:    "storagepluginproperty_name_storage_plugin_properties",
+				Unique:  true,
+				Columns: []*schema.Column{StoragePluginPropertiesColumns[4], StoragePluginPropertiesColumns[6]},
+			},
+		},
+	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		AssetsTable,
 		PluginsTable,
+		PluginVersionsTable,
+		PluginVersionPropertiesTable,
 		ProjectsTable,
 		StoragesTable,
+		StorageCommitsTable,
+		StoragePluginsTable,
+		StoragePluginPropertiesTable,
 	}
 )
 
 func init() {
+	PluginVersionsTable.ForeignKeys[0].RefTable = PluginsTable
+	PluginVersionPropertiesTable.ForeignKeys[0].RefTable = PluginsTable
+	PluginVersionPropertiesTable.ForeignKeys[1].RefTable = PluginVersionsTable
 	ProjectsTable.ForeignKeys[0].RefTable = StoragesTable
 	ProjectsTable.ForeignKeys[1].RefTable = StoragesTable
 	StoragesTable.ForeignKeys[0].RefTable = ProjectsTable
 	StoragesTable.ForeignKeys[1].RefTable = StoragesTable
+	StorageCommitsTable.ForeignKeys[0].RefTable = StoragesTable
+	StoragePluginsTable.ForeignKeys[0].RefTable = StoragesTable
+	StoragePluginsTable.ForeignKeys[1].RefTable = PluginVersionsTable
+	StoragePluginPropertiesTable.ForeignKeys[0].RefTable = StoragePluginsTable
 }

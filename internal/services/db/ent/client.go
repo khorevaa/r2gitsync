@@ -12,8 +12,13 @@ import (
 
 	"github.com/khorevaa/r2gitsync/internal/services/db/ent/asset"
 	"github.com/khorevaa/r2gitsync/internal/services/db/ent/plugin"
+	"github.com/khorevaa/r2gitsync/internal/services/db/ent/pluginversion"
+	"github.com/khorevaa/r2gitsync/internal/services/db/ent/pluginversionproperty"
 	"github.com/khorevaa/r2gitsync/internal/services/db/ent/project"
 	"github.com/khorevaa/r2gitsync/internal/services/db/ent/storage"
+	"github.com/khorevaa/r2gitsync/internal/services/db/ent/storagecommit"
+	"github.com/khorevaa/r2gitsync/internal/services/db/ent/storageplugin"
+	"github.com/khorevaa/r2gitsync/internal/services/db/ent/storagepluginproperty"
 
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
@@ -29,10 +34,20 @@ type Client struct {
 	Asset *AssetClient
 	// Plugin is the client for interacting with the Plugin builders.
 	Plugin *PluginClient
+	// PluginVersion is the client for interacting with the PluginVersion builders.
+	PluginVersion *PluginVersionClient
+	// PluginVersionProperty is the client for interacting with the PluginVersionProperty builders.
+	PluginVersionProperty *PluginVersionPropertyClient
 	// Project is the client for interacting with the Project builders.
 	Project *ProjectClient
 	// Storage is the client for interacting with the Storage builders.
 	Storage *StorageClient
+	// StorageCommit is the client for interacting with the StorageCommit builders.
+	StorageCommit *StorageCommitClient
+	// StoragePlugin is the client for interacting with the StoragePlugin builders.
+	StoragePlugin *StoragePluginClient
+	// StoragePluginProperty is the client for interacting with the StoragePluginProperty builders.
+	StoragePluginProperty *StoragePluginPropertyClient
 }
 
 // NewClient creates a new client configured with the given options.
@@ -48,8 +63,13 @@ func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.Asset = NewAssetClient(c.config)
 	c.Plugin = NewPluginClient(c.config)
+	c.PluginVersion = NewPluginVersionClient(c.config)
+	c.PluginVersionProperty = NewPluginVersionPropertyClient(c.config)
 	c.Project = NewProjectClient(c.config)
 	c.Storage = NewStorageClient(c.config)
+	c.StorageCommit = NewStorageCommitClient(c.config)
+	c.StoragePlugin = NewStoragePluginClient(c.config)
+	c.StoragePluginProperty = NewStoragePluginPropertyClient(c.config)
 }
 
 // Open opens a database/sql.DB specified by the driver name and
@@ -81,12 +101,17 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:     ctx,
-		config:  cfg,
-		Asset:   NewAssetClient(cfg),
-		Plugin:  NewPluginClient(cfg),
-		Project: NewProjectClient(cfg),
-		Storage: NewStorageClient(cfg),
+		ctx:                   ctx,
+		config:                cfg,
+		Asset:                 NewAssetClient(cfg),
+		Plugin:                NewPluginClient(cfg),
+		PluginVersion:         NewPluginVersionClient(cfg),
+		PluginVersionProperty: NewPluginVersionPropertyClient(cfg),
+		Project:               NewProjectClient(cfg),
+		Storage:               NewStorageClient(cfg),
+		StorageCommit:         NewStorageCommitClient(cfg),
+		StoragePlugin:         NewStoragePluginClient(cfg),
+		StoragePluginProperty: NewStoragePluginPropertyClient(cfg),
 	}, nil
 }
 
@@ -104,12 +129,17 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:     ctx,
-		config:  cfg,
-		Asset:   NewAssetClient(cfg),
-		Plugin:  NewPluginClient(cfg),
-		Project: NewProjectClient(cfg),
-		Storage: NewStorageClient(cfg),
+		ctx:                   ctx,
+		config:                cfg,
+		Asset:                 NewAssetClient(cfg),
+		Plugin:                NewPluginClient(cfg),
+		PluginVersion:         NewPluginVersionClient(cfg),
+		PluginVersionProperty: NewPluginVersionPropertyClient(cfg),
+		Project:               NewProjectClient(cfg),
+		Storage:               NewStorageClient(cfg),
+		StorageCommit:         NewStorageCommitClient(cfg),
+		StoragePlugin:         NewStoragePluginClient(cfg),
+		StoragePluginProperty: NewStoragePluginPropertyClient(cfg),
 	}, nil
 }
 
@@ -141,8 +171,13 @@ func (c *Client) Close() error {
 func (c *Client) Use(hooks ...Hook) {
 	c.Asset.Use(hooks...)
 	c.Plugin.Use(hooks...)
+	c.PluginVersion.Use(hooks...)
+	c.PluginVersionProperty.Use(hooks...)
 	c.Project.Use(hooks...)
 	c.Storage.Use(hooks...)
+	c.StorageCommit.Use(hooks...)
+	c.StoragePlugin.Use(hooks...)
+	c.StoragePluginProperty.Use(hooks...)
 }
 
 // AssetClient is a client for the Asset schema.
@@ -323,6 +358,234 @@ func (c *PluginClient) GetX(ctx context.Context, id uuid.UUID) *Plugin {
 // Hooks returns the client hooks.
 func (c *PluginClient) Hooks() []Hook {
 	return c.hooks.Plugin
+}
+
+// PluginVersionClient is a client for the PluginVersion schema.
+type PluginVersionClient struct {
+	config
+}
+
+// NewPluginVersionClient returns a client for the PluginVersion from the given config.
+func NewPluginVersionClient(c config) *PluginVersionClient {
+	return &PluginVersionClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `pluginversion.Hooks(f(g(h())))`.
+func (c *PluginVersionClient) Use(hooks ...Hook) {
+	c.hooks.PluginVersion = append(c.hooks.PluginVersion, hooks...)
+}
+
+// Create returns a create builder for PluginVersion.
+func (c *PluginVersionClient) Create() *PluginVersionCreate {
+	mutation := newPluginVersionMutation(c.config, OpCreate)
+	return &PluginVersionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PluginVersion entities.
+func (c *PluginVersionClient) CreateBulk(builders ...*PluginVersionCreate) *PluginVersionCreateBulk {
+	return &PluginVersionCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PluginVersion.
+func (c *PluginVersionClient) Update() *PluginVersionUpdate {
+	mutation := newPluginVersionMutation(c.config, OpUpdate)
+	return &PluginVersionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PluginVersionClient) UpdateOne(pv *PluginVersion) *PluginVersionUpdateOne {
+	mutation := newPluginVersionMutation(c.config, OpUpdateOne, withPluginVersion(pv))
+	return &PluginVersionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PluginVersionClient) UpdateOneID(id uuid.UUID) *PluginVersionUpdateOne {
+	mutation := newPluginVersionMutation(c.config, OpUpdateOne, withPluginVersionID(id))
+	return &PluginVersionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PluginVersion.
+func (c *PluginVersionClient) Delete() *PluginVersionDelete {
+	mutation := newPluginVersionMutation(c.config, OpDelete)
+	return &PluginVersionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a delete builder for the given entity.
+func (c *PluginVersionClient) DeleteOne(pv *PluginVersion) *PluginVersionDeleteOne {
+	return c.DeleteOneID(pv.ID)
+}
+
+// DeleteOneID returns a delete builder for the given id.
+func (c *PluginVersionClient) DeleteOneID(id uuid.UUID) *PluginVersionDeleteOne {
+	builder := c.Delete().Where(pluginversion.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PluginVersionDeleteOne{builder}
+}
+
+// Query returns a query builder for PluginVersion.
+func (c *PluginVersionClient) Query() *PluginVersionQuery {
+	return &PluginVersionQuery{
+		config: c.config,
+	}
+}
+
+// Get returns a PluginVersion entity by its id.
+func (c *PluginVersionClient) Get(ctx context.Context, id uuid.UUID) (*PluginVersion, error) {
+	return c.Query().Where(pluginversion.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PluginVersionClient) GetX(ctx context.Context, id uuid.UUID) *PluginVersion {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryPlugin queries the plugin edge of a PluginVersion.
+func (c *PluginVersionClient) QueryPlugin(pv *PluginVersion) *PluginQuery {
+	query := &PluginQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := pv.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(pluginversion.Table, pluginversion.FieldID, id),
+			sqlgraph.To(plugin.Table, plugin.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, pluginversion.PluginTable, pluginversion.PluginColumn),
+		)
+		fromV = sqlgraph.Neighbors(pv.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *PluginVersionClient) Hooks() []Hook {
+	return c.hooks.PluginVersion
+}
+
+// PluginVersionPropertyClient is a client for the PluginVersionProperty schema.
+type PluginVersionPropertyClient struct {
+	config
+}
+
+// NewPluginVersionPropertyClient returns a client for the PluginVersionProperty from the given config.
+func NewPluginVersionPropertyClient(c config) *PluginVersionPropertyClient {
+	return &PluginVersionPropertyClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `pluginversionproperty.Hooks(f(g(h())))`.
+func (c *PluginVersionPropertyClient) Use(hooks ...Hook) {
+	c.hooks.PluginVersionProperty = append(c.hooks.PluginVersionProperty, hooks...)
+}
+
+// Create returns a create builder for PluginVersionProperty.
+func (c *PluginVersionPropertyClient) Create() *PluginVersionPropertyCreate {
+	mutation := newPluginVersionPropertyMutation(c.config, OpCreate)
+	return &PluginVersionPropertyCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PluginVersionProperty entities.
+func (c *PluginVersionPropertyClient) CreateBulk(builders ...*PluginVersionPropertyCreate) *PluginVersionPropertyCreateBulk {
+	return &PluginVersionPropertyCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PluginVersionProperty.
+func (c *PluginVersionPropertyClient) Update() *PluginVersionPropertyUpdate {
+	mutation := newPluginVersionPropertyMutation(c.config, OpUpdate)
+	return &PluginVersionPropertyUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PluginVersionPropertyClient) UpdateOne(pvp *PluginVersionProperty) *PluginVersionPropertyUpdateOne {
+	mutation := newPluginVersionPropertyMutation(c.config, OpUpdateOne, withPluginVersionProperty(pvp))
+	return &PluginVersionPropertyUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PluginVersionPropertyClient) UpdateOneID(id uuid.UUID) *PluginVersionPropertyUpdateOne {
+	mutation := newPluginVersionPropertyMutation(c.config, OpUpdateOne, withPluginVersionPropertyID(id))
+	return &PluginVersionPropertyUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PluginVersionProperty.
+func (c *PluginVersionPropertyClient) Delete() *PluginVersionPropertyDelete {
+	mutation := newPluginVersionPropertyMutation(c.config, OpDelete)
+	return &PluginVersionPropertyDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a delete builder for the given entity.
+func (c *PluginVersionPropertyClient) DeleteOne(pvp *PluginVersionProperty) *PluginVersionPropertyDeleteOne {
+	return c.DeleteOneID(pvp.ID)
+}
+
+// DeleteOneID returns a delete builder for the given id.
+func (c *PluginVersionPropertyClient) DeleteOneID(id uuid.UUID) *PluginVersionPropertyDeleteOne {
+	builder := c.Delete().Where(pluginversionproperty.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PluginVersionPropertyDeleteOne{builder}
+}
+
+// Query returns a query builder for PluginVersionProperty.
+func (c *PluginVersionPropertyClient) Query() *PluginVersionPropertyQuery {
+	return &PluginVersionPropertyQuery{
+		config: c.config,
+	}
+}
+
+// Get returns a PluginVersionProperty entity by its id.
+func (c *PluginVersionPropertyClient) Get(ctx context.Context, id uuid.UUID) (*PluginVersionProperty, error) {
+	return c.Query().Where(pluginversionproperty.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PluginVersionPropertyClient) GetX(ctx context.Context, id uuid.UUID) *PluginVersionProperty {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryPlugin queries the plugin edge of a PluginVersionProperty.
+func (c *PluginVersionPropertyClient) QueryPlugin(pvp *PluginVersionProperty) *PluginQuery {
+	query := &PluginQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := pvp.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(pluginversionproperty.Table, pluginversionproperty.FieldID, id),
+			sqlgraph.To(plugin.Table, plugin.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, pluginversionproperty.PluginTable, pluginversionproperty.PluginColumn),
+		)
+		fromV = sqlgraph.Neighbors(pvp.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryVersion queries the version edge of a PluginVersionProperty.
+func (c *PluginVersionPropertyClient) QueryVersion(pvp *PluginVersionProperty) *PluginVersionQuery {
+	query := &PluginVersionQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := pvp.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(pluginversionproperty.Table, pluginversionproperty.FieldID, id),
+			sqlgraph.To(pluginversion.Table, pluginversion.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, pluginversionproperty.VersionTable, pluginversionproperty.VersionColumn),
+		)
+		fromV = sqlgraph.Neighbors(pvp.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *PluginVersionPropertyClient) Hooks() []Hook {
+	return c.hooks.PluginVersionProperty
 }
 
 // ProjectClient is a client for the Project schema.
@@ -583,4 +846,354 @@ func (c *StorageClient) QueryParent(s *Storage) *StorageQuery {
 // Hooks returns the client hooks.
 func (c *StorageClient) Hooks() []Hook {
 	return c.hooks.Storage
+}
+
+// StorageCommitClient is a client for the StorageCommit schema.
+type StorageCommitClient struct {
+	config
+}
+
+// NewStorageCommitClient returns a client for the StorageCommit from the given config.
+func NewStorageCommitClient(c config) *StorageCommitClient {
+	return &StorageCommitClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `storagecommit.Hooks(f(g(h())))`.
+func (c *StorageCommitClient) Use(hooks ...Hook) {
+	c.hooks.StorageCommit = append(c.hooks.StorageCommit, hooks...)
+}
+
+// Create returns a create builder for StorageCommit.
+func (c *StorageCommitClient) Create() *StorageCommitCreate {
+	mutation := newStorageCommitMutation(c.config, OpCreate)
+	return &StorageCommitCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of StorageCommit entities.
+func (c *StorageCommitClient) CreateBulk(builders ...*StorageCommitCreate) *StorageCommitCreateBulk {
+	return &StorageCommitCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for StorageCommit.
+func (c *StorageCommitClient) Update() *StorageCommitUpdate {
+	mutation := newStorageCommitMutation(c.config, OpUpdate)
+	return &StorageCommitUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *StorageCommitClient) UpdateOne(sc *StorageCommit) *StorageCommitUpdateOne {
+	mutation := newStorageCommitMutation(c.config, OpUpdateOne, withStorageCommit(sc))
+	return &StorageCommitUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *StorageCommitClient) UpdateOneID(id uuid.UUID) *StorageCommitUpdateOne {
+	mutation := newStorageCommitMutation(c.config, OpUpdateOne, withStorageCommitID(id))
+	return &StorageCommitUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for StorageCommit.
+func (c *StorageCommitClient) Delete() *StorageCommitDelete {
+	mutation := newStorageCommitMutation(c.config, OpDelete)
+	return &StorageCommitDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a delete builder for the given entity.
+func (c *StorageCommitClient) DeleteOne(sc *StorageCommit) *StorageCommitDeleteOne {
+	return c.DeleteOneID(sc.ID)
+}
+
+// DeleteOneID returns a delete builder for the given id.
+func (c *StorageCommitClient) DeleteOneID(id uuid.UUID) *StorageCommitDeleteOne {
+	builder := c.Delete().Where(storagecommit.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &StorageCommitDeleteOne{builder}
+}
+
+// Query returns a query builder for StorageCommit.
+func (c *StorageCommitClient) Query() *StorageCommitQuery {
+	return &StorageCommitQuery{
+		config: c.config,
+	}
+}
+
+// Get returns a StorageCommit entity by its id.
+func (c *StorageCommitClient) Get(ctx context.Context, id uuid.UUID) (*StorageCommit, error) {
+	return c.Query().Where(storagecommit.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *StorageCommitClient) GetX(ctx context.Context, id uuid.UUID) *StorageCommit {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryStorage queries the storage edge of a StorageCommit.
+func (c *StorageCommitClient) QueryStorage(sc *StorageCommit) *StorageQuery {
+	query := &StorageQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := sc.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(storagecommit.Table, storagecommit.FieldID, id),
+			sqlgraph.To(storage.Table, storage.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, storagecommit.StorageTable, storagecommit.StorageColumn),
+		)
+		fromV = sqlgraph.Neighbors(sc.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *StorageCommitClient) Hooks() []Hook {
+	return c.hooks.StorageCommit
+}
+
+// StoragePluginClient is a client for the StoragePlugin schema.
+type StoragePluginClient struct {
+	config
+}
+
+// NewStoragePluginClient returns a client for the StoragePlugin from the given config.
+func NewStoragePluginClient(c config) *StoragePluginClient {
+	return &StoragePluginClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `storageplugin.Hooks(f(g(h())))`.
+func (c *StoragePluginClient) Use(hooks ...Hook) {
+	c.hooks.StoragePlugin = append(c.hooks.StoragePlugin, hooks...)
+}
+
+// Create returns a create builder for StoragePlugin.
+func (c *StoragePluginClient) Create() *StoragePluginCreate {
+	mutation := newStoragePluginMutation(c.config, OpCreate)
+	return &StoragePluginCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of StoragePlugin entities.
+func (c *StoragePluginClient) CreateBulk(builders ...*StoragePluginCreate) *StoragePluginCreateBulk {
+	return &StoragePluginCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for StoragePlugin.
+func (c *StoragePluginClient) Update() *StoragePluginUpdate {
+	mutation := newStoragePluginMutation(c.config, OpUpdate)
+	return &StoragePluginUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *StoragePluginClient) UpdateOne(sp *StoragePlugin) *StoragePluginUpdateOne {
+	mutation := newStoragePluginMutation(c.config, OpUpdateOne, withStoragePlugin(sp))
+	return &StoragePluginUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *StoragePluginClient) UpdateOneID(id uuid.UUID) *StoragePluginUpdateOne {
+	mutation := newStoragePluginMutation(c.config, OpUpdateOne, withStoragePluginID(id))
+	return &StoragePluginUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for StoragePlugin.
+func (c *StoragePluginClient) Delete() *StoragePluginDelete {
+	mutation := newStoragePluginMutation(c.config, OpDelete)
+	return &StoragePluginDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a delete builder for the given entity.
+func (c *StoragePluginClient) DeleteOne(sp *StoragePlugin) *StoragePluginDeleteOne {
+	return c.DeleteOneID(sp.ID)
+}
+
+// DeleteOneID returns a delete builder for the given id.
+func (c *StoragePluginClient) DeleteOneID(id uuid.UUID) *StoragePluginDeleteOne {
+	builder := c.Delete().Where(storageplugin.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &StoragePluginDeleteOne{builder}
+}
+
+// Query returns a query builder for StoragePlugin.
+func (c *StoragePluginClient) Query() *StoragePluginQuery {
+	return &StoragePluginQuery{
+		config: c.config,
+	}
+}
+
+// Get returns a StoragePlugin entity by its id.
+func (c *StoragePluginClient) Get(ctx context.Context, id uuid.UUID) (*StoragePlugin, error) {
+	return c.Query().Where(storageplugin.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *StoragePluginClient) GetX(ctx context.Context, id uuid.UUID) *StoragePlugin {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryStorage queries the storage edge of a StoragePlugin.
+func (c *StoragePluginClient) QueryStorage(sp *StoragePlugin) *StorageQuery {
+	query := &StorageQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := sp.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(storageplugin.Table, storageplugin.FieldID, id),
+			sqlgraph.To(storage.Table, storage.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, storageplugin.StorageTable, storageplugin.StorageColumn),
+		)
+		fromV = sqlgraph.Neighbors(sp.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryPlugin queries the plugin edge of a StoragePlugin.
+func (c *StoragePluginClient) QueryPlugin(sp *StoragePlugin) *PluginVersionQuery {
+	query := &PluginVersionQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := sp.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(storageplugin.Table, storageplugin.FieldID, id),
+			sqlgraph.To(pluginversion.Table, pluginversion.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, storageplugin.PluginTable, storageplugin.PluginColumn),
+		)
+		fromV = sqlgraph.Neighbors(sp.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryProperties queries the properties edge of a StoragePlugin.
+func (c *StoragePluginClient) QueryProperties(sp *StoragePlugin) *StoragePluginPropertyQuery {
+	query := &StoragePluginPropertyQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := sp.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(storageplugin.Table, storageplugin.FieldID, id),
+			sqlgraph.To(storagepluginproperty.Table, storagepluginproperty.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, storageplugin.PropertiesTable, storageplugin.PropertiesColumn),
+		)
+		fromV = sqlgraph.Neighbors(sp.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *StoragePluginClient) Hooks() []Hook {
+	return c.hooks.StoragePlugin
+}
+
+// StoragePluginPropertyClient is a client for the StoragePluginProperty schema.
+type StoragePluginPropertyClient struct {
+	config
+}
+
+// NewStoragePluginPropertyClient returns a client for the StoragePluginProperty from the given config.
+func NewStoragePluginPropertyClient(c config) *StoragePluginPropertyClient {
+	return &StoragePluginPropertyClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `storagepluginproperty.Hooks(f(g(h())))`.
+func (c *StoragePluginPropertyClient) Use(hooks ...Hook) {
+	c.hooks.StoragePluginProperty = append(c.hooks.StoragePluginProperty, hooks...)
+}
+
+// Create returns a create builder for StoragePluginProperty.
+func (c *StoragePluginPropertyClient) Create() *StoragePluginPropertyCreate {
+	mutation := newStoragePluginPropertyMutation(c.config, OpCreate)
+	return &StoragePluginPropertyCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of StoragePluginProperty entities.
+func (c *StoragePluginPropertyClient) CreateBulk(builders ...*StoragePluginPropertyCreate) *StoragePluginPropertyCreateBulk {
+	return &StoragePluginPropertyCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for StoragePluginProperty.
+func (c *StoragePluginPropertyClient) Update() *StoragePluginPropertyUpdate {
+	mutation := newStoragePluginPropertyMutation(c.config, OpUpdate)
+	return &StoragePluginPropertyUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *StoragePluginPropertyClient) UpdateOne(spp *StoragePluginProperty) *StoragePluginPropertyUpdateOne {
+	mutation := newStoragePluginPropertyMutation(c.config, OpUpdateOne, withStoragePluginProperty(spp))
+	return &StoragePluginPropertyUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *StoragePluginPropertyClient) UpdateOneID(id uuid.UUID) *StoragePluginPropertyUpdateOne {
+	mutation := newStoragePluginPropertyMutation(c.config, OpUpdateOne, withStoragePluginPropertyID(id))
+	return &StoragePluginPropertyUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for StoragePluginProperty.
+func (c *StoragePluginPropertyClient) Delete() *StoragePluginPropertyDelete {
+	mutation := newStoragePluginPropertyMutation(c.config, OpDelete)
+	return &StoragePluginPropertyDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a delete builder for the given entity.
+func (c *StoragePluginPropertyClient) DeleteOne(spp *StoragePluginProperty) *StoragePluginPropertyDeleteOne {
+	return c.DeleteOneID(spp.ID)
+}
+
+// DeleteOneID returns a delete builder for the given id.
+func (c *StoragePluginPropertyClient) DeleteOneID(id uuid.UUID) *StoragePluginPropertyDeleteOne {
+	builder := c.Delete().Where(storagepluginproperty.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &StoragePluginPropertyDeleteOne{builder}
+}
+
+// Query returns a query builder for StoragePluginProperty.
+func (c *StoragePluginPropertyClient) Query() *StoragePluginPropertyQuery {
+	return &StoragePluginPropertyQuery{
+		config: c.config,
+	}
+}
+
+// Get returns a StoragePluginProperty entity by its id.
+func (c *StoragePluginPropertyClient) Get(ctx context.Context, id uuid.UUID) (*StoragePluginProperty, error) {
+	return c.Query().Where(storagepluginproperty.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *StoragePluginPropertyClient) GetX(ctx context.Context, id uuid.UUID) *StoragePluginProperty {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryPlugin queries the plugin edge of a StoragePluginProperty.
+func (c *StoragePluginPropertyClient) QueryPlugin(spp *StoragePluginProperty) *StoragePluginQuery {
+	query := &StoragePluginQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := spp.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(storagepluginproperty.Table, storagepluginproperty.FieldID, id),
+			sqlgraph.To(storageplugin.Table, storageplugin.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, storagepluginproperty.PluginTable, storagepluginproperty.PluginColumn),
+		)
+		fromV = sqlgraph.Neighbors(spp.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *StoragePluginPropertyClient) Hooks() []Hook {
+	return c.hooks.StoragePluginProperty
 }

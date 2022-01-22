@@ -23,7 +23,7 @@ func (Storage) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("connection_string"),
 		field.Bool("develop"),
-		field.String("extension").Optional(),
+		field.String("extension").Optional().Nillable(),
 		field.Enum("type").Values("http", "file"),
 		// field("parent").Optional(),
 	}

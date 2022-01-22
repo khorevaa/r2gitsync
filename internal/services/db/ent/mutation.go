@@ -12,9 +12,14 @@ import (
 	"github.com/google/uuid"
 	"github.com/khorevaa/r2gitsync/internal/services/db/ent/asset"
 	"github.com/khorevaa/r2gitsync/internal/services/db/ent/plugin"
+	"github.com/khorevaa/r2gitsync/internal/services/db/ent/pluginversion"
+	"github.com/khorevaa/r2gitsync/internal/services/db/ent/pluginversionproperty"
 	"github.com/khorevaa/r2gitsync/internal/services/db/ent/predicate"
 	"github.com/khorevaa/r2gitsync/internal/services/db/ent/project"
 	"github.com/khorevaa/r2gitsync/internal/services/db/ent/storage"
+	"github.com/khorevaa/r2gitsync/internal/services/db/ent/storagecommit"
+	"github.com/khorevaa/r2gitsync/internal/services/db/ent/storageplugin"
+	"github.com/khorevaa/r2gitsync/internal/services/db/ent/storagepluginproperty"
 
 	"entgo.io/ent"
 )
@@ -28,10 +33,15 @@ const (
 	OpUpdateOne = ent.OpUpdateOne
 
 	// Node types.
-	TypeAsset   = "Asset"
-	TypePlugin  = "Plugin"
-	TypeProject = "Project"
-	TypeStorage = "Storage"
+	TypeAsset                 = "Asset"
+	TypePlugin                = "Plugin"
+	TypePluginVersion         = "PluginVersion"
+	TypePluginVersionProperty = "PluginVersionProperty"
+	TypeProject               = "Project"
+	TypeStorage               = "Storage"
+	TypeStorageCommit         = "StorageCommit"
+	TypeStoragePlugin         = "StoragePlugin"
+	TypeStoragePluginProperty = "StoragePluginProperty"
 )
 
 // AssetMutation represents an operation that mutates the Asset nodes in the graph.
@@ -1088,6 +1098,1475 @@ func (m *PluginMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *PluginMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown Plugin edge %s", name)
+}
+
+// PluginVersionMutation represents an operation that mutates the PluginVersion nodes in the graph.
+type PluginVersionMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *uuid.UUID
+	created_at    *time.Time
+	updated_at    *time.Time
+	deleted_at    *time.Time
+	version       *string
+	description   *string
+	broken        *bool
+	clearedFields map[string]struct{}
+	plugin        *uuid.UUID
+	clearedplugin bool
+	done          bool
+	oldValue      func(context.Context) (*PluginVersion, error)
+	predicates    []predicate.PluginVersion
+}
+
+var _ ent.Mutation = (*PluginVersionMutation)(nil)
+
+// pluginversionOption allows management of the mutation configuration using functional options.
+type pluginversionOption func(*PluginVersionMutation)
+
+// newPluginVersionMutation creates new mutation for the PluginVersion entity.
+func newPluginVersionMutation(c config, op Op, opts ...pluginversionOption) *PluginVersionMutation {
+	m := &PluginVersionMutation{
+		config:        c,
+		op:            op,
+		typ:           TypePluginVersion,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withPluginVersionID sets the ID field of the mutation.
+func withPluginVersionID(id uuid.UUID) pluginversionOption {
+	return func(m *PluginVersionMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *PluginVersion
+		)
+		m.oldValue = func(ctx context.Context) (*PluginVersion, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().PluginVersion.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withPluginVersion sets the old PluginVersion of the mutation.
+func withPluginVersion(node *PluginVersion) pluginversionOption {
+	return func(m *PluginVersionMutation) {
+		m.oldValue = func(context.Context) (*PluginVersion, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m PluginVersionMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m PluginVersionMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of PluginVersion entities.
+func (m *PluginVersionMutation) SetID(id uuid.UUID) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *PluginVersionMutation) ID() (id uuid.UUID, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *PluginVersionMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []uuid.UUID{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().PluginVersion.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *PluginVersionMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *PluginVersionMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the PluginVersion entity.
+// If the PluginVersion object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PluginVersionMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *PluginVersionMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *PluginVersionMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *PluginVersionMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the PluginVersion entity.
+// If the PluginVersion object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PluginVersionMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *PluginVersionMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *PluginVersionMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *PluginVersionMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the PluginVersion entity.
+// If the PluginVersion object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PluginVersionMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *PluginVersionMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[pluginversion.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *PluginVersionMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[pluginversion.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *PluginVersionMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, pluginversion.FieldDeletedAt)
+}
+
+// SetVersion sets the "version" field.
+func (m *PluginVersionMutation) SetVersion(s string) {
+	m.version = &s
+}
+
+// Version returns the value of the "version" field in the mutation.
+func (m *PluginVersionMutation) Version() (r string, exists bool) {
+	v := m.version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldVersion returns the old "version" field's value of the PluginVersion entity.
+// If the PluginVersion object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PluginVersionMutation) OldVersion(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldVersion is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldVersion requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldVersion: %w", err)
+	}
+	return oldValue.Version, nil
+}
+
+// ResetVersion resets all changes to the "version" field.
+func (m *PluginVersionMutation) ResetVersion() {
+	m.version = nil
+}
+
+// SetDescription sets the "description" field.
+func (m *PluginVersionMutation) SetDescription(s string) {
+	m.description = &s
+}
+
+// Description returns the value of the "description" field in the mutation.
+func (m *PluginVersionMutation) Description() (r string, exists bool) {
+	v := m.description
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDescription returns the old "description" field's value of the PluginVersion entity.
+// If the PluginVersion object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PluginVersionMutation) OldDescription(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDescription requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+	}
+	return oldValue.Description, nil
+}
+
+// ResetDescription resets all changes to the "description" field.
+func (m *PluginVersionMutation) ResetDescription() {
+	m.description = nil
+}
+
+// SetBroken sets the "broken" field.
+func (m *PluginVersionMutation) SetBroken(b bool) {
+	m.broken = &b
+}
+
+// Broken returns the value of the "broken" field in the mutation.
+func (m *PluginVersionMutation) Broken() (r bool, exists bool) {
+	v := m.broken
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBroken returns the old "broken" field's value of the PluginVersion entity.
+// If the PluginVersion object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PluginVersionMutation) OldBroken(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBroken is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBroken requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBroken: %w", err)
+	}
+	return oldValue.Broken, nil
+}
+
+// ResetBroken resets all changes to the "broken" field.
+func (m *PluginVersionMutation) ResetBroken() {
+	m.broken = nil
+}
+
+// SetPluginID sets the "plugin" edge to the Plugin entity by id.
+func (m *PluginVersionMutation) SetPluginID(id uuid.UUID) {
+	m.plugin = &id
+}
+
+// ClearPlugin clears the "plugin" edge to the Plugin entity.
+func (m *PluginVersionMutation) ClearPlugin() {
+	m.clearedplugin = true
+}
+
+// PluginCleared reports if the "plugin" edge to the Plugin entity was cleared.
+func (m *PluginVersionMutation) PluginCleared() bool {
+	return m.clearedplugin
+}
+
+// PluginID returns the "plugin" edge ID in the mutation.
+func (m *PluginVersionMutation) PluginID() (id uuid.UUID, exists bool) {
+	if m.plugin != nil {
+		return *m.plugin, true
+	}
+	return
+}
+
+// PluginIDs returns the "plugin" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// PluginID instead. It exists only for internal usage by the builders.
+func (m *PluginVersionMutation) PluginIDs() (ids []uuid.UUID) {
+	if id := m.plugin; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetPlugin resets all changes to the "plugin" edge.
+func (m *PluginVersionMutation) ResetPlugin() {
+	m.plugin = nil
+	m.clearedplugin = false
+}
+
+// Where appends a list predicates to the PluginVersionMutation builder.
+func (m *PluginVersionMutation) Where(ps ...predicate.PluginVersion) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// Op returns the operation name.
+func (m *PluginVersionMutation) Op() Op {
+	return m.op
+}
+
+// Type returns the node type of this mutation (PluginVersion).
+func (m *PluginVersionMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *PluginVersionMutation) Fields() []string {
+	fields := make([]string, 0, 6)
+	if m.created_at != nil {
+		fields = append(fields, pluginversion.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, pluginversion.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, pluginversion.FieldDeletedAt)
+	}
+	if m.version != nil {
+		fields = append(fields, pluginversion.FieldVersion)
+	}
+	if m.description != nil {
+		fields = append(fields, pluginversion.FieldDescription)
+	}
+	if m.broken != nil {
+		fields = append(fields, pluginversion.FieldBroken)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *PluginVersionMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case pluginversion.FieldCreatedAt:
+		return m.CreatedAt()
+	case pluginversion.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case pluginversion.FieldDeletedAt:
+		return m.DeletedAt()
+	case pluginversion.FieldVersion:
+		return m.Version()
+	case pluginversion.FieldDescription:
+		return m.Description()
+	case pluginversion.FieldBroken:
+		return m.Broken()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *PluginVersionMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case pluginversion.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case pluginversion.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case pluginversion.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case pluginversion.FieldVersion:
+		return m.OldVersion(ctx)
+	case pluginversion.FieldDescription:
+		return m.OldDescription(ctx)
+	case pluginversion.FieldBroken:
+		return m.OldBroken(ctx)
+	}
+	return nil, fmt.Errorf("unknown PluginVersion field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PluginVersionMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case pluginversion.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case pluginversion.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case pluginversion.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case pluginversion.FieldVersion:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetVersion(v)
+		return nil
+	case pluginversion.FieldDescription:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDescription(v)
+		return nil
+	case pluginversion.FieldBroken:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBroken(v)
+		return nil
+	}
+	return fmt.Errorf("unknown PluginVersion field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *PluginVersionMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *PluginVersionMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PluginVersionMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown PluginVersion numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *PluginVersionMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(pluginversion.FieldDeletedAt) {
+		fields = append(fields, pluginversion.FieldDeletedAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *PluginVersionMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *PluginVersionMutation) ClearField(name string) error {
+	switch name {
+	case pluginversion.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown PluginVersion nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *PluginVersionMutation) ResetField(name string) error {
+	switch name {
+	case pluginversion.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case pluginversion.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case pluginversion.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case pluginversion.FieldVersion:
+		m.ResetVersion()
+		return nil
+	case pluginversion.FieldDescription:
+		m.ResetDescription()
+		return nil
+	case pluginversion.FieldBroken:
+		m.ResetBroken()
+		return nil
+	}
+	return fmt.Errorf("unknown PluginVersion field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *PluginVersionMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.plugin != nil {
+		edges = append(edges, pluginversion.EdgePlugin)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *PluginVersionMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case pluginversion.EdgePlugin:
+		if id := m.plugin; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *PluginVersionMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *PluginVersionMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *PluginVersionMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedplugin {
+		edges = append(edges, pluginversion.EdgePlugin)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *PluginVersionMutation) EdgeCleared(name string) bool {
+	switch name {
+	case pluginversion.EdgePlugin:
+		return m.clearedplugin
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *PluginVersionMutation) ClearEdge(name string) error {
+	switch name {
+	case pluginversion.EdgePlugin:
+		m.ClearPlugin()
+		return nil
+	}
+	return fmt.Errorf("unknown PluginVersion unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *PluginVersionMutation) ResetEdge(name string) error {
+	switch name {
+	case pluginversion.EdgePlugin:
+		m.ResetPlugin()
+		return nil
+	}
+	return fmt.Errorf("unknown PluginVersion edge %s", name)
+}
+
+// PluginVersionPropertyMutation represents an operation that mutates the PluginVersionProperty nodes in the graph.
+type PluginVersionPropertyMutation struct {
+	config
+	op             Op
+	typ            string
+	id             *uuid.UUID
+	created_at     *time.Time
+	updated_at     *time.Time
+	deleted_at     *time.Time
+	name           *string
+	_default       *string
+	required       *bool
+	_type          *pluginversionproperty.Type
+	clearedFields  map[string]struct{}
+	plugin         *uuid.UUID
+	clearedplugin  bool
+	version        *uuid.UUID
+	clearedversion bool
+	done           bool
+	oldValue       func(context.Context) (*PluginVersionProperty, error)
+	predicates     []predicate.PluginVersionProperty
+}
+
+var _ ent.Mutation = (*PluginVersionPropertyMutation)(nil)
+
+// pluginversionpropertyOption allows management of the mutation configuration using functional options.
+type pluginversionpropertyOption func(*PluginVersionPropertyMutation)
+
+// newPluginVersionPropertyMutation creates new mutation for the PluginVersionProperty entity.
+func newPluginVersionPropertyMutation(c config, op Op, opts ...pluginversionpropertyOption) *PluginVersionPropertyMutation {
+	m := &PluginVersionPropertyMutation{
+		config:        c,
+		op:            op,
+		typ:           TypePluginVersionProperty,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withPluginVersionPropertyID sets the ID field of the mutation.
+func withPluginVersionPropertyID(id uuid.UUID) pluginversionpropertyOption {
+	return func(m *PluginVersionPropertyMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *PluginVersionProperty
+		)
+		m.oldValue = func(ctx context.Context) (*PluginVersionProperty, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().PluginVersionProperty.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withPluginVersionProperty sets the old PluginVersionProperty of the mutation.
+func withPluginVersionProperty(node *PluginVersionProperty) pluginversionpropertyOption {
+	return func(m *PluginVersionPropertyMutation) {
+		m.oldValue = func(context.Context) (*PluginVersionProperty, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m PluginVersionPropertyMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m PluginVersionPropertyMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of PluginVersionProperty entities.
+func (m *PluginVersionPropertyMutation) SetID(id uuid.UUID) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *PluginVersionPropertyMutation) ID() (id uuid.UUID, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *PluginVersionPropertyMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []uuid.UUID{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().PluginVersionProperty.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *PluginVersionPropertyMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *PluginVersionPropertyMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the PluginVersionProperty entity.
+// If the PluginVersionProperty object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PluginVersionPropertyMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *PluginVersionPropertyMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *PluginVersionPropertyMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *PluginVersionPropertyMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the PluginVersionProperty entity.
+// If the PluginVersionProperty object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PluginVersionPropertyMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *PluginVersionPropertyMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *PluginVersionPropertyMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *PluginVersionPropertyMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the PluginVersionProperty entity.
+// If the PluginVersionProperty object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PluginVersionPropertyMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *PluginVersionPropertyMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[pluginversionproperty.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *PluginVersionPropertyMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[pluginversionproperty.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *PluginVersionPropertyMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, pluginversionproperty.FieldDeletedAt)
+}
+
+// SetName sets the "name" field.
+func (m *PluginVersionPropertyMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *PluginVersionPropertyMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the PluginVersionProperty entity.
+// If the PluginVersionProperty object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PluginVersionPropertyMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *PluginVersionPropertyMutation) ResetName() {
+	m.name = nil
+}
+
+// SetDefault sets the "default" field.
+func (m *PluginVersionPropertyMutation) SetDefault(s string) {
+	m._default = &s
+}
+
+// Default returns the value of the "default" field in the mutation.
+func (m *PluginVersionPropertyMutation) Default() (r string, exists bool) {
+	v := m._default
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDefault returns the old "default" field's value of the PluginVersionProperty entity.
+// If the PluginVersionProperty object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PluginVersionPropertyMutation) OldDefault(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDefault is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDefault requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDefault: %w", err)
+	}
+	return oldValue.Default, nil
+}
+
+// ResetDefault resets all changes to the "default" field.
+func (m *PluginVersionPropertyMutation) ResetDefault() {
+	m._default = nil
+}
+
+// SetRequired sets the "required" field.
+func (m *PluginVersionPropertyMutation) SetRequired(b bool) {
+	m.required = &b
+}
+
+// Required returns the value of the "required" field in the mutation.
+func (m *PluginVersionPropertyMutation) Required() (r bool, exists bool) {
+	v := m.required
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRequired returns the old "required" field's value of the PluginVersionProperty entity.
+// If the PluginVersionProperty object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PluginVersionPropertyMutation) OldRequired(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRequired is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRequired requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRequired: %w", err)
+	}
+	return oldValue.Required, nil
+}
+
+// ResetRequired resets all changes to the "required" field.
+func (m *PluginVersionPropertyMutation) ResetRequired() {
+	m.required = nil
+}
+
+// SetType sets the "type" field.
+func (m *PluginVersionPropertyMutation) SetType(pl pluginversionproperty.Type) {
+	m._type = &pl
+}
+
+// GetType returns the value of the "type" field in the mutation.
+func (m *PluginVersionPropertyMutation) GetType() (r pluginversionproperty.Type, exists bool) {
+	v := m._type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldType returns the old "type" field's value of the PluginVersionProperty entity.
+// If the PluginVersionProperty object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PluginVersionPropertyMutation) OldType(ctx context.Context) (v pluginversionproperty.Type, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldType: %w", err)
+	}
+	return oldValue.Type, nil
+}
+
+// ResetType resets all changes to the "type" field.
+func (m *PluginVersionPropertyMutation) ResetType() {
+	m._type = nil
+}
+
+// SetPluginID sets the "plugin" edge to the Plugin entity by id.
+func (m *PluginVersionPropertyMutation) SetPluginID(id uuid.UUID) {
+	m.plugin = &id
+}
+
+// ClearPlugin clears the "plugin" edge to the Plugin entity.
+func (m *PluginVersionPropertyMutation) ClearPlugin() {
+	m.clearedplugin = true
+}
+
+// PluginCleared reports if the "plugin" edge to the Plugin entity was cleared.
+func (m *PluginVersionPropertyMutation) PluginCleared() bool {
+	return m.clearedplugin
+}
+
+// PluginID returns the "plugin" edge ID in the mutation.
+func (m *PluginVersionPropertyMutation) PluginID() (id uuid.UUID, exists bool) {
+	if m.plugin != nil {
+		return *m.plugin, true
+	}
+	return
+}
+
+// PluginIDs returns the "plugin" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// PluginID instead. It exists only for internal usage by the builders.
+func (m *PluginVersionPropertyMutation) PluginIDs() (ids []uuid.UUID) {
+	if id := m.plugin; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetPlugin resets all changes to the "plugin" edge.
+func (m *PluginVersionPropertyMutation) ResetPlugin() {
+	m.plugin = nil
+	m.clearedplugin = false
+}
+
+// SetVersionID sets the "version" edge to the PluginVersion entity by id.
+func (m *PluginVersionPropertyMutation) SetVersionID(id uuid.UUID) {
+	m.version = &id
+}
+
+// ClearVersion clears the "version" edge to the PluginVersion entity.
+func (m *PluginVersionPropertyMutation) ClearVersion() {
+	m.clearedversion = true
+}
+
+// VersionCleared reports if the "version" edge to the PluginVersion entity was cleared.
+func (m *PluginVersionPropertyMutation) VersionCleared() bool {
+	return m.clearedversion
+}
+
+// VersionID returns the "version" edge ID in the mutation.
+func (m *PluginVersionPropertyMutation) VersionID() (id uuid.UUID, exists bool) {
+	if m.version != nil {
+		return *m.version, true
+	}
+	return
+}
+
+// VersionIDs returns the "version" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// VersionID instead. It exists only for internal usage by the builders.
+func (m *PluginVersionPropertyMutation) VersionIDs() (ids []uuid.UUID) {
+	if id := m.version; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetVersion resets all changes to the "version" edge.
+func (m *PluginVersionPropertyMutation) ResetVersion() {
+	m.version = nil
+	m.clearedversion = false
+}
+
+// Where appends a list predicates to the PluginVersionPropertyMutation builder.
+func (m *PluginVersionPropertyMutation) Where(ps ...predicate.PluginVersionProperty) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// Op returns the operation name.
+func (m *PluginVersionPropertyMutation) Op() Op {
+	return m.op
+}
+
+// Type returns the node type of this mutation (PluginVersionProperty).
+func (m *PluginVersionPropertyMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *PluginVersionPropertyMutation) Fields() []string {
+	fields := make([]string, 0, 7)
+	if m.created_at != nil {
+		fields = append(fields, pluginversionproperty.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, pluginversionproperty.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, pluginversionproperty.FieldDeletedAt)
+	}
+	if m.name != nil {
+		fields = append(fields, pluginversionproperty.FieldName)
+	}
+	if m._default != nil {
+		fields = append(fields, pluginversionproperty.FieldDefault)
+	}
+	if m.required != nil {
+		fields = append(fields, pluginversionproperty.FieldRequired)
+	}
+	if m._type != nil {
+		fields = append(fields, pluginversionproperty.FieldType)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *PluginVersionPropertyMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case pluginversionproperty.FieldCreatedAt:
+		return m.CreatedAt()
+	case pluginversionproperty.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case pluginversionproperty.FieldDeletedAt:
+		return m.DeletedAt()
+	case pluginversionproperty.FieldName:
+		return m.Name()
+	case pluginversionproperty.FieldDefault:
+		return m.Default()
+	case pluginversionproperty.FieldRequired:
+		return m.Required()
+	case pluginversionproperty.FieldType:
+		return m.GetType()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *PluginVersionPropertyMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case pluginversionproperty.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case pluginversionproperty.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case pluginversionproperty.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case pluginversionproperty.FieldName:
+		return m.OldName(ctx)
+	case pluginversionproperty.FieldDefault:
+		return m.OldDefault(ctx)
+	case pluginversionproperty.FieldRequired:
+		return m.OldRequired(ctx)
+	case pluginversionproperty.FieldType:
+		return m.OldType(ctx)
+	}
+	return nil, fmt.Errorf("unknown PluginVersionProperty field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PluginVersionPropertyMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case pluginversionproperty.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case pluginversionproperty.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case pluginversionproperty.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case pluginversionproperty.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case pluginversionproperty.FieldDefault:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDefault(v)
+		return nil
+	case pluginversionproperty.FieldRequired:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRequired(v)
+		return nil
+	case pluginversionproperty.FieldType:
+		v, ok := value.(pluginversionproperty.Type)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetType(v)
+		return nil
+	}
+	return fmt.Errorf("unknown PluginVersionProperty field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *PluginVersionPropertyMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *PluginVersionPropertyMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PluginVersionPropertyMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown PluginVersionProperty numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *PluginVersionPropertyMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(pluginversionproperty.FieldDeletedAt) {
+		fields = append(fields, pluginversionproperty.FieldDeletedAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *PluginVersionPropertyMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *PluginVersionPropertyMutation) ClearField(name string) error {
+	switch name {
+	case pluginversionproperty.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown PluginVersionProperty nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *PluginVersionPropertyMutation) ResetField(name string) error {
+	switch name {
+	case pluginversionproperty.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case pluginversionproperty.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case pluginversionproperty.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case pluginversionproperty.FieldName:
+		m.ResetName()
+		return nil
+	case pluginversionproperty.FieldDefault:
+		m.ResetDefault()
+		return nil
+	case pluginversionproperty.FieldRequired:
+		m.ResetRequired()
+		return nil
+	case pluginversionproperty.FieldType:
+		m.ResetType()
+		return nil
+	}
+	return fmt.Errorf("unknown PluginVersionProperty field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *PluginVersionPropertyMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.plugin != nil {
+		edges = append(edges, pluginversionproperty.EdgePlugin)
+	}
+	if m.version != nil {
+		edges = append(edges, pluginversionproperty.EdgeVersion)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *PluginVersionPropertyMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case pluginversionproperty.EdgePlugin:
+		if id := m.plugin; id != nil {
+			return []ent.Value{*id}
+		}
+	case pluginversionproperty.EdgeVersion:
+		if id := m.version; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *PluginVersionPropertyMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *PluginVersionPropertyMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *PluginVersionPropertyMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.clearedplugin {
+		edges = append(edges, pluginversionproperty.EdgePlugin)
+	}
+	if m.clearedversion {
+		edges = append(edges, pluginversionproperty.EdgeVersion)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *PluginVersionPropertyMutation) EdgeCleared(name string) bool {
+	switch name {
+	case pluginversionproperty.EdgePlugin:
+		return m.clearedplugin
+	case pluginversionproperty.EdgeVersion:
+		return m.clearedversion
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *PluginVersionPropertyMutation) ClearEdge(name string) error {
+	switch name {
+	case pluginversionproperty.EdgePlugin:
+		m.ClearPlugin()
+		return nil
+	case pluginversionproperty.EdgeVersion:
+		m.ClearVersion()
+		return nil
+	}
+	return fmt.Errorf("unknown PluginVersionProperty unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *PluginVersionPropertyMutation) ResetEdge(name string) error {
+	switch name {
+	case pluginversionproperty.EdgePlugin:
+		m.ResetPlugin()
+		return nil
+	case pluginversionproperty.EdgeVersion:
+		m.ResetVersion()
+		return nil
+	}
+	return fmt.Errorf("unknown PluginVersionProperty edge %s", name)
 }
 
 // ProjectMutation represents an operation that mutates the Project nodes in the graph.
@@ -2301,7 +3780,7 @@ func (m *StorageMutation) Extension() (r string, exists bool) {
 // OldExtension returns the old "extension" field's value of the Storage entity.
 // If the Storage object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *StorageMutation) OldExtension(ctx context.Context) (v string, err error) {
+func (m *StorageMutation) OldExtension(ctx context.Context) (v *string, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldExtension is only allowed on UpdateOne operations")
 	}
@@ -2772,4 +4251,2270 @@ func (m *StorageMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown Storage edge %s", name)
+}
+
+// StorageCommitMutation represents an operation that mutates the StorageCommit nodes in the graph.
+type StorageCommitMutation struct {
+	config
+	op                    Op
+	typ                   string
+	id                    *uuid.UUID
+	created_at            *time.Time
+	updated_at            *time.Time
+	deleted_at            *time.Time
+	number                *uint
+	addnumber             *int
+	configuration_version *string
+	author                *string
+	description           *string
+	tag                   *string
+	tag_description       *string
+	commit_at             *time.Time
+	clearedFields         map[string]struct{}
+	storage               *uuid.UUID
+	clearedstorage        bool
+	done                  bool
+	oldValue              func(context.Context) (*StorageCommit, error)
+	predicates            []predicate.StorageCommit
+}
+
+var _ ent.Mutation = (*StorageCommitMutation)(nil)
+
+// storagecommitOption allows management of the mutation configuration using functional options.
+type storagecommitOption func(*StorageCommitMutation)
+
+// newStorageCommitMutation creates new mutation for the StorageCommit entity.
+func newStorageCommitMutation(c config, op Op, opts ...storagecommitOption) *StorageCommitMutation {
+	m := &StorageCommitMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeStorageCommit,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withStorageCommitID sets the ID field of the mutation.
+func withStorageCommitID(id uuid.UUID) storagecommitOption {
+	return func(m *StorageCommitMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *StorageCommit
+		)
+		m.oldValue = func(ctx context.Context) (*StorageCommit, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().StorageCommit.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withStorageCommit sets the old StorageCommit of the mutation.
+func withStorageCommit(node *StorageCommit) storagecommitOption {
+	return func(m *StorageCommitMutation) {
+		m.oldValue = func(context.Context) (*StorageCommit, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m StorageCommitMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m StorageCommitMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of StorageCommit entities.
+func (m *StorageCommitMutation) SetID(id uuid.UUID) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *StorageCommitMutation) ID() (id uuid.UUID, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *StorageCommitMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []uuid.UUID{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().StorageCommit.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *StorageCommitMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *StorageCommitMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the StorageCommit entity.
+// If the StorageCommit object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StorageCommitMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *StorageCommitMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *StorageCommitMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *StorageCommitMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the StorageCommit entity.
+// If the StorageCommit object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StorageCommitMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *StorageCommitMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *StorageCommitMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *StorageCommitMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the StorageCommit entity.
+// If the StorageCommit object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StorageCommitMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *StorageCommitMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[storagecommit.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *StorageCommitMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[storagecommit.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *StorageCommitMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, storagecommit.FieldDeletedAt)
+}
+
+// SetNumber sets the "number" field.
+func (m *StorageCommitMutation) SetNumber(u uint) {
+	m.number = &u
+	m.addnumber = nil
+}
+
+// Number returns the value of the "number" field in the mutation.
+func (m *StorageCommitMutation) Number() (r uint, exists bool) {
+	v := m.number
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNumber returns the old "number" field's value of the StorageCommit entity.
+// If the StorageCommit object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StorageCommitMutation) OldNumber(ctx context.Context) (v uint, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNumber is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNumber requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNumber: %w", err)
+	}
+	return oldValue.Number, nil
+}
+
+// AddNumber adds u to the "number" field.
+func (m *StorageCommitMutation) AddNumber(u int) {
+	if m.addnumber != nil {
+		*m.addnumber += u
+	} else {
+		m.addnumber = &u
+	}
+}
+
+// AddedNumber returns the value that was added to the "number" field in this mutation.
+func (m *StorageCommitMutation) AddedNumber() (r int, exists bool) {
+	v := m.addnumber
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetNumber resets all changes to the "number" field.
+func (m *StorageCommitMutation) ResetNumber() {
+	m.number = nil
+	m.addnumber = nil
+}
+
+// SetConfigurationVersion sets the "configuration_version" field.
+func (m *StorageCommitMutation) SetConfigurationVersion(s string) {
+	m.configuration_version = &s
+}
+
+// ConfigurationVersion returns the value of the "configuration_version" field in the mutation.
+func (m *StorageCommitMutation) ConfigurationVersion() (r string, exists bool) {
+	v := m.configuration_version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldConfigurationVersion returns the old "configuration_version" field's value of the StorageCommit entity.
+// If the StorageCommit object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StorageCommitMutation) OldConfigurationVersion(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldConfigurationVersion is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldConfigurationVersion requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldConfigurationVersion: %w", err)
+	}
+	return oldValue.ConfigurationVersion, nil
+}
+
+// ResetConfigurationVersion resets all changes to the "configuration_version" field.
+func (m *StorageCommitMutation) ResetConfigurationVersion() {
+	m.configuration_version = nil
+}
+
+// SetAuthor sets the "author" field.
+func (m *StorageCommitMutation) SetAuthor(s string) {
+	m.author = &s
+}
+
+// Author returns the value of the "author" field in the mutation.
+func (m *StorageCommitMutation) Author() (r string, exists bool) {
+	v := m.author
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAuthor returns the old "author" field's value of the StorageCommit entity.
+// If the StorageCommit object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StorageCommitMutation) OldAuthor(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAuthor is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAuthor requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAuthor: %w", err)
+	}
+	return oldValue.Author, nil
+}
+
+// ResetAuthor resets all changes to the "author" field.
+func (m *StorageCommitMutation) ResetAuthor() {
+	m.author = nil
+}
+
+// SetDescription sets the "description" field.
+func (m *StorageCommitMutation) SetDescription(s string) {
+	m.description = &s
+}
+
+// Description returns the value of the "description" field in the mutation.
+func (m *StorageCommitMutation) Description() (r string, exists bool) {
+	v := m.description
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDescription returns the old "description" field's value of the StorageCommit entity.
+// If the StorageCommit object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StorageCommitMutation) OldDescription(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDescription requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+	}
+	return oldValue.Description, nil
+}
+
+// ResetDescription resets all changes to the "description" field.
+func (m *StorageCommitMutation) ResetDescription() {
+	m.description = nil
+}
+
+// SetTag sets the "tag" field.
+func (m *StorageCommitMutation) SetTag(s string) {
+	m.tag = &s
+}
+
+// Tag returns the value of the "tag" field in the mutation.
+func (m *StorageCommitMutation) Tag() (r string, exists bool) {
+	v := m.tag
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTag returns the old "tag" field's value of the StorageCommit entity.
+// If the StorageCommit object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StorageCommitMutation) OldTag(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTag is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTag requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTag: %w", err)
+	}
+	return oldValue.Tag, nil
+}
+
+// ResetTag resets all changes to the "tag" field.
+func (m *StorageCommitMutation) ResetTag() {
+	m.tag = nil
+}
+
+// SetTagDescription sets the "tag_description" field.
+func (m *StorageCommitMutation) SetTagDescription(s string) {
+	m.tag_description = &s
+}
+
+// TagDescription returns the value of the "tag_description" field in the mutation.
+func (m *StorageCommitMutation) TagDescription() (r string, exists bool) {
+	v := m.tag_description
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTagDescription returns the old "tag_description" field's value of the StorageCommit entity.
+// If the StorageCommit object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StorageCommitMutation) OldTagDescription(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTagDescription is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTagDescription requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTagDescription: %w", err)
+	}
+	return oldValue.TagDescription, nil
+}
+
+// ResetTagDescription resets all changes to the "tag_description" field.
+func (m *StorageCommitMutation) ResetTagDescription() {
+	m.tag_description = nil
+}
+
+// SetCommitAt sets the "commit_at" field.
+func (m *StorageCommitMutation) SetCommitAt(t time.Time) {
+	m.commit_at = &t
+}
+
+// CommitAt returns the value of the "commit_at" field in the mutation.
+func (m *StorageCommitMutation) CommitAt() (r time.Time, exists bool) {
+	v := m.commit_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCommitAt returns the old "commit_at" field's value of the StorageCommit entity.
+// If the StorageCommit object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StorageCommitMutation) OldCommitAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCommitAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCommitAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCommitAt: %w", err)
+	}
+	return oldValue.CommitAt, nil
+}
+
+// ResetCommitAt resets all changes to the "commit_at" field.
+func (m *StorageCommitMutation) ResetCommitAt() {
+	m.commit_at = nil
+}
+
+// SetStorageID sets the "storage" edge to the Storage entity by id.
+func (m *StorageCommitMutation) SetStorageID(id uuid.UUID) {
+	m.storage = &id
+}
+
+// ClearStorage clears the "storage" edge to the Storage entity.
+func (m *StorageCommitMutation) ClearStorage() {
+	m.clearedstorage = true
+}
+
+// StorageCleared reports if the "storage" edge to the Storage entity was cleared.
+func (m *StorageCommitMutation) StorageCleared() bool {
+	return m.clearedstorage
+}
+
+// StorageID returns the "storage" edge ID in the mutation.
+func (m *StorageCommitMutation) StorageID() (id uuid.UUID, exists bool) {
+	if m.storage != nil {
+		return *m.storage, true
+	}
+	return
+}
+
+// StorageIDs returns the "storage" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// StorageID instead. It exists only for internal usage by the builders.
+func (m *StorageCommitMutation) StorageIDs() (ids []uuid.UUID) {
+	if id := m.storage; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetStorage resets all changes to the "storage" edge.
+func (m *StorageCommitMutation) ResetStorage() {
+	m.storage = nil
+	m.clearedstorage = false
+}
+
+// Where appends a list predicates to the StorageCommitMutation builder.
+func (m *StorageCommitMutation) Where(ps ...predicate.StorageCommit) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// Op returns the operation name.
+func (m *StorageCommitMutation) Op() Op {
+	return m.op
+}
+
+// Type returns the node type of this mutation (StorageCommit).
+func (m *StorageCommitMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *StorageCommitMutation) Fields() []string {
+	fields := make([]string, 0, 10)
+	if m.created_at != nil {
+		fields = append(fields, storagecommit.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, storagecommit.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, storagecommit.FieldDeletedAt)
+	}
+	if m.number != nil {
+		fields = append(fields, storagecommit.FieldNumber)
+	}
+	if m.configuration_version != nil {
+		fields = append(fields, storagecommit.FieldConfigurationVersion)
+	}
+	if m.author != nil {
+		fields = append(fields, storagecommit.FieldAuthor)
+	}
+	if m.description != nil {
+		fields = append(fields, storagecommit.FieldDescription)
+	}
+	if m.tag != nil {
+		fields = append(fields, storagecommit.FieldTag)
+	}
+	if m.tag_description != nil {
+		fields = append(fields, storagecommit.FieldTagDescription)
+	}
+	if m.commit_at != nil {
+		fields = append(fields, storagecommit.FieldCommitAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *StorageCommitMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case storagecommit.FieldCreatedAt:
+		return m.CreatedAt()
+	case storagecommit.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case storagecommit.FieldDeletedAt:
+		return m.DeletedAt()
+	case storagecommit.FieldNumber:
+		return m.Number()
+	case storagecommit.FieldConfigurationVersion:
+		return m.ConfigurationVersion()
+	case storagecommit.FieldAuthor:
+		return m.Author()
+	case storagecommit.FieldDescription:
+		return m.Description()
+	case storagecommit.FieldTag:
+		return m.Tag()
+	case storagecommit.FieldTagDescription:
+		return m.TagDescription()
+	case storagecommit.FieldCommitAt:
+		return m.CommitAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *StorageCommitMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case storagecommit.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case storagecommit.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case storagecommit.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case storagecommit.FieldNumber:
+		return m.OldNumber(ctx)
+	case storagecommit.FieldConfigurationVersion:
+		return m.OldConfigurationVersion(ctx)
+	case storagecommit.FieldAuthor:
+		return m.OldAuthor(ctx)
+	case storagecommit.FieldDescription:
+		return m.OldDescription(ctx)
+	case storagecommit.FieldTag:
+		return m.OldTag(ctx)
+	case storagecommit.FieldTagDescription:
+		return m.OldTagDescription(ctx)
+	case storagecommit.FieldCommitAt:
+		return m.OldCommitAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown StorageCommit field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *StorageCommitMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case storagecommit.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case storagecommit.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case storagecommit.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case storagecommit.FieldNumber:
+		v, ok := value.(uint)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNumber(v)
+		return nil
+	case storagecommit.FieldConfigurationVersion:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetConfigurationVersion(v)
+		return nil
+	case storagecommit.FieldAuthor:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAuthor(v)
+		return nil
+	case storagecommit.FieldDescription:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDescription(v)
+		return nil
+	case storagecommit.FieldTag:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTag(v)
+		return nil
+	case storagecommit.FieldTagDescription:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTagDescription(v)
+		return nil
+	case storagecommit.FieldCommitAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCommitAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown StorageCommit field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *StorageCommitMutation) AddedFields() []string {
+	var fields []string
+	if m.addnumber != nil {
+		fields = append(fields, storagecommit.FieldNumber)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *StorageCommitMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case storagecommit.FieldNumber:
+		return m.AddedNumber()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *StorageCommitMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case storagecommit.FieldNumber:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddNumber(v)
+		return nil
+	}
+	return fmt.Errorf("unknown StorageCommit numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *StorageCommitMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(storagecommit.FieldDeletedAt) {
+		fields = append(fields, storagecommit.FieldDeletedAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *StorageCommitMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *StorageCommitMutation) ClearField(name string) error {
+	switch name {
+	case storagecommit.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown StorageCommit nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *StorageCommitMutation) ResetField(name string) error {
+	switch name {
+	case storagecommit.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case storagecommit.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case storagecommit.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case storagecommit.FieldNumber:
+		m.ResetNumber()
+		return nil
+	case storagecommit.FieldConfigurationVersion:
+		m.ResetConfigurationVersion()
+		return nil
+	case storagecommit.FieldAuthor:
+		m.ResetAuthor()
+		return nil
+	case storagecommit.FieldDescription:
+		m.ResetDescription()
+		return nil
+	case storagecommit.FieldTag:
+		m.ResetTag()
+		return nil
+	case storagecommit.FieldTagDescription:
+		m.ResetTagDescription()
+		return nil
+	case storagecommit.FieldCommitAt:
+		m.ResetCommitAt()
+		return nil
+	}
+	return fmt.Errorf("unknown StorageCommit field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *StorageCommitMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.storage != nil {
+		edges = append(edges, storagecommit.EdgeStorage)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *StorageCommitMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case storagecommit.EdgeStorage:
+		if id := m.storage; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *StorageCommitMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *StorageCommitMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *StorageCommitMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedstorage {
+		edges = append(edges, storagecommit.EdgeStorage)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *StorageCommitMutation) EdgeCleared(name string) bool {
+	switch name {
+	case storagecommit.EdgeStorage:
+		return m.clearedstorage
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *StorageCommitMutation) ClearEdge(name string) error {
+	switch name {
+	case storagecommit.EdgeStorage:
+		m.ClearStorage()
+		return nil
+	}
+	return fmt.Errorf("unknown StorageCommit unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *StorageCommitMutation) ResetEdge(name string) error {
+	switch name {
+	case storagecommit.EdgeStorage:
+		m.ResetStorage()
+		return nil
+	}
+	return fmt.Errorf("unknown StorageCommit edge %s", name)
+}
+
+// StoragePluginMutation represents an operation that mutates the StoragePlugin nodes in the graph.
+type StoragePluginMutation struct {
+	config
+	op                Op
+	typ               string
+	id                *uuid.UUID
+	created_at        *time.Time
+	updated_at        *time.Time
+	deleted_at        *time.Time
+	disable           *bool
+	clearedFields     map[string]struct{}
+	storage           *uuid.UUID
+	clearedstorage    bool
+	plugin            *uuid.UUID
+	clearedplugin     bool
+	properties        map[uuid.UUID]struct{}
+	removedproperties map[uuid.UUID]struct{}
+	clearedproperties bool
+	done              bool
+	oldValue          func(context.Context) (*StoragePlugin, error)
+	predicates        []predicate.StoragePlugin
+}
+
+var _ ent.Mutation = (*StoragePluginMutation)(nil)
+
+// storagepluginOption allows management of the mutation configuration using functional options.
+type storagepluginOption func(*StoragePluginMutation)
+
+// newStoragePluginMutation creates new mutation for the StoragePlugin entity.
+func newStoragePluginMutation(c config, op Op, opts ...storagepluginOption) *StoragePluginMutation {
+	m := &StoragePluginMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeStoragePlugin,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withStoragePluginID sets the ID field of the mutation.
+func withStoragePluginID(id uuid.UUID) storagepluginOption {
+	return func(m *StoragePluginMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *StoragePlugin
+		)
+		m.oldValue = func(ctx context.Context) (*StoragePlugin, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().StoragePlugin.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withStoragePlugin sets the old StoragePlugin of the mutation.
+func withStoragePlugin(node *StoragePlugin) storagepluginOption {
+	return func(m *StoragePluginMutation) {
+		m.oldValue = func(context.Context) (*StoragePlugin, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m StoragePluginMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m StoragePluginMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of StoragePlugin entities.
+func (m *StoragePluginMutation) SetID(id uuid.UUID) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *StoragePluginMutation) ID() (id uuid.UUID, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *StoragePluginMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []uuid.UUID{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().StoragePlugin.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *StoragePluginMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *StoragePluginMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the StoragePlugin entity.
+// If the StoragePlugin object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StoragePluginMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *StoragePluginMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *StoragePluginMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *StoragePluginMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the StoragePlugin entity.
+// If the StoragePlugin object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StoragePluginMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *StoragePluginMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *StoragePluginMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *StoragePluginMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the StoragePlugin entity.
+// If the StoragePlugin object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StoragePluginMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *StoragePluginMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[storageplugin.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *StoragePluginMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[storageplugin.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *StoragePluginMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, storageplugin.FieldDeletedAt)
+}
+
+// SetDisable sets the "disable" field.
+func (m *StoragePluginMutation) SetDisable(b bool) {
+	m.disable = &b
+}
+
+// Disable returns the value of the "disable" field in the mutation.
+func (m *StoragePluginMutation) Disable() (r bool, exists bool) {
+	v := m.disable
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDisable returns the old "disable" field's value of the StoragePlugin entity.
+// If the StoragePlugin object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StoragePluginMutation) OldDisable(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDisable is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDisable requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDisable: %w", err)
+	}
+	return oldValue.Disable, nil
+}
+
+// ResetDisable resets all changes to the "disable" field.
+func (m *StoragePluginMutation) ResetDisable() {
+	m.disable = nil
+}
+
+// SetStorageID sets the "storage" edge to the Storage entity by id.
+func (m *StoragePluginMutation) SetStorageID(id uuid.UUID) {
+	m.storage = &id
+}
+
+// ClearStorage clears the "storage" edge to the Storage entity.
+func (m *StoragePluginMutation) ClearStorage() {
+	m.clearedstorage = true
+}
+
+// StorageCleared reports if the "storage" edge to the Storage entity was cleared.
+func (m *StoragePluginMutation) StorageCleared() bool {
+	return m.clearedstorage
+}
+
+// StorageID returns the "storage" edge ID in the mutation.
+func (m *StoragePluginMutation) StorageID() (id uuid.UUID, exists bool) {
+	if m.storage != nil {
+		return *m.storage, true
+	}
+	return
+}
+
+// StorageIDs returns the "storage" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// StorageID instead. It exists only for internal usage by the builders.
+func (m *StoragePluginMutation) StorageIDs() (ids []uuid.UUID) {
+	if id := m.storage; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetStorage resets all changes to the "storage" edge.
+func (m *StoragePluginMutation) ResetStorage() {
+	m.storage = nil
+	m.clearedstorage = false
+}
+
+// SetPluginID sets the "plugin" edge to the PluginVersion entity by id.
+func (m *StoragePluginMutation) SetPluginID(id uuid.UUID) {
+	m.plugin = &id
+}
+
+// ClearPlugin clears the "plugin" edge to the PluginVersion entity.
+func (m *StoragePluginMutation) ClearPlugin() {
+	m.clearedplugin = true
+}
+
+// PluginCleared reports if the "plugin" edge to the PluginVersion entity was cleared.
+func (m *StoragePluginMutation) PluginCleared() bool {
+	return m.clearedplugin
+}
+
+// PluginID returns the "plugin" edge ID in the mutation.
+func (m *StoragePluginMutation) PluginID() (id uuid.UUID, exists bool) {
+	if m.plugin != nil {
+		return *m.plugin, true
+	}
+	return
+}
+
+// PluginIDs returns the "plugin" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// PluginID instead. It exists only for internal usage by the builders.
+func (m *StoragePluginMutation) PluginIDs() (ids []uuid.UUID) {
+	if id := m.plugin; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetPlugin resets all changes to the "plugin" edge.
+func (m *StoragePluginMutation) ResetPlugin() {
+	m.plugin = nil
+	m.clearedplugin = false
+}
+
+// AddPropertyIDs adds the "properties" edge to the StoragePluginProperty entity by ids.
+func (m *StoragePluginMutation) AddPropertyIDs(ids ...uuid.UUID) {
+	if m.properties == nil {
+		m.properties = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		m.properties[ids[i]] = struct{}{}
+	}
+}
+
+// ClearProperties clears the "properties" edge to the StoragePluginProperty entity.
+func (m *StoragePluginMutation) ClearProperties() {
+	m.clearedproperties = true
+}
+
+// PropertiesCleared reports if the "properties" edge to the StoragePluginProperty entity was cleared.
+func (m *StoragePluginMutation) PropertiesCleared() bool {
+	return m.clearedproperties
+}
+
+// RemovePropertyIDs removes the "properties" edge to the StoragePluginProperty entity by IDs.
+func (m *StoragePluginMutation) RemovePropertyIDs(ids ...uuid.UUID) {
+	if m.removedproperties == nil {
+		m.removedproperties = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		delete(m.properties, ids[i])
+		m.removedproperties[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedProperties returns the removed IDs of the "properties" edge to the StoragePluginProperty entity.
+func (m *StoragePluginMutation) RemovedPropertiesIDs() (ids []uuid.UUID) {
+	for id := range m.removedproperties {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// PropertiesIDs returns the "properties" edge IDs in the mutation.
+func (m *StoragePluginMutation) PropertiesIDs() (ids []uuid.UUID) {
+	for id := range m.properties {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetProperties resets all changes to the "properties" edge.
+func (m *StoragePluginMutation) ResetProperties() {
+	m.properties = nil
+	m.clearedproperties = false
+	m.removedproperties = nil
+}
+
+// Where appends a list predicates to the StoragePluginMutation builder.
+func (m *StoragePluginMutation) Where(ps ...predicate.StoragePlugin) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// Op returns the operation name.
+func (m *StoragePluginMutation) Op() Op {
+	return m.op
+}
+
+// Type returns the node type of this mutation (StoragePlugin).
+func (m *StoragePluginMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *StoragePluginMutation) Fields() []string {
+	fields := make([]string, 0, 4)
+	if m.created_at != nil {
+		fields = append(fields, storageplugin.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, storageplugin.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, storageplugin.FieldDeletedAt)
+	}
+	if m.disable != nil {
+		fields = append(fields, storageplugin.FieldDisable)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *StoragePluginMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case storageplugin.FieldCreatedAt:
+		return m.CreatedAt()
+	case storageplugin.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case storageplugin.FieldDeletedAt:
+		return m.DeletedAt()
+	case storageplugin.FieldDisable:
+		return m.Disable()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *StoragePluginMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case storageplugin.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case storageplugin.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case storageplugin.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case storageplugin.FieldDisable:
+		return m.OldDisable(ctx)
+	}
+	return nil, fmt.Errorf("unknown StoragePlugin field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *StoragePluginMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case storageplugin.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case storageplugin.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case storageplugin.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case storageplugin.FieldDisable:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDisable(v)
+		return nil
+	}
+	return fmt.Errorf("unknown StoragePlugin field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *StoragePluginMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *StoragePluginMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *StoragePluginMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown StoragePlugin numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *StoragePluginMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(storageplugin.FieldDeletedAt) {
+		fields = append(fields, storageplugin.FieldDeletedAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *StoragePluginMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *StoragePluginMutation) ClearField(name string) error {
+	switch name {
+	case storageplugin.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown StoragePlugin nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *StoragePluginMutation) ResetField(name string) error {
+	switch name {
+	case storageplugin.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case storageplugin.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case storageplugin.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case storageplugin.FieldDisable:
+		m.ResetDisable()
+		return nil
+	}
+	return fmt.Errorf("unknown StoragePlugin field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *StoragePluginMutation) AddedEdges() []string {
+	edges := make([]string, 0, 3)
+	if m.storage != nil {
+		edges = append(edges, storageplugin.EdgeStorage)
+	}
+	if m.plugin != nil {
+		edges = append(edges, storageplugin.EdgePlugin)
+	}
+	if m.properties != nil {
+		edges = append(edges, storageplugin.EdgeProperties)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *StoragePluginMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case storageplugin.EdgeStorage:
+		if id := m.storage; id != nil {
+			return []ent.Value{*id}
+		}
+	case storageplugin.EdgePlugin:
+		if id := m.plugin; id != nil {
+			return []ent.Value{*id}
+		}
+	case storageplugin.EdgeProperties:
+		ids := make([]ent.Value, 0, len(m.properties))
+		for id := range m.properties {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *StoragePluginMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 3)
+	if m.removedproperties != nil {
+		edges = append(edges, storageplugin.EdgeProperties)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *StoragePluginMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case storageplugin.EdgeProperties:
+		ids := make([]ent.Value, 0, len(m.removedproperties))
+		for id := range m.removedproperties {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *StoragePluginMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 3)
+	if m.clearedstorage {
+		edges = append(edges, storageplugin.EdgeStorage)
+	}
+	if m.clearedplugin {
+		edges = append(edges, storageplugin.EdgePlugin)
+	}
+	if m.clearedproperties {
+		edges = append(edges, storageplugin.EdgeProperties)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *StoragePluginMutation) EdgeCleared(name string) bool {
+	switch name {
+	case storageplugin.EdgeStorage:
+		return m.clearedstorage
+	case storageplugin.EdgePlugin:
+		return m.clearedplugin
+	case storageplugin.EdgeProperties:
+		return m.clearedproperties
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *StoragePluginMutation) ClearEdge(name string) error {
+	switch name {
+	case storageplugin.EdgeStorage:
+		m.ClearStorage()
+		return nil
+	case storageplugin.EdgePlugin:
+		m.ClearPlugin()
+		return nil
+	}
+	return fmt.Errorf("unknown StoragePlugin unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *StoragePluginMutation) ResetEdge(name string) error {
+	switch name {
+	case storageplugin.EdgeStorage:
+		m.ResetStorage()
+		return nil
+	case storageplugin.EdgePlugin:
+		m.ResetPlugin()
+		return nil
+	case storageplugin.EdgeProperties:
+		m.ResetProperties()
+		return nil
+	}
+	return fmt.Errorf("unknown StoragePlugin edge %s", name)
+}
+
+// StoragePluginPropertyMutation represents an operation that mutates the StoragePluginProperty nodes in the graph.
+type StoragePluginPropertyMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *uuid.UUID
+	created_at    *time.Time
+	updated_at    *time.Time
+	deleted_at    *time.Time
+	name          *string
+	value         *string
+	clearedFields map[string]struct{}
+	plugin        *uuid.UUID
+	clearedplugin bool
+	done          bool
+	oldValue      func(context.Context) (*StoragePluginProperty, error)
+	predicates    []predicate.StoragePluginProperty
+}
+
+var _ ent.Mutation = (*StoragePluginPropertyMutation)(nil)
+
+// storagepluginpropertyOption allows management of the mutation configuration using functional options.
+type storagepluginpropertyOption func(*StoragePluginPropertyMutation)
+
+// newStoragePluginPropertyMutation creates new mutation for the StoragePluginProperty entity.
+func newStoragePluginPropertyMutation(c config, op Op, opts ...storagepluginpropertyOption) *StoragePluginPropertyMutation {
+	m := &StoragePluginPropertyMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeStoragePluginProperty,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withStoragePluginPropertyID sets the ID field of the mutation.
+func withStoragePluginPropertyID(id uuid.UUID) storagepluginpropertyOption {
+	return func(m *StoragePluginPropertyMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *StoragePluginProperty
+		)
+		m.oldValue = func(ctx context.Context) (*StoragePluginProperty, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().StoragePluginProperty.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withStoragePluginProperty sets the old StoragePluginProperty of the mutation.
+func withStoragePluginProperty(node *StoragePluginProperty) storagepluginpropertyOption {
+	return func(m *StoragePluginPropertyMutation) {
+		m.oldValue = func(context.Context) (*StoragePluginProperty, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m StoragePluginPropertyMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m StoragePluginPropertyMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of StoragePluginProperty entities.
+func (m *StoragePluginPropertyMutation) SetID(id uuid.UUID) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *StoragePluginPropertyMutation) ID() (id uuid.UUID, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *StoragePluginPropertyMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []uuid.UUID{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().StoragePluginProperty.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *StoragePluginPropertyMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *StoragePluginPropertyMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the StoragePluginProperty entity.
+// If the StoragePluginProperty object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StoragePluginPropertyMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *StoragePluginPropertyMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *StoragePluginPropertyMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *StoragePluginPropertyMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the StoragePluginProperty entity.
+// If the StoragePluginProperty object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StoragePluginPropertyMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *StoragePluginPropertyMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *StoragePluginPropertyMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *StoragePluginPropertyMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the StoragePluginProperty entity.
+// If the StoragePluginProperty object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StoragePluginPropertyMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *StoragePluginPropertyMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[storagepluginproperty.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *StoragePluginPropertyMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[storagepluginproperty.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *StoragePluginPropertyMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, storagepluginproperty.FieldDeletedAt)
+}
+
+// SetName sets the "name" field.
+func (m *StoragePluginPropertyMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *StoragePluginPropertyMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the StoragePluginProperty entity.
+// If the StoragePluginProperty object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StoragePluginPropertyMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *StoragePluginPropertyMutation) ResetName() {
+	m.name = nil
+}
+
+// SetValue sets the "value" field.
+func (m *StoragePluginPropertyMutation) SetValue(s string) {
+	m.value = &s
+}
+
+// Value returns the value of the "value" field in the mutation.
+func (m *StoragePluginPropertyMutation) Value() (r string, exists bool) {
+	v := m.value
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldValue returns the old "value" field's value of the StoragePluginProperty entity.
+// If the StoragePluginProperty object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StoragePluginPropertyMutation) OldValue(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldValue is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldValue requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldValue: %w", err)
+	}
+	return oldValue.Value, nil
+}
+
+// ResetValue resets all changes to the "value" field.
+func (m *StoragePluginPropertyMutation) ResetValue() {
+	m.value = nil
+}
+
+// SetPluginID sets the "plugin" edge to the StoragePlugin entity by id.
+func (m *StoragePluginPropertyMutation) SetPluginID(id uuid.UUID) {
+	m.plugin = &id
+}
+
+// ClearPlugin clears the "plugin" edge to the StoragePlugin entity.
+func (m *StoragePluginPropertyMutation) ClearPlugin() {
+	m.clearedplugin = true
+}
+
+// PluginCleared reports if the "plugin" edge to the StoragePlugin entity was cleared.
+func (m *StoragePluginPropertyMutation) PluginCleared() bool {
+	return m.clearedplugin
+}
+
+// PluginID returns the "plugin" edge ID in the mutation.
+func (m *StoragePluginPropertyMutation) PluginID() (id uuid.UUID, exists bool) {
+	if m.plugin != nil {
+		return *m.plugin, true
+	}
+	return
+}
+
+// PluginIDs returns the "plugin" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// PluginID instead. It exists only for internal usage by the builders.
+func (m *StoragePluginPropertyMutation) PluginIDs() (ids []uuid.UUID) {
+	if id := m.plugin; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetPlugin resets all changes to the "plugin" edge.
+func (m *StoragePluginPropertyMutation) ResetPlugin() {
+	m.plugin = nil
+	m.clearedplugin = false
+}
+
+// Where appends a list predicates to the StoragePluginPropertyMutation builder.
+func (m *StoragePluginPropertyMutation) Where(ps ...predicate.StoragePluginProperty) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// Op returns the operation name.
+func (m *StoragePluginPropertyMutation) Op() Op {
+	return m.op
+}
+
+// Type returns the node type of this mutation (StoragePluginProperty).
+func (m *StoragePluginPropertyMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *StoragePluginPropertyMutation) Fields() []string {
+	fields := make([]string, 0, 5)
+	if m.created_at != nil {
+		fields = append(fields, storagepluginproperty.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, storagepluginproperty.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, storagepluginproperty.FieldDeletedAt)
+	}
+	if m.name != nil {
+		fields = append(fields, storagepluginproperty.FieldName)
+	}
+	if m.value != nil {
+		fields = append(fields, storagepluginproperty.FieldValue)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *StoragePluginPropertyMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case storagepluginproperty.FieldCreatedAt:
+		return m.CreatedAt()
+	case storagepluginproperty.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case storagepluginproperty.FieldDeletedAt:
+		return m.DeletedAt()
+	case storagepluginproperty.FieldName:
+		return m.Name()
+	case storagepluginproperty.FieldValue:
+		return m.Value()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *StoragePluginPropertyMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case storagepluginproperty.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case storagepluginproperty.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case storagepluginproperty.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case storagepluginproperty.FieldName:
+		return m.OldName(ctx)
+	case storagepluginproperty.FieldValue:
+		return m.OldValue(ctx)
+	}
+	return nil, fmt.Errorf("unknown StoragePluginProperty field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *StoragePluginPropertyMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case storagepluginproperty.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case storagepluginproperty.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case storagepluginproperty.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case storagepluginproperty.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case storagepluginproperty.FieldValue:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetValue(v)
+		return nil
+	}
+	return fmt.Errorf("unknown StoragePluginProperty field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *StoragePluginPropertyMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *StoragePluginPropertyMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *StoragePluginPropertyMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown StoragePluginProperty numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *StoragePluginPropertyMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(storagepluginproperty.FieldDeletedAt) {
+		fields = append(fields, storagepluginproperty.FieldDeletedAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *StoragePluginPropertyMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *StoragePluginPropertyMutation) ClearField(name string) error {
+	switch name {
+	case storagepluginproperty.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown StoragePluginProperty nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *StoragePluginPropertyMutation) ResetField(name string) error {
+	switch name {
+	case storagepluginproperty.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case storagepluginproperty.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case storagepluginproperty.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case storagepluginproperty.FieldName:
+		m.ResetName()
+		return nil
+	case storagepluginproperty.FieldValue:
+		m.ResetValue()
+		return nil
+	}
+	return fmt.Errorf("unknown StoragePluginProperty field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *StoragePluginPropertyMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.plugin != nil {
+		edges = append(edges, storagepluginproperty.EdgePlugin)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *StoragePluginPropertyMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case storagepluginproperty.EdgePlugin:
+		if id := m.plugin; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *StoragePluginPropertyMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *StoragePluginPropertyMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *StoragePluginPropertyMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedplugin {
+		edges = append(edges, storagepluginproperty.EdgePlugin)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *StoragePluginPropertyMutation) EdgeCleared(name string) bool {
+	switch name {
+	case storagepluginproperty.EdgePlugin:
+		return m.clearedplugin
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *StoragePluginPropertyMutation) ClearEdge(name string) error {
+	switch name {
+	case storagepluginproperty.EdgePlugin:
+		m.ClearPlugin()
+		return nil
+	}
+	return fmt.Errorf("unknown StoragePluginProperty unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *StoragePluginPropertyMutation) ResetEdge(name string) error {
+	switch name {
+	case storagepluginproperty.EdgePlugin:
+		m.ResetPlugin()
+		return nil
+	}
+	return fmt.Errorf("unknown StoragePluginProperty edge %s", name)
 }

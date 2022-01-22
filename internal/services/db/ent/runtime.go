@@ -7,9 +7,14 @@ import (
 
 	"github.com/khorevaa/r2gitsync/internal/services/db/ent/asset"
 	"github.com/khorevaa/r2gitsync/internal/services/db/ent/plugin"
+	"github.com/khorevaa/r2gitsync/internal/services/db/ent/pluginversion"
+	"github.com/khorevaa/r2gitsync/internal/services/db/ent/pluginversionproperty"
 	"github.com/khorevaa/r2gitsync/internal/services/db/ent/project"
 	"github.com/khorevaa/r2gitsync/internal/services/db/ent/schema"
 	"github.com/khorevaa/r2gitsync/internal/services/db/ent/storage"
+	"github.com/khorevaa/r2gitsync/internal/services/db/ent/storagecommit"
+	"github.com/khorevaa/r2gitsync/internal/services/db/ent/storageplugin"
+	"github.com/khorevaa/r2gitsync/internal/services/db/ent/storagepluginproperty"
 )
 
 // The init function reads all schema descriptors with runtime code
@@ -54,6 +59,48 @@ func init() {
 	pluginDescDescription := pluginFields[1].Descriptor()
 	// plugin.DescriptionValidator is a validator for the "description" field. It is called by the builders before save.
 	plugin.DescriptionValidator = pluginDescDescription.Validators[0].(func(string) error)
+	pluginversionMixin := schema.PluginVersion{}.Mixin()
+	pluginversionMixinFields0 := pluginversionMixin[0].Fields()
+	_ = pluginversionMixinFields0
+	pluginversionFields := schema.PluginVersion{}.Fields()
+	_ = pluginversionFields
+	// pluginversionDescCreatedAt is the schema descriptor for created_at field.
+	pluginversionDescCreatedAt := pluginversionMixinFields0[1].Descriptor()
+	// pluginversion.DefaultCreatedAt holds the default value on creation for the created_at field.
+	pluginversion.DefaultCreatedAt = pluginversionDescCreatedAt.Default.(func() time.Time)
+	// pluginversionDescUpdatedAt is the schema descriptor for updated_at field.
+	pluginversionDescUpdatedAt := pluginversionMixinFields0[2].Descriptor()
+	// pluginversion.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	pluginversion.DefaultUpdatedAt = pluginversionDescUpdatedAt.Default.(func() time.Time)
+	// pluginversion.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	pluginversion.UpdateDefaultUpdatedAt = pluginversionDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// pluginversionDescDescription is the schema descriptor for description field.
+	pluginversionDescDescription := pluginversionFields[1].Descriptor()
+	// pluginversion.DescriptionValidator is a validator for the "description" field. It is called by the builders before save.
+	pluginversion.DescriptionValidator = pluginversionDescDescription.Validators[0].(func(string) error)
+	pluginversionpropertyMixin := schema.PluginVersionProperty{}.Mixin()
+	pluginversionpropertyMixinFields0 := pluginversionpropertyMixin[0].Fields()
+	_ = pluginversionpropertyMixinFields0
+	pluginversionpropertyFields := schema.PluginVersionProperty{}.Fields()
+	_ = pluginversionpropertyFields
+	// pluginversionpropertyDescCreatedAt is the schema descriptor for created_at field.
+	pluginversionpropertyDescCreatedAt := pluginversionpropertyMixinFields0[1].Descriptor()
+	// pluginversionproperty.DefaultCreatedAt holds the default value on creation for the created_at field.
+	pluginversionproperty.DefaultCreatedAt = pluginversionpropertyDescCreatedAt.Default.(func() time.Time)
+	// pluginversionpropertyDescUpdatedAt is the schema descriptor for updated_at field.
+	pluginversionpropertyDescUpdatedAt := pluginversionpropertyMixinFields0[2].Descriptor()
+	// pluginversionproperty.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	pluginversionproperty.DefaultUpdatedAt = pluginversionpropertyDescUpdatedAt.Default.(func() time.Time)
+	// pluginversionproperty.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	pluginversionproperty.UpdateDefaultUpdatedAt = pluginversionpropertyDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// pluginversionpropertyDescName is the schema descriptor for name field.
+	pluginversionpropertyDescName := pluginversionpropertyFields[0].Descriptor()
+	// pluginversionproperty.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	pluginversionproperty.NameValidator = pluginversionpropertyDescName.Validators[0].(func(string) error)
+	// pluginversionpropertyDescDefault is the schema descriptor for default field.
+	pluginversionpropertyDescDefault := pluginversionpropertyFields[1].Descriptor()
+	// pluginversionproperty.DefaultValidator is a validator for the "default" field. It is called by the builders before save.
+	pluginversionproperty.DefaultValidator = pluginversionpropertyDescDefault.Validators[0].(func(string) error)
 	projectMixin := schema.Project{}.Mixin()
 	projectMixinFields0 := projectMixin[0].Fields()
 	_ = projectMixinFields0
@@ -88,4 +135,53 @@ func init() {
 	storage.DefaultUpdatedAt = storageDescUpdatedAt.Default.(func() time.Time)
 	// storage.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	storage.UpdateDefaultUpdatedAt = storageDescUpdatedAt.UpdateDefault.(func() time.Time)
+	storagecommitMixin := schema.StorageCommit{}.Mixin()
+	storagecommitMixinFields0 := storagecommitMixin[0].Fields()
+	_ = storagecommitMixinFields0
+	storagecommitFields := schema.StorageCommit{}.Fields()
+	_ = storagecommitFields
+	// storagecommitDescCreatedAt is the schema descriptor for created_at field.
+	storagecommitDescCreatedAt := storagecommitMixinFields0[1].Descriptor()
+	// storagecommit.DefaultCreatedAt holds the default value on creation for the created_at field.
+	storagecommit.DefaultCreatedAt = storagecommitDescCreatedAt.Default.(func() time.Time)
+	// storagecommitDescUpdatedAt is the schema descriptor for updated_at field.
+	storagecommitDescUpdatedAt := storagecommitMixinFields0[2].Descriptor()
+	// storagecommit.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	storagecommit.DefaultUpdatedAt = storagecommitDescUpdatedAt.Default.(func() time.Time)
+	// storagecommit.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	storagecommit.UpdateDefaultUpdatedAt = storagecommitDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// storagecommitDescNumber is the schema descriptor for number field.
+	storagecommitDescNumber := storagecommitFields[0].Descriptor()
+	// storagecommit.NumberValidator is a validator for the "number" field. It is called by the builders before save.
+	storagecommit.NumberValidator = storagecommitDescNumber.Validators[0].(func(uint) error)
+	storagepluginMixin := schema.StoragePlugin{}.Mixin()
+	storagepluginMixinFields0 := storagepluginMixin[0].Fields()
+	_ = storagepluginMixinFields0
+	storagepluginFields := schema.StoragePlugin{}.Fields()
+	_ = storagepluginFields
+	// storagepluginDescCreatedAt is the schema descriptor for created_at field.
+	storagepluginDescCreatedAt := storagepluginMixinFields0[1].Descriptor()
+	// storageplugin.DefaultCreatedAt holds the default value on creation for the created_at field.
+	storageplugin.DefaultCreatedAt = storagepluginDescCreatedAt.Default.(func() time.Time)
+	// storagepluginDescUpdatedAt is the schema descriptor for updated_at field.
+	storagepluginDescUpdatedAt := storagepluginMixinFields0[2].Descriptor()
+	// storageplugin.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	storageplugin.DefaultUpdatedAt = storagepluginDescUpdatedAt.Default.(func() time.Time)
+	// storageplugin.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	storageplugin.UpdateDefaultUpdatedAt = storagepluginDescUpdatedAt.UpdateDefault.(func() time.Time)
+	storagepluginpropertyMixin := schema.StoragePluginProperty{}.Mixin()
+	storagepluginpropertyMixinFields0 := storagepluginpropertyMixin[0].Fields()
+	_ = storagepluginpropertyMixinFields0
+	storagepluginpropertyFields := schema.StoragePluginProperty{}.Fields()
+	_ = storagepluginpropertyFields
+	// storagepluginpropertyDescCreatedAt is the schema descriptor for created_at field.
+	storagepluginpropertyDescCreatedAt := storagepluginpropertyMixinFields0[1].Descriptor()
+	// storagepluginproperty.DefaultCreatedAt holds the default value on creation for the created_at field.
+	storagepluginproperty.DefaultCreatedAt = storagepluginpropertyDescCreatedAt.Default.(func() time.Time)
+	// storagepluginpropertyDescUpdatedAt is the schema descriptor for updated_at field.
+	storagepluginpropertyDescUpdatedAt := storagepluginpropertyMixinFields0[2].Descriptor()
+	// storagepluginproperty.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	storagepluginproperty.DefaultUpdatedAt = storagepluginpropertyDescUpdatedAt.Default.(func() time.Time)
+	// storagepluginproperty.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	storagepluginproperty.UpdateDefaultUpdatedAt = storagepluginpropertyDescUpdatedAt.UpdateDefault.(func() time.Time)
 }
