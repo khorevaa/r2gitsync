@@ -19,7 +19,11 @@ type ProjectsLogic struct {
 	di di.IAppDeps
 }
 
-func (p ProjectsLogic) GetProjects(ctx context.Context) (dto.Projects, error) {
-	// TODO implement me
-	panic("implement me")
+func (p *ProjectsLogic) GetProjects(ctx context.Context) (dto.Projects, error) {
+
+	projects, err := p.di.DB().Projects.Fetch(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return projects, nil
 }

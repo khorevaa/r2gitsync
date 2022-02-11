@@ -1,8 +1,10 @@
 package di
 
+import "github.com/khorevaa/r2gitsync/internal/services/datastore"
+
 // IAppDeps - dependency injection container
 type IAppDeps interface {
-	// DBRepo() *db.DBRepo
+	DB() *datastore.Repository
 	// ElasticRepo() *elastic.Repository
 	// MongoRepo() *mongo.MongoRepo
 	// CacheRepo() *cache.CacheRepo
@@ -10,11 +12,19 @@ type IAppDeps interface {
 	// Log() *zap.Logger
 }
 
+func New(db *datastore.Repository) IAppDeps {
+	return &DI{db: db}
+}
+
 type DI struct {
-	// dbRepo      *db.DBRepo
+	db *datastore.Repository
 	// elasticRepo *elastic.Repository
 	// mongoRepo   *mongo.MongoRepo
 	// cacheRepo   *cache.CacheRepo
 	// mq          *message_queue.RabbitMq
 	// logger      *zap.Logger
+}
+
+func (d *DI) DB() *datastore.Repository {
+	return d.db
 }
