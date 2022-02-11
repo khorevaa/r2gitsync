@@ -112,6 +112,14 @@ func (scc *StorageCommitCreate) SetID(u uuid.UUID) *StorageCommitCreate {
 	return scc
 }
 
+// SetNillableID sets the "id" field if the given value is not nil.
+func (scc *StorageCommitCreate) SetNillableID(u *uuid.UUID) *StorageCommitCreate {
+	if u != nil {
+		scc.SetID(*u)
+	}
+	return scc
+}
+
 // SetStorageID sets the "storage" edge to the Storage entity by ID.
 func (scc *StorageCommitCreate) SetStorageID(id uuid.UUID) *StorageCommitCreate {
 	scc.mutation.SetStorageID(id)
@@ -201,6 +209,10 @@ func (scc *StorageCommitCreate) defaults() {
 	if _, ok := scc.mutation.UpdatedAt(); !ok {
 		v := storagecommit.DefaultUpdatedAt()
 		scc.mutation.SetUpdatedAt(v)
+	}
+	if _, ok := scc.mutation.ID(); !ok {
+		v := storagecommit.DefaultID()
+		scc.mutation.SetID(v)
 	}
 }
 

@@ -75,6 +75,14 @@ func (ac *AssetCreate) SetID(u uuid.UUID) *AssetCreate {
 	return ac
 }
 
+// SetNillableID sets the "id" field if the given value is not nil.
+func (ac *AssetCreate) SetNillableID(u *uuid.UUID) *AssetCreate {
+	if u != nil {
+		ac.SetID(*u)
+	}
+	return ac
+}
+
 // Mutation returns the AssetMutation object of the builder.
 func (ac *AssetCreate) Mutation() *AssetMutation {
 	return ac.mutation
@@ -153,6 +161,10 @@ func (ac *AssetCreate) defaults() {
 	if _, ok := ac.mutation.UpdatedAt(); !ok {
 		v := asset.DefaultUpdatedAt()
 		ac.mutation.SetUpdatedAt(v)
+	}
+	if _, ok := ac.mutation.ID(); !ok {
+		v := asset.DefaultID()
+		ac.mutation.SetID(v)
 	}
 }
 

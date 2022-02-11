@@ -5,6 +5,7 @@ package db
 import (
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/khorevaa/r2gitsync/internal/schema"
 	"github.com/khorevaa/r2gitsync/internal/services/db/asset"
 	"github.com/khorevaa/r2gitsync/internal/services/db/plugin"
@@ -36,6 +37,10 @@ func init() {
 	asset.DefaultUpdatedAt = assetDescUpdatedAt.Default.(func() time.Time)
 	// asset.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	asset.UpdateDefaultUpdatedAt = assetDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// assetDescID is the schema descriptor for id field.
+	assetDescID := assetMixinFields0[0].Descriptor()
+	// asset.DefaultID holds the default value on creation for the id field.
+	asset.DefaultID = assetDescID.Default.(func() uuid.UUID)
 	pluginMixin := schema.Plugin{}.Mixin()
 	pluginMixinFields0 := pluginMixin[0].Fields()
 	_ = pluginMixinFields0
@@ -59,6 +64,10 @@ func init() {
 	pluginDescDescription := pluginFields[1].Descriptor()
 	// plugin.DescriptionValidator is a validator for the "description" field. It is called by the builders before save.
 	plugin.DescriptionValidator = pluginDescDescription.Validators[0].(func(string) error)
+	// pluginDescID is the schema descriptor for id field.
+	pluginDescID := pluginMixinFields0[0].Descriptor()
+	// plugin.DefaultID holds the default value on creation for the id field.
+	plugin.DefaultID = pluginDescID.Default.(func() uuid.UUID)
 	pluginversionMixin := schema.PluginVersion{}.Mixin()
 	pluginversionMixinFields0 := pluginversionMixin[0].Fields()
 	_ = pluginversionMixinFields0
@@ -78,6 +87,10 @@ func init() {
 	pluginversionDescDescription := pluginversionFields[1].Descriptor()
 	// pluginversion.DescriptionValidator is a validator for the "description" field. It is called by the builders before save.
 	pluginversion.DescriptionValidator = pluginversionDescDescription.Validators[0].(func(string) error)
+	// pluginversionDescID is the schema descriptor for id field.
+	pluginversionDescID := pluginversionMixinFields0[0].Descriptor()
+	// pluginversion.DefaultID holds the default value on creation for the id field.
+	pluginversion.DefaultID = pluginversionDescID.Default.(func() uuid.UUID)
 	pluginversionpropertyMixin := schema.PluginVersionProperty{}.Mixin()
 	pluginversionpropertyMixinFields0 := pluginversionpropertyMixin[0].Fields()
 	_ = pluginversionpropertyMixinFields0
@@ -101,6 +114,10 @@ func init() {
 	pluginversionpropertyDescDefault := pluginversionpropertyFields[1].Descriptor()
 	// pluginversionproperty.DefaultValidator is a validator for the "default" field. It is called by the builders before save.
 	pluginversionproperty.DefaultValidator = pluginversionpropertyDescDefault.Validators[0].(func(string) error)
+	// pluginversionpropertyDescID is the schema descriptor for id field.
+	pluginversionpropertyDescID := pluginversionpropertyMixinFields0[0].Descriptor()
+	// pluginversionproperty.DefaultID holds the default value on creation for the id field.
+	pluginversionproperty.DefaultID = pluginversionpropertyDescID.Default.(func() uuid.UUID)
 	projectMixin := schema.Project{}.Mixin()
 	projectMixinFields0 := projectMixin[0].Fields()
 	_ = projectMixinFields0
@@ -120,6 +137,10 @@ func init() {
 	projectDescCode := projectFields[0].Descriptor()
 	// project.CodeValidator is a validator for the "code" field. It is called by the builders before save.
 	project.CodeValidator = projectDescCode.Validators[0].(func(string) error)
+	// projectDescID is the schema descriptor for id field.
+	projectDescID := projectMixinFields0[0].Descriptor()
+	// project.DefaultID holds the default value on creation for the id field.
+	project.DefaultID = projectDescID.Default.(func() uuid.UUID)
 	storageMixin := schema.Storage{}.Mixin()
 	storageMixinFields0 := storageMixin[0].Fields()
 	_ = storageMixinFields0
@@ -135,6 +156,10 @@ func init() {
 	storage.DefaultUpdatedAt = storageDescUpdatedAt.Default.(func() time.Time)
 	// storage.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	storage.UpdateDefaultUpdatedAt = storageDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// storageDescID is the schema descriptor for id field.
+	storageDescID := storageMixinFields0[0].Descriptor()
+	// storage.DefaultID holds the default value on creation for the id field.
+	storage.DefaultID = storageDescID.Default.(func() uuid.UUID)
 	storagecommitMixin := schema.StorageCommit{}.Mixin()
 	storagecommitMixinFields0 := storagecommitMixin[0].Fields()
 	_ = storagecommitMixinFields0
@@ -154,6 +179,10 @@ func init() {
 	storagecommitDescNumber := storagecommitFields[0].Descriptor()
 	// storagecommit.NumberValidator is a validator for the "number" field. It is called by the builders before save.
 	storagecommit.NumberValidator = storagecommitDescNumber.Validators[0].(func(uint) error)
+	// storagecommitDescID is the schema descriptor for id field.
+	storagecommitDescID := storagecommitMixinFields0[0].Descriptor()
+	// storagecommit.DefaultID holds the default value on creation for the id field.
+	storagecommit.DefaultID = storagecommitDescID.Default.(func() uuid.UUID)
 	storagepluginMixin := schema.StoragePlugin{}.Mixin()
 	storagepluginMixinFields0 := storagepluginMixin[0].Fields()
 	_ = storagepluginMixinFields0
@@ -169,6 +198,10 @@ func init() {
 	storageplugin.DefaultUpdatedAt = storagepluginDescUpdatedAt.Default.(func() time.Time)
 	// storageplugin.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	storageplugin.UpdateDefaultUpdatedAt = storagepluginDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// storagepluginDescID is the schema descriptor for id field.
+	storagepluginDescID := storagepluginMixinFields0[0].Descriptor()
+	// storageplugin.DefaultID holds the default value on creation for the id field.
+	storageplugin.DefaultID = storagepluginDescID.Default.(func() uuid.UUID)
 	storagepluginpropertyMixin := schema.StoragePluginProperty{}.Mixin()
 	storagepluginpropertyMixinFields0 := storagepluginpropertyMixin[0].Fields()
 	_ = storagepluginpropertyMixinFields0
@@ -184,4 +217,8 @@ func init() {
 	storagepluginproperty.DefaultUpdatedAt = storagepluginpropertyDescUpdatedAt.Default.(func() time.Time)
 	// storagepluginproperty.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	storagepluginproperty.UpdateDefaultUpdatedAt = storagepluginpropertyDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// storagepluginpropertyDescID is the schema descriptor for id field.
+	storagepluginpropertyDescID := storagepluginpropertyMixinFields0[0].Descriptor()
+	// storagepluginproperty.DefaultID holds the default value on creation for the id field.
+	storagepluginproperty.DefaultID = storagepluginpropertyDescID.Default.(func() uuid.UUID)
 }

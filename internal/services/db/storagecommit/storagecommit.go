@@ -4,6 +4,8 @@ package storagecommit
 
 import (
 	"time"
+
+	"github.com/google/uuid"
 )
 
 const (
@@ -89,4 +91,6 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 	// NumberValidator is a validator for the "number" field. It is called by the builders before save.
 	NumberValidator func(uint) error
+	// DefaultID holds the default value on creation for the "id" field.
+	DefaultID func() uuid.UUID
 )

@@ -5,14 +5,18 @@ import (
 	"github.com/khorevaa/r2gitsync/internal/bl"
 	"github.com/khorevaa/r2gitsync/internal/di"
 	"github.com/khorevaa/r2gitsync/internal/io/http"
-	db2 "github.com/khorevaa/r2gitsync/internal/services/datastore"
+	"github.com/khorevaa/r2gitsync/internal/services/datastore"
 )
 
 func main() {
 
 	cfg := &ucfg.Config{}
 
-	database, _ := db2.New(cfg)
+	database, err := datastore.New(cfg)
+
+	if err != nil {
+		panic(err)
+	}
 
 	deps := di.New(database)
 

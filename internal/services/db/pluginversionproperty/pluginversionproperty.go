@@ -5,6 +5,8 @@ package pluginversionproperty
 import (
 	"fmt"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 const (
@@ -93,6 +95,8 @@ var (
 	NameValidator func(string) error
 	// DefaultValidator is a validator for the "default" field. It is called by the builders before save.
 	DefaultValidator func(string) error
+	// DefaultID holds the default value on creation for the "id" field.
+	DefaultID func() uuid.UUID
 )
 
 // Type defines the type for the "type" enum field.

@@ -81,6 +81,14 @@ func (pc *PluginCreate) SetID(u uuid.UUID) *PluginCreate {
 	return pc
 }
 
+// SetNillableID sets the "id" field if the given value is not nil.
+func (pc *PluginCreate) SetNillableID(u *uuid.UUID) *PluginCreate {
+	if u != nil {
+		pc.SetID(*u)
+	}
+	return pc
+}
+
 // Mutation returns the PluginMutation object of the builder.
 func (pc *PluginCreate) Mutation() *PluginMutation {
 	return pc.mutation
@@ -159,6 +167,10 @@ func (pc *PluginCreate) defaults() {
 	if _, ok := pc.mutation.UpdatedAt(); !ok {
 		v := plugin.DefaultUpdatedAt()
 		pc.mutation.SetUpdatedAt(v)
+	}
+	if _, ok := pc.mutation.ID(); !ok {
+		v := plugin.DefaultID()
+		pc.mutation.SetID(v)
 	}
 }
 

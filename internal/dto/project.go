@@ -2,7 +2,7 @@ package dto
 
 import (
 	"github.com/google/uuid"
-	"github.com/khorevaa/r2gitsync/internal/services/datastore/ent"
+	"github.com/khorevaa/r2gitsync/internal/services/db"
 )
 
 type ProjectType string
@@ -14,20 +14,22 @@ const (
 )
 
 type Project struct {
-	ID             uuid.UUID
-	Code           string
-	Name           string
-	Description    string
-	Type           ProjectType
-	MasterStorage  *Storage
-	DevelopStorage *Storage
+	ID               uuid.UUID
+	Code             string
+	Name             string
+	Description      string
+	Type             ProjectType
+	MasterStorageID  *uuid.UUID
+	DevelopStorageID *uuid.UUID
+	MasterStorage    *Storage
+	DevelopStorage   *Storage
 
 	Storages []*Storage
 }
 
 type Projects []*Project
 
-func (p *Project) FromEnt(edm *ent.Project) *Project {
+func (p *Project) FromEnt(edm *db.Project) *Project {
 	if edm == nil {
 		return nil
 	}
@@ -44,7 +46,7 @@ func (p *Project) FromEnt(edm *ent.Project) *Project {
 	}
 }
 
-func (p Projects) FromEnt(edm ent.Projects) Projects {
+func (p Projects) FromEnt(edm db.Projects) Projects {
 	if edm == nil {
 		return nil
 	}

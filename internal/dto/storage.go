@@ -2,8 +2,8 @@ package dto
 
 import (
 	"github.com/google/uuid"
-	"github.com/khorevaa/r2gitsync/internal/services/datastore/ent"
-	"github.com/khorevaa/r2gitsync/internal/services/datastore/ent/storage"
+	"github.com/khorevaa/r2gitsync/internal/services/db"
+	"github.com/khorevaa/r2gitsync/internal/services/db/storage"
 )
 
 type StorageType uint
@@ -20,7 +20,7 @@ type Storage struct {
 
 type Storages []*Storage
 
-func (p *Storage) FromEnt(edm *ent.Storage) *Storage {
+func (p *Storage) FromEnt(edm *db.Storage) *Storage {
 	if edm == nil {
 		return nil
 	}
@@ -36,7 +36,7 @@ func (p *Storage) FromEnt(edm *ent.Storage) *Storage {
 	}
 }
 
-func (p Storages) FromEnt(edm ent.Storages) Storages {
+func (p Storages) FromEnt(edm db.Storages) Storages {
 	if len(edm) == 0 {
 		return nil
 	}

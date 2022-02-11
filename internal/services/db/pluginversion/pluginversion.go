@@ -4,6 +4,8 @@ package pluginversion
 
 import (
 	"time"
+
+	"github.com/google/uuid"
 )
 
 const (
@@ -77,4 +79,6 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 	// DescriptionValidator is a validator for the "description" field. It is called by the builders before save.
 	DescriptionValidator func(string) error
+	// DefaultID holds the default value on creation for the "id" field.
+	DefaultID func() uuid.UUID
 )

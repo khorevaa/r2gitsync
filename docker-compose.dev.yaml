@@ -1,0 +1,46 @@
+version: "3.3"
+
+services:
+  postgres:
+    image: postgres
+    container_name: postgres_r2gitsync
+    environment:
+      POSTGRES_PASSWORD: passw0rd
+      PG_PASSWORD: passw0rd
+      POSTGRES_DB: r2gitsync
+#    volumes:
+#      - /data/postgresql:/var/lib/postgresql/data/
+    ports:
+      - "5432:5432"
+    networks:
+      - backend
+  redis:
+    image: redis:alpine
+    container_name: redis_r2gitsync
+    ports:
+      - 6379:6379
+    networks:
+      - backend
+
+
+
+  rabbit:
+    image: rabbitmq:management-alpine
+    container_name: rabbit_r2gitsync
+    environment:
+      rabbitmq_default_user: guest
+      rabbitmq_default_pass: guest
+    ports:
+      - 4369:4369
+      - 5671:5671
+      - 5672:5672
+      - 15672:15672
+      - 15691:15691
+      - 15692:15692
+      - 25672:25672
+    networks:
+      - backend
+
+networks:
+  backend:
+    external: true

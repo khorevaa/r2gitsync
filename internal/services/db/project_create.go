@@ -94,6 +94,14 @@ func (pc *ProjectCreate) SetID(u uuid.UUID) *ProjectCreate {
 	return pc
 }
 
+// SetNillableID sets the "id" field if the given value is not nil.
+func (pc *ProjectCreate) SetNillableID(u *uuid.UUID) *ProjectCreate {
+	if u != nil {
+		pc.SetID(*u)
+	}
+	return pc
+}
+
 // AddStorageIDs adds the "storages" edge to the Storage entity by IDs.
 func (pc *ProjectCreate) AddStorageIDs(ids ...uuid.UUID) *ProjectCreate {
 	pc.mutation.AddStorageIDs(ids...)
@@ -225,6 +233,10 @@ func (pc *ProjectCreate) defaults() {
 	if _, ok := pc.mutation.UpdatedAt(); !ok {
 		v := project.DefaultUpdatedAt()
 		pc.mutation.SetUpdatedAt(v)
+	}
+	if _, ok := pc.mutation.ID(); !ok {
+		v := project.DefaultID()
+		pc.mutation.SetID(v)
 	}
 }
 

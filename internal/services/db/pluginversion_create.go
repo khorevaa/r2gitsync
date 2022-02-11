@@ -88,6 +88,14 @@ func (pvc *PluginVersionCreate) SetID(u uuid.UUID) *PluginVersionCreate {
 	return pvc
 }
 
+// SetNillableID sets the "id" field if the given value is not nil.
+func (pvc *PluginVersionCreate) SetNillableID(u *uuid.UUID) *PluginVersionCreate {
+	if u != nil {
+		pvc.SetID(*u)
+	}
+	return pvc
+}
+
 // SetPluginID sets the "plugin" edge to the Plugin entity by ID.
 func (pvc *PluginVersionCreate) SetPluginID(id uuid.UUID) *PluginVersionCreate {
 	pvc.mutation.SetPluginID(id)
@@ -177,6 +185,10 @@ func (pvc *PluginVersionCreate) defaults() {
 	if _, ok := pvc.mutation.UpdatedAt(); !ok {
 		v := pluginversion.DefaultUpdatedAt()
 		pvc.mutation.SetUpdatedAt(v)
+	}
+	if _, ok := pvc.mutation.ID(); !ok {
+		v := pluginversion.DefaultID()
+		pvc.mutation.SetID(v)
 	}
 }
 

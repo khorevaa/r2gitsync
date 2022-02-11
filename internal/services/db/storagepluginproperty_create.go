@@ -82,6 +82,14 @@ func (sppc *StoragePluginPropertyCreate) SetID(u uuid.UUID) *StoragePluginProper
 	return sppc
 }
 
+// SetNillableID sets the "id" field if the given value is not nil.
+func (sppc *StoragePluginPropertyCreate) SetNillableID(u *uuid.UUID) *StoragePluginPropertyCreate {
+	if u != nil {
+		sppc.SetID(*u)
+	}
+	return sppc
+}
+
 // SetPluginID sets the "plugin" edge to the StoragePlugin entity by ID.
 func (sppc *StoragePluginPropertyCreate) SetPluginID(id uuid.UUID) *StoragePluginPropertyCreate {
 	sppc.mutation.SetPluginID(id)
@@ -171,6 +179,10 @@ func (sppc *StoragePluginPropertyCreate) defaults() {
 	if _, ok := sppc.mutation.UpdatedAt(); !ok {
 		v := storagepluginproperty.DefaultUpdatedAt()
 		sppc.mutation.SetUpdatedAt(v)
+	}
+	if _, ok := sppc.mutation.ID(); !ok {
+		v := storagepluginproperty.DefaultID()
+		sppc.mutation.SetID(v)
 	}
 }
 

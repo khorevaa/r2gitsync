@@ -15,7 +15,8 @@ type ModelMixin struct {
 
 func (ModelMixin) Fields() []ent.Field {
 	return []ent.Field{
-		field.UUID("id", uuid.New()),
+		field.UUID("id", uuid.New()).
+			Default(uuid.New),
 		field.Time("created_at").
 			Immutable().
 			Default(time.Now),

@@ -1,14 +1,18 @@
 package datastore
 
 import (
+	"context"
+
 	"github.com/elastic/go-ucfg"
 	"github.com/khorevaa/logos"
 	"github.com/khorevaa/r2gitsync/internal/services/datastore/repo"
 	"github.com/khorevaa/r2gitsync/internal/services/db"
+	"github.com/khorevaa/r2gitsync/internal/services/db/migrate"
 	_ "github.com/lib/pq"
+	_ "github.com/mattn/go-sqlite3"
 )
 
-var log = logos.New("github.com/khorevaa/r2gitsync/services/repo")
+var log = logos.New("github.com/khorevaa/r2gitsync/services/repo").Sugar()
 
 type Repository struct {
 	Projects       repo.IProjectRepository
@@ -43,22 +47,35 @@ func New(cfg *ucfg.Config) (*Repository, error) {
 func connectDb(cfg *ucfg.Config) (*db.Client, error) {
 
 	// var dialector gorm.Dialector
-	config := Config{}
-
-	err := cfg.Unpack(config)
-	if err != nil {
-		return nil, err
-	}
+	// config := Config{}
+	//
+	// err := cfg.Unpack(config)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	// logLevel := logger.Warn
 	// if config.TraceSQLCommands {
 	// 	logLevel = logger.Info
 	// }
 
-	client, err := db.Open("postgres", "host=<host> port=<port> user=<user> dbname=<database> password=<pass>")
+	// client, err := db.Open("sqlite3", "file:ent?mode=memory&cache=shared&_fk=1")
+	// if err != nil {
+	// 	log.Fatalf("failed opening connection to sqlite: %v", err)
+	// }
+	client, err := db.Open("postgres", "host=localhost port=5432 user=postgres dbname=r2gitsync password=passw0rd sslmode=disable")
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-
+	ctx := context.Background()
+	// Run migration.
+	err = client.Schema.Create(
+		ctx,
+		migrate.WithDropIndex(true),
+		migrate.WithDropColumn(true),
+	)
+	if err != nil {
+		log.Fatalf("failed creating schema resources: %v", err)
+	}
 	return client, nil
 }
